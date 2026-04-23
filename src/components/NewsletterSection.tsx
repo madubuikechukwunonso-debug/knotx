@@ -1,32 +1,84 @@
-'use client';
-import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, Check } from 'lucide-react';
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { trpc } from "@/providers/trpc";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { ArrowRight, Check } from "lucide-react";
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function NewsletterSection() {
-  const [email, setEmail] = useState('');
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+
+  const subscribe = trpc.subscriber.subscribe.useMutation({
+    onSuccess: () => {
+      setSubmitted(true);
+      setEmail("");
+    },
+  });
 
   useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) { setVisible(true); observer.disconnect(); }
-    }, { threshold: 0.3 });
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        sectionRef.current,
+        { opacity: 0, y: 50 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 1.2,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 80%",
+          },
+        }
+      );
+    }, sectionRef);
+
+    return () => ctx.revert();
   }, []);
 
   return (
-    <section ref={ref} className="w-full bg-[#f6f6f6] py-24 lg:py-32">
-      <div className={`mx-auto max-w-xl px-6 text-center transition-all duration-1000 ${visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-        <h2 className="font-serif text-3xl font-light sm:text-4xl lg:text-5xl">Join the Inner Circle</h2>
-        <p className="mb-10 mt-4 text-sm text-black/50">Exclusive offers, styling tips, and early access to new collections.</p>
+    <section ref={sectionRef} className="w-full bg-[#f6f6f6] py-24 lg:py-32">
+      <div className="max-w-xl mx-auto px-6 text-center">
+        <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-light mb-4">
+          Join the Inner Circle
+        </h2>
+        <p className="text-black/50 text-sm mb-10">
+          Exclusive offers, styling tips, and early access to new collections.
+        </p>
+
         {submitted ? (
-          <div className="flex items-center justify-center gap-2 text-green-600"><Check className="h-5 w-5" /><span className="text-sm font-medium">Thank you for subscribing</span></div>
+          <div className="flex items-center justify-center gap-2 text-green-600">
+            <Check className="w-5 h-5" />
+            <span className="text-sm font-medium">Thank you for subscribing</span>
+          </div>
         ) : (
-          <form onSubmit={(e) => { e.preventDefault(); if (email) setSubmitted(true); }} className="flex flex-col gap-3 sm:flex-row">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter your email" className="flex-1 border-0 bg-white px-6 py-4 text-sm outline-none focus:ring-1 focus:ring-black/20" required />
-            <button type="submit" className="flex items-center justify-center gap-2 bg-black px-8 py-4 text-sm font-medium uppercase tracking-widest text-white transition-colors hover:bg-black/80">Subscribe<ArrowRight className="h-4 w-4" /></button>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (email) subscribe.mutate({ email });
+            }}
+            className="flex flex-col sm:flex-row gap-3"
+          >
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              className="flex-1 bg-white border-0 px-6 py-4 text-sm outline-none focus:ring-1 focus:ring-black/20"
+              required
+            />
+            <button
+              type="submit"
+              className="bg-black text-white px-8 py-4 text-sm uppercase tracking-widest font-medium flex items-center justify-center gap-2 hover:bg-black/80 transition-colors"
+            >
+              Subscribe
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </form>
         )}
       </div>
