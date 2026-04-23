@@ -1,4 +1,18 @@
-export type BookingInput = {
+export type BookingSessionUser = {
+  userId: number;
+  userType: "local" | "oauth";
+  email?: string;
+  role?: "user" | "worker" | "admin" | "super_admin";
+  name?: string;
+};
+
+export type AvailableSlot = {
+  staffUserId: number;
+  staffName: string;
+  time: string;
+};
+
+export type CreateBookingInput = {
   customerName: string;
   customerEmail: string;
   customerPhone?: string;
@@ -8,5 +22,10 @@ export type BookingInput = {
   time: string;
   notes?: string;
   userId?: number;
-  userType?: 'local' | 'oauth';
+  userType?: "oauth" | "local";
+};
+
+export type AvailabilityInput = {
+  date: string;
+  serviceId: number;
 };
