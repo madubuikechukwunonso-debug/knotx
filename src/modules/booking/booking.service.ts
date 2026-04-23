@@ -1,6 +1,6 @@
 import { and, asc, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { bookings, services, staffProfiles, staffTimeOff, staffWorkingHours } from '../../../../db/schema';
+import { bookings, services, staffProfiles, staffTimeOff, staffWorkingHours } from '../../../db/schema';
 import type { BookingInput } from './booking.types';
 
 function dayOfWeekFromDate(dateStr: string) { return new Date(`${dateStr}T12:00:00`).getDay(); }
