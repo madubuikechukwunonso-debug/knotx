@@ -21,7 +21,7 @@ export default function HeroSection() {
 
   return (
     <section className="relative w-full h-screen overflow-hidden bg-black">
-      {/* Video grid */}
+      {/* Video Grid */}
       <div
         className={`absolute inset-0 grid grid-cols-2 grid-rows-2 transition-opacity duration-1000 ${
           mounted ? "opacity-100" : "opacity-0"
@@ -38,35 +38,38 @@ export default function HeroSection() {
               muted
               loop
               playsInline
-              preload="auto"           // ← Added
+              preload="auto"
+              webkit-playsinline=""
+              x5-playsinline=""
               controls={false}
-              webkit-playsinline=""    // ← Important for iOS
-              x5-playsinline=""        // ← Important for Android
-              x5-video-player-fullscreen="true"
             >
               <source src={src} type="video/webm" />
             </video>
 
+            {/* Overlays for cinematic feel */}
             <div className="absolute inset-0 bg-black/20" />
             <div
               className="absolute inset-0"
               style={{
-                background: "radial-gradient(circle at center, transparent 35%, rgba(0,0,0,0.38) 100%)",
+                background:
+                  "radial-gradient(circle at center, transparent 35%, rgba(0,0,0,0.38) 100%)",
               }}
             />
           </div>
         ))}
       </div>
 
-      {/* Overlays and text - same as before */}
+      {/* Main cinematic overlays */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/10 to-black/55" />
       <div
         className="absolute inset-0"
         style={{
-          background: "radial-gradient(circle at center, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.28) 35%, rgba(0,0,0,0.58) 100%)",
+          background:
+            "radial-gradient(circle at center, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.28) 35%, rgba(0,0,0,0.58) 100%)",
         }}
       />
 
+      {/* Hero Text */}
       <div className="absolute inset-0 z-10 flex items-center justify-center">
         <div className="px-6 text-center">
           <h1 className="font-serif text-white text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-[120px] font-light tracking-tight leading-none">
@@ -78,6 +81,14 @@ export default function HeroSection() {
             Luxury Hair Craft Since 2023
           </p>
         </div>
+      </div>
+
+      {/* Scroll indicator */}
+      <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2">
+        <span className="text-white/60 text-xs uppercase tracking-widest">
+          Scroll
+        </span>
+        <div className="h-8 w-px animate-pulse bg-white/40" />
       </div>
     </section>
   );
