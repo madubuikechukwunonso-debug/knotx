@@ -3,7 +3,7 @@ import { eq, or } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { db } from './db';
 import { SESSION_COOKIE, signSession, type SessionPayload } from './session';
-import { localUsers } from '../../../db/schema';
+import { localUsers } from '../../db/schema';
 import { env } from './env';
 
 export async function bootstrapInitialAdmin() {
