@@ -12,7 +12,7 @@ let dbInstance: ReturnType<typeof drizzle> | null = null;
 export function db() {
   if (!dbInstance) {
     pool = createPool({
-      uri: env.DATABASE_URL,
+      uri: env.databaseUrl,
       connectionLimit: 10,
       enableKeepAlive: true,
     });
