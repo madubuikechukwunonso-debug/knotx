@@ -1,6 +1,6 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { orderItems, orders, products } from '../../../../db/schema';
+import { orderItems, orders, products } from '../../../db/schema';
 import type { OrderInput } from './orders.types';
 
 export async function createOrder(input: OrderInput) {
