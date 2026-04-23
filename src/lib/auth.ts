@@ -1,106 +1,125 @@
-import bcrypt from 'bcryptjs';
-import { eq, or } from 'drizzle-orm';
-import { cookies } from 'next/headers';
-import { db } from './db';
-import { SESSION_COOKIE, signSession, type SessionPayload } from './session';
-import { localUsers } from '../../db/schema';
-import { env } from './env';
+import bcrypt from "bcryptjs";
+import { eq, or } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { localUsers } from "../../db/schema";
+import type { SessionRole } from "@/lib/session";
 
-export async function bootstrapInitialAdmin() {
-  if (!env.initialAdminEmail || !env.initialAdminPassword) return;
-  const database = db();
-  const [existing] = await database
-    .select()
-    .from(localUsers)
-    .where(or(eq(localUsers.email, env.initialAdminEmail), eq(localUsers.role, 'super_admin')))
-    .limit(1);
+type CredentialsLoginInput = {
+  identifier: string;
+  password: string;
+};
 
-  if (existing && existing.role === 'super_admin') return;
+type CredentialsRegisterInput = {
+  username: string;
+  email: string;
+  password: string;
+  displayName?: string;
+};
 
-  const passwordHash = await bcrypt.hash(env.initialAdminPassword, 10);
-  if (existing) {
-    await database
-      .update(localUsers)
-      .set({
-        username: env.initialAdminUsername || existing.username,
-        email: env.initialAdminEmail,
-        displayName: env.initialAdminName,
-        passwordHash,
-        role: 'super_admin',
-        isActive: 1,
-        isBlocked: 0,
-      })
-      .where(eq(localUsers.id, existing.id));
-    return;
+export type AuthUser = {
+  id: number;
+  userType: "local" | "oauth";
+  role: SessionRole;
+  email: string;
+  name: string;
+};
+
+export async function loginCredentials(
+  input: CredentialsLoginInput,
+): Promise<AuthUser> {
+  const identifier = input.identifier.trim();
+  const password = input.password;
+
+  if (!identifier || !password) {
+    throw new Error("Identifier and password are required");
   }
 
-  await database.insert(localUsers).values({
-    username: env.initialAdminUsername || env.initialAdminEmail.split('@')[0],
-    email: env.initialAdminEmail,
-    displayName: env.initialAdminName,
-    passwordHash,
-    role: 'super_admin',
-    isActive: 1,
-    isBlocked: 0,
-  });
-}
-
-export async function authenticateCredentials(identifier: string, password: string) {
-  const database = db();
-  const [user] = await database
+  const users = await db()
     .select()
     .from(localUsers)
-    .where(or(eq(localUsers.username, identifier), eq(localUsers.email, identifier)))
+    .where(
+      or(
+        eq(localUsers.username, identifier),
+        eq(localUsers.email, identifier),
+      ),
+    )
     .limit(1);
 
-  if (!user) return null;
+  if (users.length === 0) {
+    throw new Error("Invalid credentials");
+  }
+
+  const user = users[0];
   const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid || user.isBlocked || !user.isActive) return null;
+
+  if (!valid) {
+    throw new Error("Invalid credentials");
+  }
+
+  if (user.isBlocked || !user.isActive) {
+    throw new Error("This account is unavailable");
+  }
 
   return {
     id: user.id,
-    username: user.username,
+    userType: "local",
+    role: user.role as SessionRole,
     email: user.email,
     name: user.displayName || user.username,
-    role: user.role,
-    userType: 'local' as const,
   };
 }
 
-export async function registerCredentials(input: { username: string; email: string; password: string; displayName?: string }) {
-  const database = db();
-  const [byUsername] = await database.select().from(localUsers).where(eq(localUsers.username, input.username)).limit(1);
-  if (byUsername) throw new Error('Username already taken');
-  const [byEmail] = await database.select().from(localUsers).where(eq(localUsers.email, input.email)).limit(1);
-  if (byEmail) throw new Error('Email already registered');
-  const passwordHash = await bcrypt.hash(input.password, 10);
-  const result = await database.insert(localUsers).values({
-    username: input.username,
-    email: input.email,
-    displayName: input.displayName || input.username,
+export async function registerCredentials(
+  input: CredentialsRegisterInput,
+): Promise<AuthUser> {
+  const username = input.username.trim();
+  const email = input.email.trim().toLowerCase();
+  const password = input.password;
+  const displayName = input.displayName?.trim();
+
+  if (!username || !email || !password) {
+    throw new Error("Username, email and password are required");
+  }
+
+  const existingUsername = await db()
+    .select()
+    .from(localUsers)
+    .where(eq(localUsers.username, username))
+    .limit(1);
+
+  if (existingUsername.length > 0) {
+    throw new Error("Username already taken");
+  }
+
+  const existingEmail = await db()
+    .select()
+    .from(localUsers)
+    .where(eq(localUsers.email, email))
+    .limit(1);
+
+  if (existingEmail.length > 0) {
+    throw new Error("Email already registered");
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const result = await db().insert(localUsers).values({
+    username,
+    email,
+    displayName: displayName || username,
     passwordHash,
-    role: 'user',
+    role: "user",
     isActive: 1,
     isBlocked: 0,
   });
-  const id = Number(result[0].insertId);
-  return { id, username: input.username, email: input.email, name: input.displayName || input.username, role: 'user', userType: 'local' as const };
-}
 
-export async function setSessionCookie(payload: SessionPayload) {
-  const token = await signSession(payload);
-  const store = await cookies();
-  store.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 * 30,
-  });
-  return token;
-}
+  const userId = Number(result[0].insertId);
 
-export async function clearSessionCookie() {
-  const store = await cookies();
-  store.set(SESSION_COOKIE, '', { path: '/', maxAge: 0 });
+  return {
+    id: userId,
+    userType: "local",
+    role: "user",
+    email,
+    name: displayName || username,
+  };
 }
