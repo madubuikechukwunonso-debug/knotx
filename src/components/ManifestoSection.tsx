@@ -1,30 +1,56 @@
-'use client';
-import { useEffect, useRef, useState } from 'react';
+"use client";
+
+import { useEffect, useRef } from "react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 export default function ManifestoSection() {
-  const [visible, setVisible] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setVisible(true);
-        observer.disconnect();
-      }
-    }, { threshold: 0.3 });
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        sectionRef.current,
+        { opacity: 0, y: 60 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 1.2,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 75%",
+            toggleActions: "play none none reverse",
+          },
+        }
+      );
+    }, sectionRef);
+
+    return () => ctx.revert();
   }, []);
 
   return (
-    <section ref={ref} className="w-full bg-white py-24 lg:py-40">
-      <div className="mx-auto max-w-5xl px-6 text-center lg:px-12">
-        <p className={`text-3xl leading-snug text-black/90 transition-all duration-1000 sm:text-4xl md:text-5xl lg:text-6xl lg:leading-tight ${visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`} style={{ fontFamily: 'cursive' }}>
-          Every strand tells a story, At KNOTXANDKRAFTS.
+    <section
+      ref={sectionRef}
+      className="w-full bg-white py-24 lg:py-40"
+    >
+      <div className="max-w-5xl mx-auto px-6 lg:px-12 text-center">
+        <p
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-snug lg:leading-tight text-black/90"
+          style={{ fontFamily: "cursive" }}
+        >
+          Every strand tells a story, at KNOTXANDKRAFTS.
         </p>
-        <p className={`mx-auto mt-8 max-w-3xl text-sm leading-8 text-black/65 transition-all delay-200 duration-1000 sm:text-base md:text-lg ${visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-          From clean parts to polished finishes, every detail matters. Our work is rooted in patience, softness, and precision, designed to help each client feel confident, seen, and beautifully put together. We blend tradition with modern elegance, creating styles that protect the hair, elevate the overall look, and make every appointment feel like an experience worth remembering.
+
+        <p className="mt-8 max-w-3xl mx-auto text-sm sm:text-base md:text-lg leading-8 text-black/65">
+          From clean parts to polished finishes, every detail matters. Our work
+          is rooted in patience, softness, and precision, designed to help each
+          client feel confident, seen, and beautifully put together.
         </p>
-        <div className={`mt-12 transition-all delay-300 duration-1000 ${visible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}><div className="mx-auto h-px w-16 bg-black/20" /></div>
+
+        <div className="mt-12 w-16 h-px bg-black/20 mx-auto" />
       </div>
     </section>
   );
