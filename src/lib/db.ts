@@ -1,20 +1,27 @@
-import { drizzle } from 'drizzle-orm/mysql2';
-import mysql from 'mysql2/promise';
-import * as schema from '../../db/schema';
-import * as relations from '../../db/relations';
-import { env } from './env';
+import { drizzle } from "drizzle-orm/mysql2";
+import { createPool, type Pool } from "mysql2/promise";
+import * as schema from "../../db/schema";
+import * as relations from "../../db/relations";
+import { env } from "./env";
 
 const fullSchema = { ...schema, ...relations };
-let dbInstance: ReturnType<typeof drizzle<typeof fullSchema>> | null = null;
+
+let pool: Pool | null = null;
+let dbInstance: ReturnType<typeof drizzle> | null = null;
 
 export function db() {
   if (!dbInstance) {
-    const pool = mysql.createPool({
-      uri: env.databaseUrl,
+    pool = createPool({
+      uri: env.DATABASE_URL,
       connectionLimit: 10,
       enableKeepAlive: true,
     });
-    dbInstance = drizzle(pool, { schema: fullSchema });
+
+    dbInstance = drizzle(pool, {
+      schema: fullSchema,
+      mode: "default",
+    });
   }
+
   return dbInstance;
 }
