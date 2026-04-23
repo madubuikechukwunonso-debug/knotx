@@ -8,7 +8,7 @@ const fullSchema = { ...schema, ...relations };
 
 const globalForDb = globalThis as typeof globalThis & {
   __knotx_pool?: ReturnType<typeof createPool>;
-  __knotx_db?: ReturnType<typeof drizzle<typeof fullSchema>>;
+  __knotx_db?: any;
 };
 
 export function db() {
