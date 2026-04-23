@@ -1,4 +1,4 @@
-// src/sections/HeroSection.tsx
+"use client";
 import { useEffect, useMemo, useState } from "react";
 
 export default function HeroSection() {
