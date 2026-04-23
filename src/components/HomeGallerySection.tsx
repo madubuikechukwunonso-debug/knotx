@@ -24,11 +24,11 @@ export default function HomeGallerySection() {
             y: 0,
             duration: 1,
             ease: "power3.out",
+            delay: i * 0.1,                    // ← delay moved here
             scrollTrigger: {
               trigger: sectionRef.current,
               start: "top 75%",
               toggleActions: "play none none reverse",
-              delay: i * 0.1,
             },
           }
         );
