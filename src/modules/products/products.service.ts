@@ -1,6 +1,6 @@
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
-import { products } from '../../../../db/schema';
+import { products } from '../../../db/schema';
 
 const fallbackProducts = [
   { id: 1, name: 'Botanical Hair Growth Oil', price: 3499, image: '/images/products/hair-oil.jpg', category: 'hair-care', featured: 1, active: 1, sortOrder: 0 },
