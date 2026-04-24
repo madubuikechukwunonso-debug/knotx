@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { localUsers } from "../../../../db/schema";
 
@@ -22,11 +22,18 @@ export async function GET() {
     }
 
     const database = db();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedUsername = username.trim();
 
     const existing = await database
       .select()
       .from(localUsers)
-      .where(eq(localUsers.email, email.trim().toLowerCase()))
+      .where(
+        or(
+          eq(localUsers.email, normalizedEmail),
+          eq(localUsers.username, normalizedUsername),
+        ),
+      )
       .limit(1);
 
     if (existing.length > 0) {
@@ -39,8 +46,8 @@ export async function GET() {
     const passwordHash = await bcrypt.hash(password, 12);
 
     await database.insert(localUsers).values({
-      username: username.trim(),
-      email: email.trim().toLowerCase(),
+      username: normalizedUsername,
+      email: normalizedEmail,
       displayName: name.trim(),
       passwordHash,
       role: "super_admin",
@@ -51,7 +58,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       message: "Default admin user created successfully",
-      email: email.trim().toLowerCase(),
+      email: normalizedEmail,
     });
   } catch (error: any) {
     console.error("Bootstrap admin error:", error);
