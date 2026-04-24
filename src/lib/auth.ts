@@ -1,55 +1,31 @@
+// src/lib/auth.ts
 import bcrypt from "bcryptjs";
-import { eq, or } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { localUsers } from "../../db/schema";
-import type { SessionRole } from "@/lib/session";
-
-type CredentialsLoginInput = {
-  identifier: string;
-  password: string;
-};
-
-type CredentialsRegisterInput = {
-  username: string;
-  email: string;
-  password: string;
-  displayName?: string;
-};
+import { SignJWT } from "jose";
+import { prisma } from "./prisma";
+import { env } from "./env";
 
 export type AuthUser = {
   id: number;
-  userType: "local" | "oauth";
-  role: SessionRole;
+  userType: "local";
+  role: string;
   email: string;
   name: string;
 };
 
-export async function loginCredentials(
-  input: CredentialsLoginInput,
-): Promise<AuthUser> {
-  const identifier = input.identifier.trim();
-  const password = input.password;
+export async function loginCredentials(identifier: string, password: string): Promise<AuthUser> {
+  const user = await prisma.localUser.findFirst({
+    where: {
+      OR: [
+        { email: identifier.toLowerCase() },
+        { username: identifier },
+      ],
+    },
+  });
 
-  if (!identifier || !password) {
-    throw new Error("Identifier and password are required");
-  }
-
-  const users = await db()
-    .select()
-    .from(localUsers)
-    .where(
-      or(
-        eq(localUsers.username, identifier),
-        eq(localUsers.email, identifier),
-      ),
-    )
-    .limit(1);
-
-  if (users.length === 0) {
+  if (!user) {
     throw new Error("Invalid credentials");
   }
 
-  const user = users[0];
   const valid = await bcrypt.compare(password, user.passwordHash);
 
   if (!valid) {
@@ -63,63 +39,52 @@ export async function loginCredentials(
   return {
     id: user.id,
     userType: "local",
-    role: user.role as SessionRole,
+    role: user.role,
     email: user.email,
     name: user.displayName || user.username,
   };
 }
 
-export async function registerCredentials(
-  input: CredentialsRegisterInput,
-): Promise<AuthUser> {
-  const username = input.username.trim();
-  const email = input.email.trim().toLowerCase();
-  const password = input.password;
-  const displayName = input.displayName?.trim();
+export async function registerCredentials(data: {
+  username: string;
+  email: string;
+  password: string;
+  displayName?: string;
+}): Promise<AuthUser> {
+  const username = data.username.trim();
+  const email = data.email.trim().toLowerCase();
+  const password = data.password;
+  const displayName = data.displayName?.trim();
 
-  if (!username || !email || !password) {
-    throw new Error("Username, email and password are required");
-  }
-
-  const existingUsername = await db()
-    .select()
-    .from(localUsers)
-    .where(eq(localUsers.username, username))
-    .limit(1);
-
-  if (existingUsername.length > 0) {
-    throw new Error("Username already taken");
-  }
-
-  const existingEmail = await db()
-    .select()
-    .from(localUsers)
-    .where(eq(localUsers.email, email))
-    .limit(1);
-
-  if (existingEmail.length > 0) {
-    throw new Error("Email already registered");
-  }
-
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  const result = await db().insert(localUsers).values({
-    username,
-    email,
-    displayName: displayName || username,
-    passwordHash,
-    role: "user",
-    isActive: 1,
-    isBlocked: 0,
+  const existing = await prisma.localUser.findFirst({
+    where: {
+      OR: [{ email }, { username }],
+    },
   });
 
-  const userId = Number(result[0].insertId);
+  if (existing) {
+    throw new Error("User already exists");
+  }
+
+  const passwordHash = await bcrypt.hash(password, 12);
+
+  const user = await prisma.localUser.create({
+    data: {
+      username,
+      email,
+      displayName: displayName || username,
+      passwordHash,
+      role: "user",
+      isActive: true,
+      isBlocked: false,
+    },
+  });
 
   return {
-    id: userId,
+    id: user.id,
     userType: "local",
-    role: "user",
-    email,
-    name: displayName || username,
+    role: user.role,
+    email: user.email,
+    name: user.displayName || user.username,
   };
 }
