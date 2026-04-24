@@ -1,37 +1,34 @@
+// src/app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { loginCredentials } from "@/lib/auth";
-import { setSessionCookie } from "@/lib/session";
-import type { SessionRole } from "@/lib/session";
+import { loginUser } from "@/lib/auth";
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
+    const { identifier, password } = await req.json();
 
-    const user = await loginCredentials({
-      identifier: body.identifier,
-      password: body.password,
-    });
+    if (!identifier || !password) {
+      return NextResponse.json(
+        { success: false, message: "Identifier and password are required" },
+        { status: 400 }
+      );
+    }
 
-    await setSessionCookie({
-      userId: user.id,
-      userType: user.userType,
-      role: user.role as SessionRole,
-      email: user.email,
-      name: user.name,
-    });
+    const result = await loginUser(identifier, password);
 
-    return NextResponse.json({ ok: true, user });
-  } catch (error: any) {
-    const status = /invalid|unauthorized/i.test(error?.message || "")
-      ? 401
-      : 500;
-
-    return NextResponse.json(
-      {
-        ok: false,
-        message: error?.message || "Login failed",
+    return NextResponse.json({
+      success: true,
+      token: result.token,
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        username: result.user.username,
+        role: result.user.role,
       },
-      { status },
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, message: error.message || "Login failed" },
+      { status: 401 }
     );
   }
 }
