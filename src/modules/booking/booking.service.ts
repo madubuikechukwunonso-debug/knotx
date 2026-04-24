@@ -1,3 +1,4 @@
+// src/modules/booking/booking.service.ts
 import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
@@ -13,6 +14,9 @@ import type {
   BookingSessionUser,
   CreateBookingInput,
 } from "./booking.types";
+
+// Import the type for proper typing
+import type { StaffProfile } from "../../../db/schema";
 
 function dayOfWeekFromDate(dateStr: string) {
   const date = new Date(`${dateStr}T12:00:00`);
@@ -40,7 +44,6 @@ function buildSlots(
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
   const slots: string[] = [];
-
   for (
     let current = start;
     current + stepMinutes <= end;
@@ -48,7 +51,6 @@ function buildSlots(
   ) {
     slots.push(minutesToTime(current));
   }
-
   return slots;
 }
 
@@ -76,16 +78,20 @@ export async function getAvailabilityForService(
   const service = serviceRows[0];
   const dayOfWeek = dayOfWeekFromDate(input.date);
 
-  const profiles = await db().select().from(staffProfiles);
+  // Explicitly type the profiles
+  const profiles: StaffProfile[] = await db().select().from(staffProfiles);
+
   const hours = await db().select().from(staffWorkingHours);
   const timeOffRows = await db().select().from(staffTimeOff);
+
   const bookingRows = await db()
     .select()
     .from(bookings)
     .where(eq(bookings.date, input.date));
 
-  const bookingEnabledProfiles = profiles.filter((profile) =>
-    Boolean(profile.bookingEnabled),
+  // Now properly typed
+  const bookingEnabledProfiles = profiles.filter(
+    (profile) => Boolean(profile.bookingEnabled)
   );
 
   const availableByStaff = bookingEnabledProfiles.flatMap((profile) => {
@@ -93,40 +99,34 @@ export async function getAvailabilityForService(
       (hour) =>
         hour.staffUserId === profile.userId &&
         hour.dayOfWeek === dayOfWeek &&
-        Boolean(hour.isWorking),
+        Boolean(hour.isWorking)
     );
 
-    if (!working) {
-      return [];
-    }
+    if (!working) return [];
 
     const timeOffForDay = timeOffRows.some((item) => {
       if (item.staffUserId !== profile.userId) return false;
-
       const start = new Date(item.startAt);
       const end = new Date(item.endAt);
       const target = new Date(`${input.date}T12:00:00`);
-
       return target >= start && target <= end;
     });
 
-    if (timeOffForDay) {
-      return [];
-    }
+    if (timeOffForDay) return [];
 
     const bookedTimes = new Set(
       bookingRows
         .filter(
           (row) =>
-            row.staffUserId === profile.userId && row.status !== "cancelled",
+            row.staffUserId === profile.userId && row.status !== "cancelled"
         )
-        .map((row) => row.time),
+        .map((row) => row.time)
     );
 
     return buildSlots(
       working.startTime,
       working.endTime,
-      service.durationMinutes,
+      service.durationMinutes
     )
       .filter((slot) => !bookedTimes.has(slot))
       .map((slot) => ({
@@ -159,7 +159,7 @@ export async function createBooking(input: CreateBookingInput) {
 
   const validSlot = available.find(
     (slot) =>
-      slot.staffUserId === input.staffUserId && slot.time === input.time,
+      slot.staffUserId === input.staffUserId && slot.time === input.time
   );
 
   if (!validSlot) {
@@ -196,9 +196,7 @@ export async function createBooking(input: CreateBookingInput) {
 }
 
 export async function listMyBookings(user?: BookingSessionUser) {
-  if (!user) {
-    return [];
-  }
+  if (!user) return [];
 
   if (user.userType === "local") {
     return db()
@@ -214,8 +212,8 @@ export async function listMyBookings(user?: BookingSessionUser) {
     .where(
       and(
         eq(bookings.userId, user.userId),
-        eq(bookings.userType, user.userType),
-      ),
+        eq(bookings.userType, user.userType)
+      )
     )
     .orderBy(desc(bookings.createdAt));
 }
