@@ -4,15 +4,7 @@ import { SignJWT } from "jose";
 import { prisma } from "./prisma";
 import { env } from "./env";
 
-export type AuthUser = {
-  id: number;
-  userType: "local";
-  role: string;
-  email: string;
-  name: string;
-};
-
-export async function loginCredentials(identifier: string, password: string): Promise<AuthUser> {
+export async function loginUser(identifier: string, password: string) {
   const user = await prisma.localUser.findFirst({
     where: {
       OR: [
@@ -26,9 +18,8 @@ export async function loginCredentials(identifier: string, password: string): Pr
     throw new Error("Invalid credentials");
   }
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-
-  if (!valid) {
+  const validPassword = await bcrypt.compare(password, user.passwordHash);
+  if (!validPassword) {
     throw new Error("Invalid credentials");
   }
 
@@ -36,29 +27,32 @@ export async function loginCredentials(identifier: string, password: string): Pr
     throw new Error("This account is unavailable");
   }
 
-  return {
+  const token = await new SignJWT({
     id: user.id,
-    userType: "local",
-    role: user.role,
     email: user.email,
-    name: user.displayName || user.username,
-  };
+    username: user.username,
+    role: user.role,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("7d")
+    .sign(new TextEncoder().encode(env.appSecret));
+
+  return { token, user };
 }
 
-export async function registerCredentials(data: {
+export async function registerUser(data: {
   username: string;
   email: string;
   password: string;
   displayName?: string;
-}): Promise<AuthUser> {
-  const username = data.username.trim();
-  const email = data.email.trim().toLowerCase();
-  const password = data.password;
-  const displayName = data.displayName?.trim();
-
+}) {
   const existing = await prisma.localUser.findFirst({
     where: {
-      OR: [{ email }, { username }],
+      OR: [
+        { email: data.email.toLowerCase() },
+        { username: data.username },
+      ],
     },
   });
 
@@ -66,13 +60,13 @@ export async function registerCredentials(data: {
     throw new Error("User already exists");
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
+  const passwordHash = await bcrypt.hash(data.password, 12);
 
   const user = await prisma.localUser.create({
     data: {
-      username,
-      email,
-      displayName: displayName || username,
+      username: data.username.trim(),
+      email: data.email.trim().toLowerCase(),
+      displayName: data.displayName?.trim() || data.username,
       passwordHash,
       role: "user",
       isActive: true,
@@ -80,11 +74,16 @@ export async function registerCredentials(data: {
     },
   });
 
-  return {
+  const token = await new SignJWT({
     id: user.id,
-    userType: "local",
-    role: user.role,
     email: user.email,
-    name: user.displayName || user.username,
-  };
+    username: user.username,
+    role: user.role,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("7d")
+    .sign(new TextEncoder().encode(env.appSecret));
+
+  return { token, user };
 }
