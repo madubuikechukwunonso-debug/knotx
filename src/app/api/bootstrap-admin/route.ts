@@ -1,8 +1,8 @@
 // src/app/api/bootstrap-admin/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getDb } from "@/server/queries/connection";   // now works with alias
-import { localUsers } from "@/db/schema";             // now works with alias
+import { getDb } from "../../../server/queries/connection";   // relative import
+import { localUsers } from "../../../db/schema";               // relative import
 import { eq } from "drizzle-orm";
 
 export async function GET() {
@@ -21,7 +21,6 @@ export async function GET() {
 
     const db = getDb();
 
-    // Check if admin already exists
     const existing = await db
       .select()
       .from(localUsers)
