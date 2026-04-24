@@ -1,8 +1,8 @@
 // src/app/api/bootstrap-admin/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getDb } from "@/server/queries/connection";
-import { localUsers } from "@/db/schema";
+import { getDb } from "@/server/queries/connection";   // now works with alias
+import { localUsers } from "@/db/schema";             // now works with alias
 import { eq } from "drizzle-orm";
 
 export async function GET() {
@@ -35,10 +35,8 @@ export async function GET() {
       });
     }
 
-    // Hash password
     const passwordHash = await bcrypt.hash(password, 12);
 
-    // Create super admin
     await db.insert(localUsers).values({
       username: username.trim(),
       email: email.trim().toLowerCase(),
