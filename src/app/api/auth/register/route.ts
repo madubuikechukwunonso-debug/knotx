@@ -1,37 +1,39 @@
+// src/app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { registerCredentials } from "@/lib/auth";
-import { setSessionCookie } from "@/lib/session";
-import type { SessionRole } from "@/lib/session";
+import { registerUser } from "@/lib/auth";
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const body = await request.json();
+    const { username, email, password, displayName } = await req.json();
 
-    const user = await registerCredentials({
-      username: body.username,
-      email: body.email,
-      password: body.password,
-      displayName: body.displayName,
+    if (!username || !email || !password) {
+      return NextResponse.json(
+        { success: false, message: "Username, email and password are required" },
+        { status: 400 }
+      );
+    }
+
+    const result = await registerUser({
+      username,
+      email,
+      password,
+      displayName,
     });
 
-    await setSessionCookie({
-      userId: user.id,
-      userType: user.userType,
-      role: user.role as SessionRole,
-      email: user.email,
-      name: user.name,
-    });
-
-    return NextResponse.json({ ok: true, user });
-  } catch (error: any) {
-    const status = /already/i.test(error?.message || "") ? 409 : 500;
-
-    return NextResponse.json(
-      {
-        ok: false,
-        message: error?.message || "Registration failed",
+    return NextResponse.json({
+      success: true,
+      token: result.token,
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        username: result.user.username,
+        role: result.user.role,
       },
-      { status },
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, message: error.message || "Registration failed" },
+      { status: 400 }
     );
   }
 }
