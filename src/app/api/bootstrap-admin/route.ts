@@ -1,8 +1,8 @@
 // src/app/api/bootstrap-admin/route.ts
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { getDb } from "../../../server/queries/connection";   // relative import
-import { localUsers } from "../../../db/schema";               // relative import
+import { getDb } from "../../../../server/queries/connection";   // relative import
+import { localUsers } from "../../../../db/schema";               // relative import
 import { eq } from "drizzle-orm";
 
 export async function GET() {
