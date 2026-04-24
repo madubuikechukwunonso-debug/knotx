@@ -1,24 +1,11 @@
-import { and, asc, desc, eq } from "drizzle-orm";
-import { db } from "@/lib/db";
-import {
-  bookings,
-  services,
-  staffProfiles,
-  staffTimeOff,
-  staffWorkingHours,
-} from "../../../db/schema";
+// src/modules/booking/booking.service.ts
+import { prisma } from "@/lib/prisma";
 import type {
   AvailabilityInput,
   AvailableSlot,
   BookingSessionUser,
   CreateBookingInput,
 } from "./booking.types";
-import type {
-  Booking,
-  StaffProfile,
-  StaffTimeOff,
-  StaffWorkingHour,
-} from "../../../db/schema";
 
 function dayOfWeekFromDate(dateStr: string) {
   const date = new Date(`${dateStr}T12:00:00`);
@@ -31,109 +18,70 @@ function timeToMinutes(value: string) {
 }
 
 function minutesToTime(value: number) {
-  const hours = Math.floor(value / 60)
-    .toString()
-    .padStart(2, "0");
+  const hours = Math.floor(value / 60).toString().padStart(2, "0");
   const minutes = (value % 60).toString().padStart(2, "0");
   return `${hours}:${minutes}`;
 }
 
-function buildSlots(
-  startTime: string,
-  endTime: string,
-  stepMinutes: number,
-): string[] {
+function buildSlots(startTime: string, endTime: string, stepMinutes: number): string[] {
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
   const slots: string[] = [];
-
-  for (
-    let current = start;
-    current + stepMinutes <= end;
-    current += stepMinutes
-  ) {
+  for (let current = start; current + stepMinutes <= end; current += stepMinutes) {
     slots.push(minutesToTime(current));
   }
-
   return slots;
 }
 
 export async function listServices() {
-  return db()
-    .select()
-    .from(services)
-    .where(eq(services.active, 1))
-    .orderBy(asc(services.sortOrder), asc(services.id));
+  return prisma.service.findMany({
+    where: { active: true },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+  });
 }
 
-export async function getAvailabilityForService(
-  input: AvailabilityInput,
-): Promise<AvailableSlot[]> {
-  const serviceRows = await db()
-    .select()
-    .from(services)
-    .where(and(eq(services.id, input.serviceId), eq(services.active, 1)))
-    .limit(1);
+export async function getAvailabilityForService(input: AvailabilityInput): Promise<AvailableSlot[]> {
+  const service = await prisma.service.findFirst({
+    where: { id: input.serviceId, active: true },
+  });
 
-  if (serviceRows.length === 0) {
-    return [];
-  }
+  if (!service) return [];
 
-  const service = serviceRows[0];
   const dayOfWeek = dayOfWeekFromDate(input.date);
 
-  const profiles: StaffProfile[] = await db().select().from(staffProfiles);
-  const hours: StaffWorkingHour[] = await db().select().from(staffWorkingHours);
-  const timeOffRows: StaffTimeOff[] = await db().select().from(staffTimeOff);
-  const bookingRows: Booking[] = await db()
-    .select()
-    .from(bookings)
-    .where(eq(bookings.date, input.date));
+  const profiles = await prisma.staffProfile.findMany();
+  const hours = await prisma.staffWorkingHour.findMany();
+  const timeOffs = await prisma.staffTimeOff.findMany();
+  const bookings = await prisma.booking.findMany({
+    where: { date: input.date },
+  });
 
-  const bookingEnabledProfiles = profiles.filter((profile) =>
-    Boolean(profile.bookingEnabled),
-  );
+  const bookingEnabledProfiles = profiles.filter((p) => p.bookingEnabled);
 
   const availableByStaff = bookingEnabledProfiles.flatMap((profile) => {
     const working = hours.find(
-      (hour: StaffWorkingHour) =>
-        hour.staffUserId === profile.userId &&
-        hour.dayOfWeek === dayOfWeek &&
-        Boolean(hour.isWorking),
+      (h) => h.staffUserId === profile.userId && h.dayOfWeek === dayOfWeek && h.isWorking
     );
 
-    if (!working) {
-      return [];
-    }
+    if (!working) return [];
 
-    const timeOffForDay = timeOffRows.some((item: StaffTimeOff) => {
-      if (item.staffUserId !== profile.userId) return false;
-
-      const start = new Date(item.startAt);
-      const end = new Date(item.endAt);
+    const hasTimeOff = timeOffs.some((t) => {
+      if (t.staffUserId !== profile.userId) return false;
+      const start = new Date(t.startAt);
+      const end = new Date(t.endAt);
       const target = new Date(`${input.date}T12:00:00`);
-
       return target >= start && target <= end;
     });
 
-    if (timeOffForDay) {
-      return [];
-    }
+    if (hasTimeOff) return [];
 
     const bookedTimes = new Set(
-      bookingRows
-        .filter(
-          (row: Booking) =>
-            row.staffUserId === profile.userId && row.status !== "cancelled",
-        )
-        .map((row: Booking) => row.time),
+      bookings
+        .filter((b) => b.staffUserId === profile.userId && b.status !== "cancelled")
+        .map((b) => b.time)
     );
 
-    return buildSlots(
-      working.startTime,
-      working.endTime,
-      service.durationMinutes,
-    )
+    return buildSlots(working.startTime, working.endTime, service.durationMinutes)
       .filter((slot) => !bookedTimes.has(slot))
       .map((slot) => ({
         staffUserId: profile.userId,
@@ -146,17 +94,11 @@ export async function getAvailabilityForService(
 }
 
 export async function createBooking(input: CreateBookingInput) {
-  const serviceRows = await db()
-    .select()
-    .from(services)
-    .where(and(eq(services.id, input.serviceId), eq(services.active, 1)))
-    .limit(1);
+  const service = await prisma.service.findFirst({
+    where: { id: input.serviceId, active: true },
+  });
 
-  if (serviceRows.length === 0) {
-    throw new Error("Service not found");
-  }
-
-  const service = serviceRows[0];
+  if (!service) throw new Error("Service not found");
 
   const available = await getAvailabilityForService({
     date: input.date,
@@ -164,62 +106,49 @@ export async function createBooking(input: CreateBookingInput) {
   });
 
   const validSlot = available.find(
-    (slot) =>
-      slot.staffUserId === input.staffUserId && slot.time === input.time,
+    (slot) => slot.staffUserId === input.staffUserId && slot.time === input.time
   );
 
-  if (!validSlot) {
-    throw new Error("Selected booking slot is no longer available");
-  }
+  if (!validSlot) throw new Error("Selected booking slot is no longer available");
 
-  const result = await db().insert(bookings).values({
-    customerName: input.customerName,
-    customerEmail: input.customerEmail,
-    customerPhone: input.customerPhone,
-    serviceId: service.id,
-    staffUserId: input.staffUserId,
-    serviceType: service.name,
-    durationMinutes: service.durationMinutes,
-    price: service.price,
-    paymentStatus: "unpaid",
-    date: input.date,
-    time: input.time,
-    notes: input.notes,
-    userId: input.userId,
-    userType: input.userType,
-    status: "pending",
+  const newBooking = await prisma.booking.create({
+    data: {
+      customerName: input.customerName,
+      customerEmail: input.customerEmail,
+      customerPhone: input.customerPhone,
+      serviceId: service.id,
+      staffUserId: input.staffUserId,
+      serviceType: service.name,
+      durationMinutes: service.durationMinutes,
+      price: service.price,
+      paymentStatus: "unpaid",
+      date: input.date,
+      time: input.time,
+      notes: input.notes,
+      userId: input.userId,
+      userType: input.userType,
+      status: "pending",
+    },
   });
 
-  const id = Number(result[0].insertId);
-
-  const created = await db()
-    .select()
-    .from(bookings)
-    .where(eq(bookings.id, id))
-    .limit(1);
-
-  return created[0];
+  return newBooking;
 }
 
 export async function listMyBookings(user?: BookingSessionUser) {
   if (!user) return [];
 
   if (user.userType === "local") {
-    return db()
-      .select()
-      .from(bookings)
-      .where(eq(bookings.customerEmail, user.email || ""))
-      .orderBy(desc(bookings.createdAt));
+    return prisma.booking.findMany({
+      where: { customerEmail: user.email || "" },
+      orderBy: { createdAt: "desc" },
+    });
   }
 
-  return db()
-    .select()
-    .from(bookings)
-    .where(
-      and(
-        eq(bookings.userId, user.userId),
-        eq(bookings.userType, user.userType),
-      ),
-    )
-    .orderBy(desc(bookings.createdAt));
+  return prisma.booking.findMany({
+    where: {
+      userId: user.userId,
+      userType: user.userType,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 }
