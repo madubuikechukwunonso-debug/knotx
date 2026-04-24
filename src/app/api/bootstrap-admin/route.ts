@@ -1,8 +1,7 @@
+// src/app/api/bootstrap-admin/route.ts
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { eq, or } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { localUsers } from "../../../../db/schema";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
@@ -13,30 +12,17 @@ export async function GET() {
 
     if (!email || !password) {
       return NextResponse.json(
-        {
-          success: false,
-          message: "Missing INITIAL_ADMIN_* environment variables",
-        },
-        { status: 400 },
+        { success: false, message: "Missing INITIAL_ADMIN_* environment variables" },
+        { status: 400 }
       );
     }
 
-    const database = db();
-    const normalizedEmail = email.trim().toLowerCase();
-    const normalizedUsername = username.trim();
+    // Check if admin already exists
+    const existing = await prisma.localUser.findFirst({
+      where: { email },
+    });
 
-    const existing = await database
-      .select()
-      .from(localUsers)
-      .where(
-        or(
-          eq(localUsers.email, normalizedEmail),
-          eq(localUsers.username, normalizedUsername),
-        ),
-      )
-      .limit(1);
-
-    if (existing.length > 0) {
+    if (existing) {
       return NextResponse.json({
         success: true,
         message: "Admin user already exists",
@@ -45,30 +31,30 @@ export async function GET() {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    await database.insert(localUsers).values({
-      username: normalizedUsername,
-      email: normalizedEmail,
-      displayName: name.trim(),
-      passwordHash,
-      role: "super_admin",
-      isActive: 1,
-      isBlocked: 0,
+    await prisma.localUser.create({
+      data: {
+        username: username.trim(),
+        email: email.trim().toLowerCase(),
+        displayName: name.trim(),
+        passwordHash,
+        role: "super_admin",
+        isActive: true,
+        isBlocked: false,
+      },
     });
+
+    console.log("✅ Default admin user created successfully");
 
     return NextResponse.json({
       success: true,
       message: "Default admin user created successfully",
-      email: normalizedEmail,
+      email,
     });
   } catch (error: any) {
     console.error("Bootstrap admin error:", error);
-
     return NextResponse.json(
-      {
-        success: false,
-        message: error?.message || "Failed to create admin user",
-      },
-      { status: 500 },
+      { success: false, message: error.message || "Failed to create admin user" },
+      { status: 500 }
     );
   }
 }
