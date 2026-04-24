@@ -1,8 +1,8 @@
-// setup-db.ts
+// scripts/setup-db.ts
 import "dotenv/config";
 import { execSync } from "node:child_process";
 import bcrypt from "bcryptjs";
-import { prisma } from "./src/lib/prisma";
+import { prisma } from "../src/lib/prisma";   // ← Fixed import path
 
 const REQUIRED_TABLES = [
   "User",
@@ -99,16 +99,13 @@ async function main() {
   console.log("🚀 Starting database setup with Prisma...\n");
 
   try {
-    // 1. Push the Prisma schema to the database
+    // Push schema to database
     run("npx prisma db push");
 
-    // 2. Verify all tables exist
+    // Verify tables
     await verifyTables();
 
-    // 3. Run seed script (if you have one)
-    // run("npx tsx db/seed.ts");   // Uncomment if you have a seed file
-
-    // 4. Bootstrap the initial admin user
+    // Bootstrap admin user
     await bootstrapAdmin();
 
     console.log("\n🎉 Database setup completed successfully!");
