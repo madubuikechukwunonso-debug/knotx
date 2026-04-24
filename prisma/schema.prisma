@@ -1,0 +1,245 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  unionId       String   @unique
+  name          String?
+  email         String?
+  avatar        String?
+  role          String   @default("user")
+  isBlocked     Boolean  @default(false)
+  blockedReason String?
+  blockedAt     DateTime?
+  createdById   Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastSignInAt  DateTime @default(now())
+}
+
+model LocalUser {
+  id            Int      @id @default(autoincrement())
+  username      String   @unique
+  email         String   @unique
+  displayName   String?
+  passwordHash  String
+  role          String   @default("user")
+  isActive      Boolean  @default(true)
+  isBlocked     Boolean  @default(false)
+  blockedReason String?
+  blockedAt     DateTime?
+  invitedById   Int?
+  lastSignInAt  DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Product {
+  id              Int      @id @default(autoincrement())
+  name            String
+  slug            String   @unique
+  description     String?
+  price           Int
+  priceCurrency   String   @default("cad")
+  image           String?
+  category        String   @default("general")
+  inventory       Int      @default(0)
+  featured        Boolean  @default(false)
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  stripeProductId String?
+  stripePriceId   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Service {
+  id              Int      @id @default(autoincrement())
+  name            String
+  slug            String   @unique
+  description     String?
+  price           Int
+  priceCurrency   String   @default("cad")
+  durationMinutes Int
+  image           String?
+  featured        Boolean  @default(false)
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  stripeProductId String?
+  stripePriceId   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model GalleryItem {
+  id            Int      @id @default(autoincrement())
+  type          String
+  url           String
+  thumbnailUrl  String?
+  title         String?
+  caption       String?
+  category      String   @default("general")
+  isFeatured    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdById   Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model StaffProfile {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  displayName    String
+  bio            String?
+  bookingEnabled Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model StaffWorkingHour {
+  id           Int      @id @default(autoincrement())
+  staffUserId  Int
+  dayOfWeek    Int
+  startTime    String
+  endTime      String
+  isWorking    Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model StaffTimeOff {
+  id          Int      @id @default(autoincrement())
+  staffUserId Int
+  startAt     DateTime
+  endAt       DateTime
+  reason      String?
+  createdAt   DateTime @default(now())
+}
+
+model ServiceStaffAssignment {
+  id          Int      @id @default(autoincrement())
+  serviceId   Int
+  staffUserId Int
+  createdAt   DateTime @default(now())
+}
+
+model Order {
+  id                  Int      @id @default(autoincrement())
+  userId              Int?
+  userType            String?
+  customerName        String
+  customerEmail       String
+  customerPhone       String?
+  total               Int
+  status              String   @default("pending")
+  shippingStatus      String   @default("pending")
+  shippingCarrier     String?
+  trackingNumber      String?
+  fulfilledAt         DateTime?
+  fulfilledById       Int?
+  stripePaymentIntent String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  items               OrderItem[]
+}
+
+model OrderItem {
+  id        Int   @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  price     Int
+  order     Order @relation(fields: [orderId], references: [id])
+}
+
+model Booking {
+  id                      Int      @id @default(autoincrement())
+  userId                  Int?
+  userType                String?
+  customerName            String
+  customerEmail           String
+  customerPhone           String?
+  serviceId               Int?
+  staffUserId             Int?
+  serviceType             String
+  durationMinutes         Int      @default(60)
+  price                   Int      @default(0)
+  paymentStatus           String   @default("unpaid")
+  stripeCheckoutSessionId String?
+  date                    String
+  time                    String
+  status                  String   @default("pending")
+  notes                   String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model HeroImage {
+  id        Int      @id @default(autoincrement())
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Subscriber {
+  id             Int      @id @default(autoincrement())
+  name           String?
+  email          String   @unique
+  source         String   @default("newsletter")
+  isActive       Boolean  @default(true)
+  unsubscribedAt DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model NewsletterCampaign {
+  id              Int      @id @default(autoincrement())
+  subject         String
+  htmlBody        String
+  audienceType    String   @default("selected")
+  sendToEveryone  Boolean  @default(false)
+  createdById     Int?
+  sentAt          DateTime?
+  createdAt       DateTime @default(now())
+}
+
+model NewsletterRecipient {
+  id             Int      @id @default(autoincrement())
+  campaignId     Int
+  email          String
+  name           String?
+  deliveryStatus String   @default("pending")
+  createdAt      DateTime @default(now())
+}
+
+model ContactMessage {
+  id              Int      @id @default(autoincrement())
+  name            String
+  email           String
+  subject         String?
+  message         String
+  read            Boolean  @default(false)
+  status          String   @default("new")
+  assignedToId    Int?
+  lastRepliedAt   DateTime?
+  followUpAt      DateTime?
+  followUpNotes   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ContactReply {
+  id        Int      @id @default(autoincrement())
+  messageId Int
+  sentById  Int
+  body      String
+  sentAt    DateTime @default(now())
+}
