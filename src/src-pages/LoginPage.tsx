@@ -1,13 +1,25 @@
 'use client';
+
 import { useState } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import { LogIn, UserPlus, ArrowLeft } from 'lucide-react';
 
 type Props = { initialMode?: 'login' | 'register' };
-async function safeJson(response: Response) { const text = await response.text(); try { return text ? JSON.parse(text) : null; } catch { return null; } }
 
-export default function LoginPage({ initialMode = 'login' }: Props) {
+async function safeJson(response: Response) {
+  const text = await response.text();
+
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return null;
+  }
+}
+
+export default function LoginPage({
+  initialMode = 'login',
+}: Props) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [identifier, setIdentifier] = useState('');
   const [username, setUsername] = useState('');
@@ -21,46 +33,259 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
     e.preventDefault();
     setError('');
     setIsPending(true);
+
     try {
       if (mode === 'login') {
-        const response = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ identifier: identifier.trim(), password: password.trim() }) });
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            identifier: identifier.trim(),
+            password: password.trim(),
+          }),
+        });
+
         const data = await safeJson(response);
-        if (!response.ok || !data?.ok) { setError(data?.message || `Login failed (${response.status})`); return; }
-        window.location.href = '/';
+
+        if (!response.ok || !data?.ok) {
+          setError(data?.message || `Login failed (${response.status})`);
+          return;
+        }
+
+        window.location.href = '/dashboard';
         return;
       }
-      const response = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username.trim(), email: email.trim(), password: password.trim(), displayName: displayName.trim() || undefined }) });
+
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: username.trim(),
+          email: email.trim(),
+          password: password.trim(),
+          displayName: displayName.trim() || undefined,
+        }),
+      });
+
       const data = await safeJson(response);
-      if (!response.ok || !data?.ok) { setError(data?.message || `Registration failed (${response.status})`); return; }
-      window.location.href = '/';
+
+      if (!response.ok || !data?.ok) {
+        setError(data?.message || `Registration failed (${response.status})`);
+        return;
+      }
+
+      window.location.href = '/dashboard';
     } catch (err: any) {
-      setError(err?.message || 'Something went wrong. Please try again.');
+      setError(
+        err?.message || 'Something went wrong. Please try again.',
+      );
     } finally {
       setIsPending(false);
     }
   };
 
-  return (<><Navigation />
-    <main className="min-h-screen bg-[#f8f5f0] px-6 pb-16 pt-28 text-black md:px-10 lg:px-16">
-      <div className="mx-auto max-w-6xl">
-        <Link href="/" className="mb-8 inline-flex items-center gap-2 text-sm text-black/65 transition-opacity hover:opacity-70"><ArrowLeft size={16}/>Back to home</Link>
-        <div className="grid grid-cols-1 overflow-hidden rounded-[2rem] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.06)] lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="bg-black px-8 py-12 text-white sm:px-10 lg:px-12">
-            <p className="text-[11px] uppercase tracking-[0.35em] text-white/45">KNOTXANDKRAFTS</p>
-            <h1 className="mt-6 font-serif text-4xl leading-tight sm:text-5xl">{mode === 'login' ? 'Welcome Back' : 'Create Your Account'}</h1>
-            <p className="mt-5 max-w-md text-sm leading-7 text-white/70 sm:text-base">{mode === 'login' ? 'Sign in with your username or email to manage your account, bookings, and orders.' : 'Create an account to book services, shop products, and stay connected with KNOTXANDKRAFTS.'}</p>
+  return (
+    <>
+      <Navigation />
+
+      <main className="min-h-screen bg-[#f8f5f0] px-6 pb-16 pt-28 text-black md:px-10 lg:px-16">
+        <div className="mx-auto max-w-6xl">
+          <Link
+            href="/"
+            className="mb-8 inline-flex items-center gap-2 text-sm text-black/65 transition-opacity hover:opacity-70"
+          >
+            <ArrowLeft size={16} />
+            Back to home
+          </Link>
+
+          <div className="grid grid-cols-1 overflow-hidden rounded-[2rem] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.06)] lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="bg-black px-8 py-12 text-white sm:px-10 lg:px-12">
+              <p className="text-[11px] uppercase tracking-[0.35em] text-white/45">
+                KNOTXANDKRAFTS
+              </p>
+
+              <h1 className="mt-6 font-serif text-4xl leading-tight sm:text-5xl">
+                {mode === 'login'
+                  ? 'Welcome Back'
+                  : 'Create Your Account'}
+              </h1>
+
+              <p className="mt-5 max-w-md text-sm leading-7 text-white/70 sm:text-base">
+                {mode === 'login'
+                  ? 'Sign in with your username or email to manage your account, bookings, and orders.'
+                  : 'Create an account to book services, shop products, and stay connected with KNOTXANDKRAFTS.'}
+              </p>
+            </div>
+
+            <div className="px-8 py-12 sm:px-10 lg:px-12">
+              <div className="mx-auto max-w-md">
+                <div className="mb-8">
+                  <h2 className="font-serif text-3xl text-black">
+                    {mode === 'login' ? 'Sign In' : 'Register'}
+                  </h2>
+
+                  <p className="mt-2 text-sm leading-6 text-black/60">
+                    {mode === 'login'
+                      ? 'Access your account using your username or email.'
+                      : 'Set up your profile in a few steps.'}
+                  </p>
+                </div>
+
+                <form
+                  onSubmit={handleSubmit}
+                  className="space-y-5"
+                >
+                  {mode === 'login' ? (
+                    <div>
+                      <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">
+                        Username or Email
+                      </label>
+
+                      <input
+                        type="text"
+                        value={identifier}
+                        onChange={(e) =>
+                          setIdentifier(e.target.value)
+                        }
+                        className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition-colors focus:border-black"
+                        placeholder="Enter your username or email"
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">
+                          Username
+                        </label>
+
+                        <input
+                          type="text"
+                          value={username}
+                          onChange={(e) =>
+                            setUsername(e.target.value)
+                          }
+                          className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition-colors focus:border-black"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">
+                          Email
+                        </label>
+
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) =>
+                            setEmail(e.target.value)
+                          }
+                          className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition-colors focus:border-black"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">
+                          Display Name
+                        </label>
+
+                        <input
+                          type="text"
+                          value={displayName}
+                          onChange={(e) =>
+                            setDisplayName(e.target.value)
+                          }
+                          className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition-colors focus:border-black"
+                          placeholder="Optional"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <div>
+                    <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">
+                      Password
+                    </label>
+
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) =>
+                        setPassword(e.target.value)
+                      }
+                      className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition-colors focus:border-black"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+
+                  {error ? (
+                    <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                      {error}
+                    </div>
+                  ) : null}
+
+                  <button
+                    type="submit"
+                    disabled={isPending}
+                    className="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {mode === 'login' ? (
+                      <LogIn size={18} />
+                    ) : (
+                      <UserPlus size={18} />
+                    )}
+
+                    {isPending
+                      ? 'Please wait...'
+                      : mode === 'login'
+                      ? 'Sign In'
+                      : 'Create Account'}
+                  </button>
+                </form>
+
+                <div className="mt-8 text-sm text-black/65">
+                  {mode === 'login' ? (
+                    <>
+                      Don&apos;t have an account?{' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMode('register');
+                          setError('');
+                        }}
+                        className="text-black underline underline-offset-4"
+                      >
+                        Register
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      Already have an account?{' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMode('login');
+                          setError('');
+                        }}
+                        className="text-black underline underline-offset-4"
+                      >
+                        Sign in
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="px-8 py-12 sm:px-10 lg:px-12"><div className="mx-auto max-w-md">
-            <div className="mb-8"><h2 className="font-serif text-3xl text-black">{mode === 'login' ? 'Sign In' : 'Register'}</h2><p className="mt-2 text-sm leading-6 text-black/60">{mode === 'login' ? 'Access your account using your username or email.' : 'Set up your profile in a few steps.'}</p></div>
-            <form onSubmit={handleSubmit} className="space-y-5">
-            {mode === 'login' ? <div><label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">Username or Email</label><input type="text" value={identifier} onChange={(e)=>setIdentifier(e.target.value)} className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition-colors focus:border-black" placeholder="Enter your username or email" required /></div> : <><div><label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">Username</label><input type="text" value={username} onChange={(e)=>setUsername(e.target.value)} className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition-colors focus:border-black" required /></div><div><label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">Email</label><input type="email" value={email} onChange={(e)=>setEmail(e.target.value)} className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition-colors focus:border-black" required /></div><div><label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">Display Name</label><input type="text" value={displayName} onChange={(e)=>setDisplayName(e.target.value)} className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition-colors focus:border-black" placeholder="Optional" /></div></>}
-            <div><label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">Password</label><input type="password" value={password} onChange={(e)=>setPassword(e.target.value)} className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm outline-none transition-colors focus:border-black" required minLength={6} /></div>
-            {error ? <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
-            <button type="submit" disabled={isPending} className="inline-flex w-full items-center justify-center gap-3 rounded-2xl bg-black px-5 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60">{mode === 'login' ? <LogIn size={18}/> : <UserPlus size={18}/>} {isPending ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}</button>
-            </form>
-            <div className="mt-8 text-sm text-black/65">{mode === 'login' ? <>Don&apos;t have an account? <button type="button" onClick={()=>{setMode('register');setError('');}} className="text-black underline underline-offset-4">Register</button></> : <>Already have an account? <button type="button" onClick={()=>{setMode('login');setError('');}} className="text-black underline underline-offset-4">Sign in</button></>}</div>
-          </div></div>
         </div>
-      </div>
-    </main></>);
+      </main>
+    </>
+  );
 }
