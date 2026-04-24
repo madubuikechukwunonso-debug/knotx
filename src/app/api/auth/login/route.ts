@@ -1,6 +1,6 @@
-// src/app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { loginUser } from "@/lib/auth";
+import { setSessionCookie } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,16 +8,23 @@ export async function POST(req: NextRequest) {
 
     if (!identifier || !password) {
       return NextResponse.json(
-        { success: false, message: "Identifier and password are required" },
-        { status: 400 }
+        { ok: false, message: "Identifier and password are required" },
+        { status: 400 },
       );
     }
 
     const result = await loginUser(identifier, password);
 
+    await setSessionCookie({
+      userId: result.user.id,
+      userType: "local",
+      role: result.user.role as any,
+      email: result.user.email,
+      name: result.user.displayName || result.user.username,
+    });
+
     return NextResponse.json({
-      success: true,
-      token: result.token,
+      ok: true,
       user: {
         id: result.user.id,
         email: result.user.email,
@@ -27,8 +34,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, message: error.message || "Login failed" },
-      { status: 401 }
+      { ok: false, message: error.message || "Login failed" },
+      { status: 401 },
     );
   }
 }
