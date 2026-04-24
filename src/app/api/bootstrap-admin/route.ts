@@ -1,9 +1,8 @@
-// src/app/api/bootstrap-admin/route.ts
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { db } from "@/lib/db";   // relative import
-import { localUsers } from "../../../../db/schema";               // relative import
 import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { localUsers } from "../../../../db/schema";
 
 export async function GET() {
   try {
@@ -14,17 +13,20 @@ export async function GET() {
 
     if (!email || !password) {
       return NextResponse.json(
-        { success: false, message: "Missing INITIAL_ADMIN_* environment variables" },
-        { status: 400 }
+        {
+          success: false,
+          message: "Missing INITIAL_ADMIN_* environment variables",
+        },
+        { status: 400 },
       );
     }
 
-    const db = getDb();
+    const database = db();
 
-    const existing = await db
+    const existing = await database
       .select()
       .from(localUsers)
-      .where(eq(localUsers.email, email))
+      .where(eq(localUsers.email, email.trim().toLowerCase()))
       .limit(1);
 
     if (existing.length > 0) {
@@ -36,7 +38,7 @@ export async function GET() {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    await db.insert(localUsers).values({
+    await database.insert(localUsers).values({
       username: username.trim(),
       email: email.trim().toLowerCase(),
       displayName: name.trim(),
@@ -46,18 +48,20 @@ export async function GET() {
       isBlocked: 0,
     });
 
-    console.log("✅ Default admin user created successfully");
-
     return NextResponse.json({
       success: true,
       message: "Default admin user created successfully",
-      email,
+      email: email.trim().toLowerCase(),
     });
   } catch (error: any) {
     console.error("Bootstrap admin error:", error);
+
     return NextResponse.json(
-      { success: false, message: error.message || "Failed to create admin user" },
-      { status: 500 }
+      {
+        success: false,
+        message: error?.message || "Failed to create admin user",
+      },
+      { status: 500 },
     );
   }
 }
