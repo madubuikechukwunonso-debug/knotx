@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
@@ -102,7 +103,6 @@ export default function Dashboard() {
   }
 
   const isAdmin = user.role === "admin" || user.role === "super_admin";
-  const firstName = user.name?.split(" ")[0] || "beautiful";
 
   const visibleTabs = tabItems.filter((tab) => !tab.adminOnly || isAdmin);
 
@@ -129,25 +129,45 @@ export default function Dashboard() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="mb-10">
-            <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/65 backdrop-blur-2xl shadow-xl px-6 py-7 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/65 backdrop-blur-2xl shadow-xl px-5 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
               <div className="absolute -top-10 -right-8 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" />
               <div className="absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-purple-200/30 blur-2xl" />
 
-              <div className="relative">
-                <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.24em] text-blue-700">
-                  <Sparkles size={14} />
-                  <span>WELCOME BACK</span>
+              <div className="relative flex flex-col gap-6 sm:gap-7 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-start gap-4 sm:gap-5">
+                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[1.75rem] border border-white/70 bg-white shadow-lg sm:h-28 sm:w-28 lg:h-32 lg:w-32">
+                    <Image
+                      src="/images/owner/cup.jpeg"
+                      alt="Owner of KnotxandKrafts"
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.24em] text-blue-700">
+                      <Sparkles size={14} />
+                      <span>WELCOME BACK</span>
+                    </div>
+
+                    <div className="mt-4">
+                      <h1 className="font-serif italic text-[2rem] sm:text-[2.7rem] lg:text-[3.4rem] leading-[1] text-black tracking-tight">
+                        So glad you&apos;re here
+                      </h1>
+
+                      <p className="mt-3 max-w-2xl text-sm sm:text-base lg:text-lg text-black/60 leading-7">
+                        Step into your personal braiding sanctuary and manage your
+                        bookings, orders, and beauty essentials with ease.
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-4">
-                  <h1 className="font-serif italic text-[2.8rem] sm:text-[4rem] lg:text-[5rem] leading-[0.95] text-black tracking-tight">
-                    {firstName}
-                    <span className="not-italic text-blue-600 ml-2">👑</span>
-                  </h1>
-
-                  <p className="mt-3 max-w-2xl text-sm sm:text-base lg:text-lg text-black/60 leading-7">
-                    Your personal braiding sanctuary
-                  </p>
+                <div className="hidden lg:flex items-center justify-center">
+                  <div className="rounded-full border border-blue-200/70 bg-white/70 px-4 py-2 text-sm text-blue-700 shadow-sm">
+                    KnotxandKrafts
+                  </div>
                 </div>
               </div>
             </div>
@@ -173,8 +193,8 @@ export default function Dashboard() {
                           isActive
                             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
                             : tab.href
-                            ? "bg-gradient-to-r from-slate-900 to-black text-white shadow-md hover:opacity-95"
-                            : "bg-white text-black/70 hover:bg-white/90"
+                              ? "bg-gradient-to-r from-slate-900 to-black text-white shadow-md hover:opacity-95"
+                              : "bg-white text-black/70 hover:bg-white/90"
                         }`}
                       >
                         <Icon size={18} />
@@ -198,8 +218,8 @@ export default function Dashboard() {
                           isActive
                             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
                             : tab.href
-                            ? "bg-gradient-to-r from-slate-900 to-black text-white shadow-md hover:opacity-95"
-                            : "bg-white/80 text-black/70 hover:bg-white"
+                              ? "bg-gradient-to-r from-slate-900 to-black text-white shadow-md hover:opacity-95"
+                              : "bg-white/80 text-black/70 hover:bg-white"
                         }`}
                       >
                         <Icon size={18} />
