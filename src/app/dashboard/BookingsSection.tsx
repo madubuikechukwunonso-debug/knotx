@@ -1,29 +1,176 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { prisma } from "@/lib/prisma"; // For client components we use fetch or server components
+import { useState, useEffect } from "react";
+import { Calendar, Clock, User, MessageSquare, RotateCcw, X } from "lucide-react";
 
 export default function BookingsSection() {
-  const [bookings, setBookings] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const [upcomingBookings, setUpcomingBookings] = useState<any[]>([]);
+  const [pastBookings, setPastBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  // Fetch real bookings from API
   useEffect(() => {
     fetch("/api/booking/mine")
       .then((r) => r.json())
-      .then((d) => setBookings(d.bookings || []));
+      .then((d) => {
+        const allBookings = d.bookings || [];
+        
+        const upcoming = allBookings.filter((b: any) => 
+          b.status === "pending" || b.status === "confirmed"
+        );
+        const past = allBookings.filter((b: any) => 
+          b.status === "completed" || b.status === "cancelled"
+        );
+
+        setUpcomingBookings(upcoming);
+        setPastBookings(past);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
+  const handleCancel = async (bookingId: number) => {
+    if (!confirm("Are you sure you want to cancel this booking?")) return;
+    
+    await fetch(`/api/booking/${bookingId}/cancel`, { method: "POST" });
+    // Refresh list
+    window.location.reload();
+  };
+
+  const handleAddNote = (bookingId: number) => {
+    const note = prompt("Add a note for your stylist (e.g. 'Bringing my own extensions'):");
+    if (note) {
+      fetch(`/api/booking/${bookingId}/note`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note }),
+      });
+      alert("Note sent to stylist!");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-3xl p-8 shadow-lg">
+        <h2 className="text-2xl font-medium mb-6">My Bookings</h2>
+        <p className="text-black/40">Loading your bookings...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-3xl p-8 shadow-lg">
-      <h2 className="text-2xl font-serif mb-6">My Bookings</h2>
-      {/* Real data from Prisma via API */}
-      {bookings.length === 0 ? (
-        <p>No bookings yet</p>
+    <div className="bg-white rounded-3xl p-5 sm:p-8">
+      <h2 className="text-2xl font-medium mb-6">My Bookings</h2>
+
+      {/* Tab Switcher */}
+      <div className="flex border-b mb-6">
+        <button
+          onClick={() => setActiveTab("upcoming")}
+          className={`flex-1 py-4 text-sm font-medium border-b-2 transition-all ${
+            activeTab === "upcoming" ? "border-black text-black" : "border-transparent text-black/50"
+          }`}
+        >
+          Upcoming
+        </button>
+        <button
+          onClick={() => setActiveTab("past")}
+          className={`flex-1 py-4 text-sm font-medium border-b-2 transition-all ${
+            activeTab === "past" ? "border-black text-black" : "border-transparent text-black/50"
+          }`}
+        >
+          Past Appointments
+        </button>
+      </div>
+
+      {activeTab === "upcoming" ? (
+        <div className="space-y-6">
+          {upcomingBookings.length === 0 ? (
+            <div className="text-center py-12 text-black/50">
+              No upcoming bookings
+            </div>
+          ) : (
+            upcomingBookings.map((booking) => (
+              <div key={booking.id} className="border border-black/10 rounded-3xl p-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-xs text-black/60">
+                      {booking.date} • {booking.time}
+                    </p>
+                    <h3 className="text-lg font-medium mt-1 capitalize">
+                      {booking.serviceType}
+                    </h3>
+                    <p className="text-sm text-black/70">
+                      Stylist: {booking.staffName || "To be assigned"}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs bg-green-100 text-green-700 px-4 py-1 rounded-3xl">
+                      {booking.status.toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex items-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Clock size={18} />
+                    <span>Countdown active</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <User size={18} />
+                    <span>{booking.staffName || "—"}</span>
+                  </div>
+                </div>
+
+                <div className="mt-8 grid grid-cols-3 gap-3">
+                  <button
+                    onClick={() => handleAddNote(booking.id)}
+                    className="py-4 text-xs sm:text-sm border border-black/20 rounded-2xl hover:bg-black/5 flex items-center justify-center gap-2"
+                  >
+                    <MessageSquare size={16} />
+                    Add Note
+                  </button>
+                  <button
+                    onClick={() => alert("Reschedule flow coming soon")}
+                    className="py-4 text-xs sm:text-sm border border-black/20 rounded-2xl hover:bg-black/5 flex items-center justify-center gap-2"
+                  >
+                    <RotateCcw size={16} />
+                    Reschedule
+                  </button>
+                  <button
+                    onClick={() => handleCancel(booking.id)}
+                    className="py-4 text-xs sm:text-sm border border-red-300 text-red-600 rounded-2xl hover:bg-red-50 flex items-center justify-center gap-2"
+                  >
+                    <X size={16} />
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       ) : (
-        bookings.map((b) => (
-          <div key={b.id} className="border p-4 rounded-2xl mb-4">
-            {b.serviceType} on {b.date} at {b.time}
-          </div>
-        ))
+        <div className="space-y-6">
+          {pastBookings.length === 0 ? (
+            <div className="text-center py-12 text-black/50">
+              Your past appointments and result photos will appear here.
+            </div>
+          ) : (
+            pastBookings.map((booking) => (
+              <div key={booking.id} className="border border-black/10 rounded-3xl p-6 opacity-75">
+                <div className="flex justify-between">
+                  <div>
+                    <p className="text-xs text-black/60">{booking.date} • {booking.time}</p>
+                    <h3 className="text-lg font-medium mt-1 capitalize">{booking.serviceType}</h3>
+                  </div>
+                  <span className="text-xs bg-gray-100 text-gray-600 px-4 py-1 rounded-3xl">
+                    {booking.status.toUpperCase()}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       )}
     </div>
   );
