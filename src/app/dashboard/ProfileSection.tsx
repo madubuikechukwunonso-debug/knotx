@@ -80,6 +80,10 @@ export default function ProfileSection({ user }: { user: any }) {
       alert("New password must be at least 6 characters");
       return;
     }
+    if (!user?.id) {
+      alert("User ID is missing. Please log in again.");
+      return;
+    }
 
     setSaving(true);
     try {
