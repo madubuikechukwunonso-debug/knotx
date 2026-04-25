@@ -13,6 +13,7 @@ import {
   MessageCircle,
   TrendingUp,
   Sparkles,
+  Shield,
 } from "lucide-react";
 
 // Old full Account page (your previous account content)
@@ -36,11 +37,15 @@ type DashboardTab =
   | "messages"
   | "budget";
 
-const tabItems: {
-  value: DashboardTab;
+type TabItem = {
+  value: DashboardTab | "admin";
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
-}[] = [
+  adminOnly?: boolean;
+  href?: string;
+};
+
+const tabItems: TabItem[] = [
   { value: "account", label: "Account", icon: User },
   { value: "profile", label: "Profile", icon: User },
   { value: "bookings", label: "Bookings", icon: Calendar },
@@ -48,6 +53,13 @@ const tabItems: {
   { value: "wishlist", label: "Wishlist", icon: Heart },
   { value: "messages", label: "Messages", icon: MessageCircle },
   { value: "budget", label: "Budget", icon: TrendingUp },
+  {
+    value: "admin",
+    label: "Admin Panel",
+    icon: Shield,
+    adminOnly: true,
+    href: "/admin",
+  },
 ];
 
 export default function Dashboard() {
@@ -92,6 +104,17 @@ export default function Dashboard() {
   const isAdmin = user.role === "admin" || user.role === "super_admin";
   const firstName = user.name?.split(" ")[0] || "beautiful";
 
+  const visibleTabs = tabItems.filter((tab) => !tab.adminOnly || isAdmin);
+
+  const handleTabClick = (tab: TabItem) => {
+    if (tab.href) {
+      router.push(tab.href);
+      return;
+    }
+
+    setActiveTab(tab.value as DashboardTab);
+  };
+
   return (
     <>
       <Navigation />
@@ -105,43 +128,29 @@ export default function Dashboard() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-6 mb-10">
-            <div className="flex-1 min-w-0">
-              <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/65 backdrop-blur-2xl shadow-xl px-6 py-7 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
-                <div className="absolute -top-10 -right-8 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" />
-                <div className="absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-purple-200/30 blur-2xl" />
+          <div className="mb-10">
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/65 backdrop-blur-2xl shadow-xl px-6 py-7 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+              <div className="absolute -top-10 -right-8 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" />
+              <div className="absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-purple-200/30 blur-2xl" />
 
-                <div className="relative">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.24em] text-blue-700">
-                    <Sparkles size={14} />
-                    <span>WELCOME BACK</span>
-                  </div>
+              <div className="relative">
+                <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.24em] text-blue-700">
+                  <Sparkles size={14} />
+                  <span>WELCOME BACK</span>
+                </div>
 
-                  <div className="mt-4">
-                    <h1 className="font-serif italic text-[2.8rem] sm:text-[4rem] lg:text-[5rem] leading-[0.95] text-black tracking-tight">
-                      {firstName}
-                      <span className="not-italic text-blue-600 ml-2">👑</span>
-                    </h1>
+                <div className="mt-4">
+                  <h1 className="font-serif italic text-[2.8rem] sm:text-[4rem] lg:text-[5rem] leading-[0.95] text-black tracking-tight">
+                    {firstName}
+                    <span className="not-italic text-blue-600 ml-2">👑</span>
+                  </h1>
 
-                    <p className="mt-3 max-w-2xl text-sm sm:text-base lg:text-lg text-black/60 leading-7">
-                      Your personal braiding sanctuary
-                    </p>
-                  </div>
+                  <p className="mt-3 max-w-2xl text-sm sm:text-base lg:text-lg text-black/60 leading-7">
+                    Your personal braiding sanctuary
+                  </p>
                 </div>
               </div>
             </div>
-
-            {isAdmin && (
-              <div className="lg:self-center">
-                <button
-                  onClick={() => router.push("/admin")}
-                  className="w-full lg:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-3xl font-medium hover:scale-105 transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-3 whitespace-nowrap"
-                >
-                  <span>Go to Admin Panel</span>
-                  <span className="text-xl">→</span>
-                </button>
-              </div>
-            )}
           </div>
 
           <Tabs
@@ -151,18 +160,20 @@ export default function Dashboard() {
             <div className="mb-10">
               <div className="rounded-[2rem] border border-white/60 bg-white/70 backdrop-blur-2xl shadow-xl p-2 sm:p-3">
                 <div className="grid grid-cols-2 gap-2 sm:hidden">
-                  {tabItems.map((tab) => {
+                  {visibleTabs.map((tab) => {
                     const Icon = tab.icon;
-                    const isActive = activeTab === tab.value;
+                    const isActive = !tab.href && activeTab === tab.value;
 
                     return (
                       <button
                         key={tab.value}
                         type="button"
-                        onClick={() => setActiveTab(tab.value)}
+                        onClick={() => handleTabClick(tab)}
                         className={`min-h-[56px] inline-flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-medium transition-all ${
                           isActive
                             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                            : tab.href
+                            ? "bg-gradient-to-r from-slate-900 to-black text-white shadow-md hover:opacity-95"
                             : "bg-white text-black/70 hover:bg-white/90"
                         }`}
                       >
@@ -174,18 +185,20 @@ export default function Dashboard() {
                 </div>
 
                 <div className="hidden sm:flex flex-wrap gap-3">
-                  {tabItems.map((tab) => {
+                  {visibleTabs.map((tab) => {
                     const Icon = tab.icon;
-                    const isActive = activeTab === tab.value;
+                    const isActive = !tab.href && activeTab === tab.value;
 
                     return (
                       <button
                         key={tab.value}
                         type="button"
-                        onClick={() => setActiveTab(tab.value)}
+                        onClick={() => handleTabClick(tab)}
                         className={`inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-medium transition-all ${
                           isActive
                             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                            : tab.href
+                            ? "bg-gradient-to-r from-slate-900 to-black text-white shadow-md hover:opacity-95"
                             : "bg-white/80 text-black/70 hover:bg-white"
                         }`}
                       >
