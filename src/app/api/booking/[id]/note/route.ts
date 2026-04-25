@@ -2,23 +2,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const bookingId = parseInt(params.id);
-    const { note } = await req.json();
+    const { id } = await params;
+    const bookingId = parseInt(id);
+    const { note } = await request.json();
 
-    // For now we store the note in the existing notes field
-    // You can create a separate notes table later if you want full history
     const booking = await prisma.booking.update({
       where: { id: bookingId },
-      data: { 
-        notes: note 
-      },
+      data: { notes: note },
     });
 
     return NextResponse.json({ success: true, booking });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ success: false, message: "Failed to save note" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: "Failed to save note" },
+      { status: 500 }
+    );
   }
 }
