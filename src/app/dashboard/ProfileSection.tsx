@@ -18,15 +18,20 @@ export default function ProfileSection({ user }: { user: any }) {
     confirmPassword: "",
   });
 
+  // Use correct ID from session (userId) or fallback to id
+  const userId = user.userId || user.id;
+
   // Save Name
   const handleSaveName = async () => {
     if (!displayName.trim()) return alert("Name cannot be empty");
+    if (!userId) return alert("User ID is missing. Please log in again.");
+
     setSaving(true);
     try {
       const res = await fetch("/api/profile/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: user.id, displayName }),
+        body: JSON.stringify({ id: userId, displayName }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -45,12 +50,14 @@ export default function ProfileSection({ user }: { user: any }) {
   // Save Email
   const handleSaveEmail = async () => {
     if (!email.trim()) return alert("Email cannot be empty");
+    if (!userId) return alert("User ID is missing. Please log in again.");
+
     setSaving(true);
     try {
       const res = await fetch("/api/profile/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: user.id, email }),
+        body: JSON.stringify({ id: userId, email }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -80,7 +87,7 @@ export default function ProfileSection({ user }: { user: any }) {
       alert("New password must be at least 6 characters");
       return;
     }
-    if (!user?.id) {
+    if (!userId) {
       alert("User ID is missing. Please log in again.");
       return;
     }
@@ -91,7 +98,7 @@ export default function ProfileSection({ user }: { user: any }) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: user.id,
+          id: userId,
           currentPassword: passwordForm.currentPassword,
           newPassword: passwordForm.newPassword,
         }),
