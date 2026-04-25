@@ -4,18 +4,17 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   try {
-    // TODO: Add token validation here (same as /api/auth/me)
+    // TODO: Add proper JWT token validation here in production
     const bookings = await prisma.booking.findMany({
-      where: { status: { not: "cancelled" } },
       orderBy: { createdAt: "desc" },
       include: {
-        // Add relations if needed later
+        // You can add relations later if needed
       },
     });
 
     return NextResponse.json({ bookings });
   } catch (error) {
     console.error(error);
-    return NextResponse.json({ error: "Failed to fetch bookings" }, { status: 500 });
+    return NextResponse.json({ bookings: [] }, { status: 500 });
   }
 }
