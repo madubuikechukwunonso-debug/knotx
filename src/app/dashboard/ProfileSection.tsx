@@ -20,6 +20,7 @@ export default function ProfileSection({ user }: { user: any }) {
 
   // Save Name
   const handleSaveName = async () => {
+    if (!displayName.trim()) return alert("Name cannot be empty");
     setSaving(true);
     try {
       const res = await fetch("/api/profile/update", {
@@ -27,11 +28,12 @@ export default function ProfileSection({ user }: { user: any }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: user.id, displayName }),
       });
+      const data = await res.json();
       if (res.ok) {
-        alert("✅ Full name updated!");
+        alert("✅ Full name updated successfully!");
         setEditingName(false);
       } else {
-        alert("Failed to update name");
+        alert(data.message || "Failed to update name");
       }
     } catch {
       alert("Something went wrong");
@@ -42,6 +44,7 @@ export default function ProfileSection({ user }: { user: any }) {
 
   // Save Email
   const handleSaveEmail = async () => {
+    if (!email.trim()) return alert("Email cannot be empty");
     setSaving(true);
     try {
       const res = await fetch("/api/profile/update", {
@@ -49,11 +52,11 @@ export default function ProfileSection({ user }: { user: any }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: user.id, email }),
       });
+      const data = await res.json();
       if (res.ok) {
-        alert("✅ Email updated!");
+        alert("✅ Email updated successfully!");
         setEditingEmail(false);
       } else {
-        const data = await res.json();
         alert(data.message || "Failed to update email");
       }
     } catch {
@@ -65,8 +68,16 @@ export default function ProfileSection({ user }: { user: any }) {
 
   // Change Password
   const handleChangePassword = async () => {
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      alert("All password fields are required");
+      return;
+    }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       alert("New passwords do not match");
+      return;
+    }
+    if (passwordForm.newPassword.length < 6) {
+      alert("New password must be at least 6 characters");
       return;
     }
 
@@ -91,7 +102,8 @@ export default function ProfileSection({ user }: { user: any }) {
       } else {
         alert(data.message || "Failed to change password");
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       alert("Something went wrong");
     } finally {
       setSaving(false);
