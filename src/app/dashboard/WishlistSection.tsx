@@ -1,24 +1,24 @@
-"use client";
+'use client';
+
+import { useEffect, useState } from "react";
 
 export default function WishlistSection() {
-  return (
-    <div className="bg-white rounded-3xl p-5 sm:p-8">
-      <h2 className="text-2xl font-medium mb-6">Wishlist &amp; Favorites</h2>
-      
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-        {/* Example Saved Item */}
-        <div className="text-center">
-          <div className="aspect-square bg-[#f6f6f6] rounded-3xl mb-3 flex items-center justify-center text-4xl">🪢</div>
-          <p className="font-medium text-sm">Knotless Braids</p>
-          <p className="text-xs text-black/50">Saved Style</p>
-        </div>
+  const [wishlist, setWishlist] = useState<any[]>([]);
 
-        <div className="text-center">
-          <div className="aspect-square bg-[#f6f6f6] rounded-3xl mb-3 flex items-center justify-center text-4xl">🧴</div>
-          <p className="font-medium text-sm">Hair Growth Oil</p>
-          <p className="text-xs text-black/50">Favorite Product</p>
-        </div>
-      </div>
+  useEffect(() => {
+    fetch("/api/wishlist")
+      .then((r) => r.json())
+      .then((d) => setWishlist(d.items || []));
+  }, []);
+
+  return (
+    <div className="bg-white rounded-3xl p-8 shadow-lg">
+      <h2 className="text-2xl font-serif mb-6">Wishlist</h2>
+      {wishlist.length === 0 ? (
+        <p>Your wishlist is empty</p>
+      ) : (
+        wishlist.map((item) => <div key={item.id}>{item.product.name}</div>)
+      )}
     </div>
   );
 }
