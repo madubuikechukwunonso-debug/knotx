@@ -1,31 +1,41 @@
-"use client";
+'use client';
+
+import { useState } from "react";
+import { prisma } from "@/lib/prisma"; // not needed here - we'll use server actions later
 
 export default function ProfileSection({ user }: { user: any }) {
-  return (
-    <div className="space-y-6">
-      {/* Personal Info */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8">
-        <h2 className="text-xl font-medium mb-6">Personal Information</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div>
-            <label className="text-xs uppercase tracking-widest text-black/60 block mb-2">Full Name</label>
-            <input type="text" defaultValue={user.name} className="w-full border border-black/10 rounded-2xl px-4 py-4 text-sm" />
-          </div>
-          <div>
-            <label className="text-xs uppercase tracking-widest text-black/60 block mb-2">Email</label>
-            <input type="email" defaultValue={user.email} className="w-full border border-black/10 rounded-2xl px-4 py-4 text-sm" />
-          </div>
-        </div>
-        <button className="mt-6 w-full sm:w-auto bg-black text-white px-8 py-4 rounded-2xl text-sm font-medium">
-          Save Changes
-        </button>
-      </div>
+  const [editing, setEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    displayName: user.displayName || "",
+    email: user.email || "",
+  });
 
-      {/* Password & Security */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8">
-        <h2 className="text-xl font-medium mb-6">Password &amp; Security</h2>
-        <button className="w-full border border-black/20 py-4 rounded-2xl text-sm font-medium hover:bg-black/5">
-          Change Password
+  const handleSave = async () => {
+    // In a real app, use a server action here
+    alert("Profile updated (demo - connect to Prisma in production)");
+    setEditing(false);
+  };
+
+  return (
+    <div className="bg-white rounded-3xl p-8 shadow-lg">
+      <h2 className="text-2xl font-serif mb-6">Edit Profile</h2>
+      {/* Add form fields here - for now a simple placeholder */}
+      <div className="space-y-6">
+        <div>
+          <label className="block text-sm mb-1">Display Name</label>
+          <input
+            type="text"
+            value={formData.displayName}
+            onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+            className="w-full border rounded-2xl px-4 py-3"
+            disabled={!editing}
+          />
+        </div>
+        <button
+          onClick={() => (editing ? handleSave() : setEditing(true))}
+          className="bg-blue-600 text-white px-8 py-3 rounded-2xl"
+        >
+          {editing ? "Save Changes" : "Edit Profile"}
         </button>
       </div>
     </div>
