@@ -14,26 +14,28 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-import ProfileSection from "./ProfileSection";     // kept for future use
+// Import your old Account page as the default tab
+import AccountContent from "@/src-pages/AccountPage";   // ← Make sure this path is correct
+
+import ProfileSection from "./ProfileSection";
 import BookingsSection from "./BookingsSection";
 import OrdersSection from "./OrdersSection";
 import WishlistSection from "./WishlistSection";
 import MessagesSection from "./MessagesSection";
 import BudgetSection from "./BudgetSection";
 
-// Import the old AccountPage content (we'll use it as the default tab)
-import AccountContent from "@/src-pages/AccountPage";   // ← adjust path if needed
-
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("account"); // ← Default tab is now "Account"
+  const [activeTab, setActiveTab] = useState("account"); // Account is now the default tab
   const router = useRouter();
 
   useEffect(() => {
     async function loadUser() {
       try {
-        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        const response = await fetch("/api/auth/me", {
+          cache: "no-store",
+        });
         const data = await response.json();
 
         if (!data?.user) {
@@ -99,7 +101,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Tabs - Account is now the default/first tab */}
+          {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full bg-white/70 backdrop-blur-2xl border border-white/60 shadow-2xl rounded-3xl p-2 mb-10">
               <TabsTrigger
@@ -136,9 +138,9 @@ export default function Dashboard() {
               </TabsTrigger>
             </TabsList>
 
-            {/* Default Tab = Account (your old AccountPage content) */}
+            {/* Default tab = Your old Account page content */}
             <TabsContent value="account" className="mt-0">
-              <AccountContent user={user} />
+              <AccountContent />
             </TabsContent>
 
             <TabsContent value="bookings" className="mt-0">
