@@ -7,14 +7,15 @@ export async function PATCH(req: NextRequest) {
   try {
     const { id, currentPassword, newPassword } = await req.json();
 
+    console.log("Received password change request for user ID:", id);
+
     if (!id || !currentPassword || !newPassword) {
       return NextResponse.json(
-        { success: false, message: "All fields are required" },
+        { success: false, message: "All fields are required (id, currentPassword, newPassword)" },
         { status: 400 }
       );
     }
 
-    // Find user
     const user = await prisma.localUser.findUnique({
       where: { id: Number(id) },
     });
@@ -26,7 +27,6 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Verify current password
     const isValid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!isValid) {
       return NextResponse.json(
@@ -35,10 +35,8 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Hash new password
     const newPasswordHash = await bcrypt.hash(newPassword, 12);
 
-    // Update password
     await prisma.localUser.update({
       where: { id: Number(id) },
       data: { passwordHash: newPasswordHash },
@@ -48,8 +46,8 @@ export async function PATCH(req: NextRequest) {
       success: true,
       message: "Password changed successfully",
     });
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("Change password error:", error);
     return NextResponse.json(
       { success: false, message: "Failed to change password" },
       { status: 500 }
