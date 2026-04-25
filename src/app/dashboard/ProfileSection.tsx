@@ -4,65 +4,97 @@ import { useState } from "react";
 import { User, Save, Lock } from "lucide-react";
 
 export default function ProfileSection({ user }: { user: any }) {
-  const [savingName, setSavingName] = useState(false);
-  const [savingEmail, setSavingEmail] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const [displayName, setDisplayName] = useState(user.displayName || user.name || "");
   const [email, setEmail] = useState(user.email || "");
 
-  const [editingName, setEditingName] = useState(false);
-  const [editingEmail, setEditingEmail] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
+  // Save Name
   const handleSaveName = async () => {
-    setSavingName(true);
+    setSaving(true);
     try {
       const res = await fetch("/api/profile/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: user.id,
-          displayName: displayName,
-        }),
+        body: JSON.stringify({ id: user.id, displayName }),
       });
-
       if (res.ok) {
-        alert("✅ Full name updated successfully!");
+        alert("✅ Full name updated!");
         setEditingName(false);
       } else {
         alert("Failed to update name");
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("Something went wrong");
     } finally {
-      setSavingName(false);
+      setSaving(false);
     }
   };
 
+  // Save Email
   const handleSaveEmail = async () => {
-    setSavingEmail(true);
+    setSaving(true);
     try {
       const res = await fetch("/api/profile/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: user.id,
-          email: email,
-        }),
+        body: JSON.stringify({ id: user.id, email }),
       });
-
       if (res.ok) {
-        alert("✅ Email updated successfully!");
+        alert("✅ Email updated!");
         setEditingEmail(false);
       } else {
         const data = await res.json();
         alert(data.message || "Failed to update email");
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("Something went wrong");
     } finally {
-      setSavingEmail(false);
+      setSaving(false);
+    }
+  };
+
+  // Change Password
+  const handleChangePassword = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert("New passwords do not match");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/profile/change-password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: user.id,
+          currentPassword: passwordForm.currentPassword,
+          newPassword: passwordForm.newPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("✅ Password changed successfully!");
+        setShowPasswordForm(false);
+        setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      } else {
+        alert(data.message || "Failed to change password");
+      }
+    } catch {
+      alert("Something went wrong");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -81,18 +113,10 @@ export default function ProfileSection({ user }: { user: any }) {
             <label className="text-xs uppercase tracking-widest text-black/60">Full Name</label>
             <button
               onClick={() => (editingName ? handleSaveName() : setEditingName(true))}
-              disabled={savingName}
-              className="text-sm font-medium flex items-center gap-1 text-blue-600 hover:text-blue-700"
+              disabled={saving}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700"
             >
-              {savingName ? (
-                "Saving..."
-              ) : editingName ? (
-                <>
-                  <Save className="w-4 h-4" /> Save
-                </>
-              ) : (
-                "Edit"
-              )}
+              {editingName ? "Save" : "Edit"}
             </button>
           </div>
           <input
@@ -104,24 +128,16 @@ export default function ProfileSection({ user }: { user: any }) {
           />
         </div>
 
-        {/* Email Address */}
+        {/* Email */}
         <div>
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs uppercase tracking-widest text-black/60">Email Address</label>
             <button
               onClick={() => (editingEmail ? handleSaveEmail() : setEditingEmail(true))}
-              disabled={savingEmail}
-              className="text-sm font-medium flex items-center gap-1 text-blue-600 hover:text-blue-700"
+              disabled={saving}
+              className="text-sm font-medium text-blue-600 hover:text-blue-700"
             >
-              {savingEmail ? (
-                "Saving..."
-              ) : editingEmail ? (
-                <>
-                  <Save className="w-4 h-4" /> Save
-                </>
-              ) : (
-                "Edit"
-              )}
+              {editingEmail ? "Save" : "Edit"}
             </button>
           </div>
           <input
@@ -140,13 +156,48 @@ export default function ProfileSection({ user }: { user: any }) {
           <Lock className="w-6 h-6 text-blue-600" />
           Password &amp; Security
         </h2>
-        <button className="w-full border border-black/20 py-4 rounded-2xl text-sm font-medium hover:bg-black/5 transition-colors flex items-center justify-center gap-3">
+
+        <button
+          onClick={() => setShowPasswordForm(!showPasswordForm)}
+          className="w-full border border-black/20 py-4 rounded-2xl text-sm font-medium hover:bg-black/5 transition-colors flex items-center justify-center gap-3"
+        >
           <Lock className="w-5 h-5" />
           Change Password
         </button>
-        <p className="text-xs text-black/50 text-center mt-4">
-          Last changed: Never
-        </p>
+
+        {showPasswordForm && (
+          <div className="mt-6 space-y-4 border-t pt-6">
+            <input
+              type="password"
+              placeholder="Current Password"
+              value={passwordForm.currentPassword}
+              onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+              className="w-full border border-black/10 rounded-2xl px-4 py-4 text-sm"
+            />
+            <input
+              type="password"
+              placeholder="New Password"
+              value={passwordForm.newPassword}
+              onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+              className="w-full border border-black/10 rounded-2xl px-4 py-4 text-sm"
+            />
+            <input
+              type="password"
+              placeholder="Confirm New Password"
+              value={passwordForm.confirmPassword}
+              onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+              className="w-full border border-black/10 rounded-2xl px-4 py-4 text-sm"
+            />
+
+            <button
+              onClick={handleChangePassword}
+              disabled={saving}
+              className="w-full bg-blue-600 text-white py-4 rounded-2xl text-sm font-medium mt-2"
+            >
+              {saving ? "Updating Password..." : "Update Password"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
