@@ -129,13 +129,13 @@ export default function Dashboard() {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="mb-10">
-            <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/65 backdrop-blur-2xl shadow-xl px-5 py-5 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/65 backdrop-blur-2xl shadow-xl px-5 py-5 sm:px-8 sm:py-7 lg:px-10 lg:py-8">
               <div className="absolute -top-10 -right-8 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" />
               <div className="absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-purple-200/30 blur-2xl" />
 
-              <div className="relative flex flex-col gap-6 sm:gap-7 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-start gap-4 sm:gap-5">
-                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[1.75rem] border border-white/70 bg-white shadow-lg sm:h-28 sm:w-28 lg:h-32 lg:w-32">
+              <div className="relative flex flex-col gap-5 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-4 sm:gap-5">
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[1.5rem] border border-white/70 bg-white shadow-lg sm:h-24 sm:w-24 lg:h-28 lg:w-28">
                     <Image
                       src="/images/owner/cup.jpeg"
                       alt="Owner of KnotxandKrafts"
@@ -146,18 +146,14 @@ export default function Dashboard() {
                   </div>
 
                   <div className="min-w-0">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[18px] font-semibold tracking-[0.24em] text-blue-700">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.24em] text-blue-700">
                       <Sparkles size={14} />
                       <span>WELCOME BACK</span>
                     </div>
 
-                    <div className="mt-4">
-                      
-                      <p className="mt-3 max-w-2xl text-sm sm:text-base lg:text-lg text-black/60 leading-7">
-                        Step into your personal braiding sanctuary and manage your
-                        bookings, orders, and beauty essentials with ease.
-                      </p>
-                    </div>
+                    <p className="mt-3 text-sm sm:text-base lg:text-lg text-black/65 leading-7 max-w-xl">
+                      Manage your bookings, orders, and essentials.
+                    </p>
                   </div>
                 </div>
 
