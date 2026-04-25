@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   User,
   Calendar,
@@ -26,10 +26,33 @@ import WishlistSection from "./WishlistSection";
 import MessagesSection from "./MessagesSection";
 import BudgetSection from "./BudgetSection";
 
+type DashboardTab =
+  | "account"
+  | "profile"
+  | "bookings"
+  | "orders"
+  | "wishlist"
+  | "messages"
+  | "budget";
+
+const tabItems: {
+  value: DashboardTab;
+  label: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+}[] = [
+  { value: "account", label: "Account", icon: User },
+  { value: "profile", label: "Profile", icon: User },
+  { value: "bookings", label: "Bookings", icon: Calendar },
+  { value: "orders", label: "Orders", icon: Package },
+  { value: "wishlist", label: "Wishlist", icon: Heart },
+  { value: "messages", label: "Messages", icon: MessageCircle },
+  { value: "budget", label: "Budget", icon: TrendingUp },
+];
+
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("account"); // Default tab = Account
+  const [activeTab, setActiveTab] = useState<DashboardTab>("account");
   const router = useRouter();
 
   useEffect(() => {
@@ -37,10 +60,12 @@ export default function Dashboard() {
       try {
         const response = await fetch("/api/auth/me", { cache: "no-store" });
         const data = await response.json();
+
         if (!data?.user) {
           router.push("/login");
           return;
         }
+
         setUser(data.user);
       } catch {
         router.push("/login");
@@ -48,6 +73,7 @@ export default function Dashboard() {
         setIsLoading(false);
       }
     }
+
     loadUser();
   }, [router]);
 
@@ -69,17 +95,20 @@ export default function Dashboard() {
     <>
       <Navigation />
 
-      {/* Blue Floral Background */}
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-20 pb-12 relative overflow-hidden">
-        {/* Decorative flowers - only visible on larger screens */}
-        <div className="hidden xl:block absolute top-16 right-12 text-blue-200/20 text-[160px] leading-none pointer-events-none select-none">🌸</div>
-        <div className="hidden xl:block absolute bottom-28 left-8 text-blue-200/20 text-[130px] leading-none pointer-events-none select-none rotate-12">🌺</div>
+        <div className="hidden xl:block absolute top-16 right-12 text-blue-200/20 text-[160px] leading-none pointer-events-none select-none">
+          🌸
+        </div>
+        <div className="hidden xl:block absolute bottom-28 left-8 text-blue-200/20 text-[130px] leading-none pointer-events-none select-none rotate-12">
+          🌺
+        </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          {/* === WELCOME BACK SECTION (Cursive + Responsive) === */}
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-10">
             <div>
-              <p className="text-blue-600 text-sm tracking-[1px] font-medium">WELCOME BACK</p>
+              <p className="text-blue-600 text-sm tracking-[1px] font-medium">
+                WELCOME BACK
+              </p>
               <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl text-black leading-none">
                 {firstName}
                 <span className="text-blue-600"> 👑</span>
@@ -100,85 +129,81 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* === TABS - Mobile + Desktop Friendly === */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 sm:grid-cols-6 w-full bg-white/70 backdrop-blur-2xl border border-white/60 shadow-xl rounded-3xl p-1.5 mb-10 overflow-x-auto scrollbar-hide">
-              <TabsTrigger
-                value="account"
-                className="flex items-center justify-center gap-2 py-3.5 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-3xl transition-all whitespace-nowrap"
-              >
-                <User size={20} />
-                <span className="font-medium">Account</span>
-              </TabsTrigger>
+          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as DashboardTab)}>
+            <div className="mb-10">
+              <div className="rounded-[2rem] border border-white/60 bg-white/70 backdrop-blur-2xl shadow-xl p-2 sm:p-3">
+                <div className="flex gap-3 overflow-x-auto pb-1 sm:hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {tabItems.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.value;
 
-              <TabsTrigger
-                value="profile"
-                className="flex items-center justify-center gap-2 py-3.5 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-3xl transition-all whitespace-nowrap"
-              >
-                <User size={20} />
-                <span className="font-medium">Profile</span>
-              </TabsTrigger>
+                    return (
+                      <button
+                        key={tab.value}
+                        type="button"
+                        onClick={() => setActiveTab(tab.value)}
+                        className={`shrink-0 inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
+                          isActive
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                            : "bg-white text-black/70 hover:bg-white/90"
+                        }`}
+                      >
+                        <Icon size={18} />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-              <TabsTrigger
-                value="bookings"
-                className="flex items-center justify-center gap-2 py-3.5 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-3xl transition-all whitespace-nowrap"
-              >
-                <Calendar size={20} />
-                <span className="font-medium">Bookings</span>
-              </TabsTrigger>
+                <div className="hidden sm:flex flex-wrap gap-3">
+                  {tabItems.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.value;
 
-              <TabsTrigger
-                value="orders"
-                className="flex items-center justify-center gap-2 py-3.5 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-3xl transition-all whitespace-nowrap"
-              >
-                <Package size={20} />
-                <span className="font-medium">Orders</span>
-              </TabsTrigger>
+                    return (
+                      <button
+                        key={tab.value}
+                        type="button"
+                        onClick={() => setActiveTab(tab.value)}
+                        className={`inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-medium transition-all ${
+                          isActive
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                            : "bg-white/80 text-black/70 hover:bg-white"
+                        }`}
+                      >
+                        <Icon size={18} />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
 
-              <TabsTrigger
-                value="wishlist"
-                className="flex items-center justify-center gap-2 py-3.5 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-3xl transition-all whitespace-nowrap"
-              >
-                <Heart size={20} />
-                <span className="font-medium">Wishlist</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="messages"
-                className="flex items-center justify-center gap-2 py-3.5 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-3xl transition-all whitespace-nowrap"
-              >
-                <MessageCircle size={20} />
-                <span className="font-medium">Messages</span>
-              </TabsTrigger>
-
-              <TabsTrigger
-                value="budget"
-                className="flex items-center justify-center gap-2 py-3.5 text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white rounded-3xl transition-all whitespace-nowrap"
-              >
-                <TrendingUp size={20} />
-                <span className="font-medium">Budget</span>
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Tab Contents */}
             <TabsContent value="account" className="mt-0">
               <AccountContent />
             </TabsContent>
+
             <TabsContent value="profile" className="mt-0">
               <ProfileSection user={user} />
             </TabsContent>
+
             <TabsContent value="bookings" className="mt-0">
               <BookingsSection />
             </TabsContent>
+
             <TabsContent value="orders" className="mt-0">
               <OrdersSection />
             </TabsContent>
+
             <TabsContent value="wishlist" className="mt-0">
               <WishlistSection />
             </TabsContent>
+
             <TabsContent value="messages" className="mt-0">
               <MessagesSection />
             </TabsContent>
+
             <TabsContent value="budget" className="mt-0">
               <BudgetSection />
             </TabsContent>
