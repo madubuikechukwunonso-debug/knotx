@@ -13,12 +13,13 @@ export default function BudgetSection() {
       .then((r) => r.json())
       .then((d) => {
         setTotalSpent(d.total || 0);
-        // For demo purposes - in real app your API should return these values
-        setMonthlySpent(d.monthly || Math.floor(d.total * 0.4) || 1240);
-        setDailySpent(d.daily || Math.floor(d.total * 0.05) || 85);
+        setMonthlySpent(d.monthly || 0);
+        setDailySpent(d.daily || 0);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLoading(false);
+      });
   }, []);
 
   if (loading) {
