@@ -10,32 +10,39 @@ import { User, Calendar, ShoppingBag, ArrowLeft, LogOut } from 'lucide-react';
 export default function AccountPage() {
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
+
   const [myBookings, setMyBookings] = useState<any[]>([]);
   const [myOrders, setMyOrders] = useState<any[]>([]);
 
-  // Redirect if not authenticated
+  // Redirect if not logged in
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/login');
   }, [isLoading, isAuthenticated, router]);
 
-  // Fetch user's bookings and orders
+  // Load user's bookings and orders
   useEffect(() => {
     if (isAuthenticated) {
       fetch('/api/booking/create?mine=1')
-        .then(r => r.json())
-        .then(d => setMyBookings(d.bookings || []))
+        .then((r) => r.json())
+        .then((d) => setMyBookings(d.bookings || []))
         .catch(() => {});
 
       fetch('/api/orders?mine=1')
-        .then(r => r.json())
-        .then(d => setMyOrders(d.orders || []))
+        .then((r) => r.json())
+        .then((d) => setMyOrders(d.orders || []))
         .catch(() => {});
     }
   }, [isAuthenticated]);
 
   const formatPrice = (c: number) => `$${(c / 100).toFixed(2)}`;
   const formatDate = (date: any) =>
-    date ? new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+    date
+      ? new Date(date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        })
+      : 'N/A';
 
   if (isLoading) {
     return (
@@ -53,7 +60,7 @@ export default function AccountPage() {
 
       <div className="px-6 pb-20 pt-24 lg:pt-32">
         <div className="mx-auto max-w-4xl">
-          {/* Back to home */}
+          {/* Back button */}
           <Link
             href="/"
             className="mb-8 inline-flex items-center gap-2 text-sm text-black/50 transition-colors hover:text-black"
@@ -71,6 +78,7 @@ export default function AccountPage() {
               <h1 className="font-serif text-3xl font-light lg:text-4xl">{user.name}</h1>
               <p className="text-sm text-black/50">{user.email}</p>
             </div>
+
             <button
               onClick={logout}
               className="ml-auto flex items-center gap-2 text-sm text-black/50 transition-colors hover:text-black"
@@ -80,7 +88,7 @@ export default function AccountPage() {
             </button>
           </div>
 
-          {/* Content Grid */}
+          {/* Content */}
           <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
             {/* My Bookings */}
             <div>
@@ -88,6 +96,7 @@ export default function AccountPage() {
                 <Calendar className="h-4 w-4" />
                 My Bookings
               </h2>
+
               {myBookings.length > 0 ? (
                 <div className="space-y-4">
                   {myBookings.map((booking) => (
@@ -128,8 +137,39 @@ export default function AccountPage() {
                 <ShoppingBag className="h-4 w-4" />
                 My Orders
               </h2>
+
               {myOrders.length > 0 ? (
                 <div className="space-y-4">
                   {myOrders.map((order) => (
                     <div key={order.id} className="border border-black/5 p-4">
                       <div className="mb-2 flex items-start justify-between">
+                        <p className="text-sm font-medium">Order #{order.id}</p>
+                        <span className="bg-black/5 px-2 py-1 text-xs uppercase">
+                          {order.status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-black/50">{formatPrice(order.total)}</p>
+                      <p className="mt-1 text-xs text-black/30">
+                        {formatDate(order.createdAt)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-[#f6f6f6] py-8 text-center">
+                  <p className="mb-2 text-sm text-black/40">No orders yet</p>
+                  <Link
+                    href="/shop"
+                    className="border-b border-black pb-0.5 text-xs uppercase tracking-widest transition-opacity hover:opacity-60"
+                  >
+                    Shop Now
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
