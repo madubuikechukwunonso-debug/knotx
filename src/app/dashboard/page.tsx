@@ -12,6 +12,7 @@ import {
   Heart,
   MessageCircle,
   TrendingUp,
+  Sparkles,
 } from "lucide-react";
 
 // Old full Account page (your previous account content)
@@ -104,35 +105,52 @@ export default function Dashboard() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 mb-10">
-            <div>
-              <p className="text-blue-600 text-sm tracking-[1px] font-medium">
-                WELCOME BACK
-              </p>
-              <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl text-black leading-none">
-                {firstName}
-                <span className="text-blue-600"> 👑</span>
-              </h1>
-              <p className="text-black/60 mt-2 text-lg">
-                Your personal braiding sanctuary
-              </p>
+          <div className="flex flex-col lg:flex-row lg:items-stretch lg:justify-between gap-6 mb-10">
+            <div className="flex-1 min-w-0">
+              <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/65 backdrop-blur-2xl shadow-xl px-6 py-7 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+                <div className="absolute -top-10 -right-8 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" />
+                <div className="absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-purple-200/30 blur-2xl" />
+
+                <div className="relative">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.24em] text-blue-700">
+                    <Sparkles size={14} />
+                    <span>WELCOME BACK</span>
+                  </div>
+
+                  <div className="mt-4">
+                    <h1 className="font-serif italic text-[2.8rem] sm:text-[4rem] lg:text-[5rem] leading-[0.95] text-black tracking-tight">
+                      {firstName}
+                      <span className="not-italic text-blue-600 ml-2">👑</span>
+                    </h1>
+
+                    <p className="mt-3 max-w-2xl text-sm sm:text-base lg:text-lg text-black/60 leading-7">
+                      Your personal braiding sanctuary
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {isAdmin && (
-              <button
-                onClick={() => router.push("/admin")}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-3xl font-medium hover:scale-105 transition-all shadow-lg shadow-blue-500/30 flex items-center gap-3 whitespace-nowrap"
-              >
-                <span>Go to Admin Panel</span>
-                <span className="text-xl">→</span>
-              </button>
+              <div className="lg:self-center">
+                <button
+                  onClick={() => router.push("/admin")}
+                  className="w-full lg:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-3xl font-medium hover:scale-105 transition-all shadow-lg shadow-blue-500/30 flex items-center justify-center gap-3 whitespace-nowrap"
+                >
+                  <span>Go to Admin Panel</span>
+                  <span className="text-xl">→</span>
+                </button>
+              </div>
             )}
           </div>
 
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as DashboardTab)}>
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as DashboardTab)}
+          >
             <div className="mb-10">
               <div className="rounded-[2rem] border border-white/60 bg-white/70 backdrop-blur-2xl shadow-xl p-2 sm:p-3">
-                <div className="flex gap-3 overflow-x-auto pb-1 sm:hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="grid grid-cols-2 gap-2 sm:hidden">
                   {tabItems.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.value;
@@ -142,7 +160,7 @@ export default function Dashboard() {
                         key={tab.value}
                         type="button"
                         onClick={() => setActiveTab(tab.value)}
-                        className={`shrink-0 inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-medium transition-all ${
+                        className={`min-h-[56px] inline-flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-medium transition-all ${
                           isActive
                             ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
                             : "bg-white text-black/70 hover:bg-white/90"
