@@ -1,3 +1,4 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,6 +8,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ====================== USERS ======================
 model User {
   id            Int      @id @default(autoincrement())
   unionId       String   @unique
@@ -38,8 +40,14 @@ model LocalUser {
   lastSignInAt  DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  // Relations
+  bookings      Booking[]
+  orders        Order[]
+  wishlist      Wishlist[]
 }
 
+// ====================== PRODUCTS & SERVICES ======================
 model Product {
   id              Int      @id @default(autoincrement())
   name            String
@@ -57,6 +65,9 @@ model Product {
   stripePriceId   String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  wishlistItems   Wishlist[]
+  orderItems      OrderItem[]
 }
 
 model Service {
@@ -77,6 +88,7 @@ model Service {
   updatedAt       DateTime @updatedAt
 }
 
+// ====================== GALLERY & HERO ======================
 model GalleryItem {
   id            Int      @id @default(autoincrement())
   type          String
@@ -93,6 +105,16 @@ model GalleryItem {
   updatedAt     DateTime @updatedAt
 }
 
+model HeroImage {
+  id        Int      @id @default(autoincrement())
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+// ====================== STAFF ======================
 model StaffProfile {
   id             Int      @id @default(autoincrement())
   userId         Int
@@ -130,6 +152,7 @@ model ServiceStaffAssignment {
   createdAt   DateTime @default(now())
 }
 
+// ====================== ORDERS ======================
 model Order {
   id                  Int      @id @default(autoincrement())
   userId              Int?
@@ -147,6 +170,8 @@ model Order {
   stripePaymentIntent String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+
+  user                LocalUser? @relation(fields: [userId], references: [id])
   items               OrderItem[]
 }
 
@@ -156,9 +181,12 @@ model OrderItem {
   productId Int
   quantity  Int
   price     Int
-  order     Order @relation(fields: [orderId], references: [id])
+
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 }
 
+// ====================== BOOKINGS ======================
 model Booking {
   id                      Int      @id @default(autoincrement())
   userId                  Int?
@@ -179,17 +207,24 @@ model Booking {
   notes                   String?
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
+
+  user                    LocalUser? @relation(fields: [userId], references: [id])
 }
 
-model HeroImage {
+// ====================== WISHLIST (NEW) ======================
+model Wishlist {
   id        Int      @id @default(autoincrement())
-  url       String
-  alt       String?
-  sortOrder Int      @default(0)
-  active    Boolean  @default(true)
+  userId    Int
+  productId Int
   createdAt DateTime @default(now())
+
+  user      LocalUser @relation(fields: [userId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
 }
 
+// ====================== NEWSLETTER & CONTACT ======================
 model Subscriber {
   id             Int      @id @default(autoincrement())
   name           String?
@@ -201,14 +236,14 @@ model Subscriber {
 }
 
 model NewsletterCampaign {
-  id              Int      @id @default(autoincrement())
-  subject         String
-  htmlBody        String
-  audienceType    String   @default("selected")
-  sendToEveryone  Boolean  @default(false)
-  createdById     Int?
-  sentAt          DateTime?
-  createdAt       DateTime @default(now())
+  id             Int      @id @default(autoincrement())
+  subject        String
+  htmlBody       String
+  audienceType   String   @default("selected")
+  sendToEveryone Boolean  @default(false)
+  createdById    Int?
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
 }
 
 model NewsletterRecipient {
