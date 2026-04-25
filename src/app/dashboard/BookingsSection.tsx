@@ -9,17 +9,22 @@ export default function BookingsSection() {
   const [pastBookings, setPastBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch real bookings from API
+  // Reschedule state
+  const [reschedulingId, setReschedulingId] = useState<number | null>(null);
+  const [newDate, setNewDate] = useState("");
+  const [newTime, setNewTime] = useState("");
+
+  // Fetch real bookings
   useEffect(() => {
     fetch("/api/booking/mine")
       .then((r) => r.json())
       .then((d) => {
         const allBookings = d.bookings || [];
-        
-        const upcoming = allBookings.filter((b: any) => 
+
+        const upcoming = allBookings.filter((b: any) =>
           b.status === "pending" || b.status === "confirmed"
         );
-        const past = allBookings.filter((b: any) => 
+        const past = allBookings.filter((b: any) =>
           b.status === "completed" || b.status === "cancelled"
         );
 
@@ -30,12 +35,15 @@ export default function BookingsSection() {
       .catch(() => setLoading(false));
   }, []);
 
+  const refreshBookings = () => {
+    window.location.reload(); // Simple refresh - you can improve this later
+  };
+
   const handleCancel = async (bookingId: number) => {
     if (!confirm("Are you sure you want to cancel this booking?")) return;
-    
+
     await fetch(`/api/booking/${bookingId}/cancel`, { method: "POST" });
-    // Refresh list
-    window.location.reload();
+    refreshBookings();
   };
 
   const handleAddNote = (bookingId: number) => {
@@ -47,6 +55,30 @@ export default function BookingsSection() {
         body: JSON.stringify({ note }),
       });
       alert("Note sent to stylist!");
+    }
+  };
+
+  const handleReschedule = (booking: any) => {
+    setReschedulingId(booking.id);
+    setNewDate(booking.date);
+    setNewTime(booking.time);
+  };
+
+  const submitReschedule = async () => {
+    if (!reschedulingId || !newDate || !newTime) return;
+
+    const res = await fetch(`/api/booking/${reschedulingId}/reschedule`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ date: newDate, time: newTime }),
+    });
+
+    if (res.ok) {
+      alert("Booking rescheduled successfully!");
+      setReschedulingId(null);
+      refreshBookings();
+    } else {
+      alert("Failed to reschedule booking");
     }
   };
 
@@ -122,6 +154,48 @@ export default function BookingsSection() {
                   </div>
                 </div>
 
+                {/* Reschedule Form (shown when user clicks Reschedule) */}
+                {reschedulingId === booking.id && (
+                  <div className="mt-6 bg-blue-50 border border-blue-200 rounded-2xl p-4">
+                    <p className="text-sm font-medium mb-3">Reschedule this booking</p>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-xs block mb-1">New Date</label>
+                        <input
+                          type="date"
+                          value={newDate}
+                          onChange={(e) => setNewDate(e.target.value)}
+                          className="w-full border rounded-2xl px-4 py-3 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs block mb-1">New Time</label>
+                        <input
+                          type="time"
+                          value={newTime}
+                          onChange={(e) => setNewTime(e.target.value)}
+                          className="w-full border rounded-2xl px-4 py-3 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mt-4">
+                      <button
+                        onClick={submitReschedule}
+                        className="flex-1 bg-blue-600 text-white py-3 rounded-2xl text-sm font-medium"
+                      >
+                        Confirm Reschedule
+                      </button>
+                      <button
+                        onClick={() => setReschedulingId(null)}
+                        className="flex-1 border border-black/20 py-3 rounded-2xl text-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
                 <div className="mt-8 grid grid-cols-3 gap-3">
                   <button
                     onClick={() => handleAddNote(booking.id)}
@@ -130,13 +204,15 @@ export default function BookingsSection() {
                     <MessageSquare size={16} />
                     Add Note
                   </button>
+
                   <button
-                    onClick={() => alert("Reschedule flow coming soon")}
+                    onClick={() => handleReschedule(booking)}
                     className="py-4 text-xs sm:text-sm border border-black/20 rounded-2xl hover:bg-black/5 flex items-center justify-center gap-2"
                   >
                     <RotateCcw size={16} />
                     Reschedule
                   </button>
+
                   <button
                     onClick={() => handleCancel(booking.id)}
                     className="py-4 text-xs sm:text-sm border border-red-300 text-red-600 rounded-2xl hover:bg-red-50 flex items-center justify-center gap-2"
