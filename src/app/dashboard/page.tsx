@@ -146,16 +146,13 @@ export default function Dashboard() {
                   </div>
 
                   <div className="min-w-0">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.24em] text-blue-700">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[18px] font-semibold tracking-[0.24em] text-blue-700">
                       <Sparkles size={14} />
                       <span>WELCOME BACK</span>
                     </div>
 
                     <div className="mt-4">
-                      <h1 className="font-serif italic text-[2rem] sm:text-[2.7rem] lg:text-[3.4rem] leading-[1] text-black tracking-tight">
-                        So glad you&apos;re here
-                      </h1>
-
+                      
                       <p className="mt-3 max-w-2xl text-sm sm:text-base lg:text-lg text-black/60 leading-7">
                         Step into your personal braiding sanctuary and manage your
                         bookings, orders, and beauty essentials with ease.
