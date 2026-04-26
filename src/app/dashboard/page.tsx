@@ -105,7 +105,7 @@ export default function Dashboard() {
 
   const saveAddress = async () => {
     try {
-      const res = await fetch("/api/profile/update", {
+      const res = await fetch("/api/profile/shipping", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
