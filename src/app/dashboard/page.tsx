@@ -33,7 +33,9 @@ import { LoadScript } from "@react-google-maps/api";
 // Static libraries array (fixes the performance warning)
 const GOOGLE_LIBRARIES: ("places")[] = ["places"];
 
-// === FIX FOR GOOGLE WEB COMPONENT ===
+// ─────────────────────────────────────────────────────────────
+// FIX: TypeScript declaration for Google Maps web component
+// ─────────────────────────────────────────────────────────────
 declare global {
   namespace JSX {
     interface IntrinsicElements {
@@ -135,7 +137,7 @@ export default function Dashboard() {
       : "";
   };
 
-  // Handle Google Place Autocomplete selection
+  // Handle selection from the NEW Place Autocomplete
   useEffect(() => {
     const autocompleteEl = placeAutocompleteRef.current;
     if (!autocompleteEl || !showAddressModal) return;
@@ -205,7 +207,7 @@ export default function Dashboard() {
 
         setShowAddressModal(false);
 
-        // Refresh user data
+        // Refresh user data so modal doesn't show again
         const userRes = await fetch("/api/auth/me", { cache: "no-store" });
         const userData = await userRes.json();
         if (userData?.user) {
@@ -265,7 +267,7 @@ export default function Dashboard() {
 
       <Footer />
 
-      {/* ADDRESS MODAL */}
+      {/* ADDRESS MODAL - Updated with NEW Google Places Autocomplete */}
       {showAddressModal && (
         <LoadScript
           googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
