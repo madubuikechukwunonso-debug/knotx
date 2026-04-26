@@ -34,7 +34,7 @@ import { LoadScript } from "@react-google-maps/api";
 const GOOGLE_LIBRARIES: ("places")[] = ["places"];
 
 // ─────────────────────────────────────────────────────────────
-// FIX: TypeScript declaration for Google Maps web component
+// TYPESCRIPT FIX for Google Maps <gmp-place-autocomplete> web component
 // ─────────────────────────────────────────────────────────────
 declare global {
   namespace JSX {
@@ -191,7 +191,7 @@ export default function Dashboard() {
     };
   }, [showAddressModal]);
 
-  // UPDATED: Uses the new dedicated shipping endpoint
+  // Uses the new dedicated shipping endpoint
   const saveAddress = async () => {
     try {
       const res = await fetch("/api/profile/shipping", {
