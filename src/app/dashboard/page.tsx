@@ -174,25 +174,36 @@ export default function Dashboard() {
     };
   }, [showAddressModal]);
 
+  // UPDATED: Now uses the new dedicated shipping endpoint
   const saveAddress = async () => {
     try {
-      const res = await fetch("/api/profile/update", {
+      const res = await fetch("/api/profile/shipping", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: user.id,
+          // id is no longer needed — we use the secure session on the backend
           ...addressForm,
         }),
       });
 
       if (res.ok) {
         alert("✅ Shipping address saved!");
+
+        // Close modal
         setShowAddressModal(false);
-        window.location.reload();
+
+        // Refresh user data so modal doesn't show again
+        const userRes = await fetch("/api/auth/me", { cache: "no-store" });
+        const userData = await userRes.json();
+        if (userData?.user) {
+          setUser(userData.user);
+        }
       } else {
-        alert("Failed to save address");
+        const errorData = await res.json().catch(() => ({}));
+        alert(errorData.message || "Failed to save address");
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       alert("Something went wrong");
     }
   };
