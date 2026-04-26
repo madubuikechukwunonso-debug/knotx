@@ -28,7 +28,7 @@ import WishlistSection from "./WishlistSection";
 import MessagesSection from "./MessagesSection";
 import BudgetSection from "./BudgetSection";
 
-import { LoadScript } from "@react-google-maps/api";
+import { LoadScript, Autocomplete } from "@react-google-maps/api";
 
 // Static libraries array
 const GOOGLE_LIBRARIES: ("places")[] = ["places"];
@@ -83,18 +83,19 @@ export default function Dashboard() {
     shippingCountry: "",
   });
 
-  const placeAutocompleteRef = useRef<any>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
     async function loadUser() {
       try {
         const response = await fetch("/api/auth/me", { cache: "no-store" });
         const data = await response.json();
+
         if (!data?.user) {
           router.push("/login");
           return;
         }
+
         setUser(data.user);
 
         if (!data.user.shippingAddressLine1) {
@@ -106,70 +107,66 @@ export default function Dashboard() {
         setIsLoading(false);
       }
     }
+
     loadUser();
   }, [router]);
 
-  const getAddressComponent = (components: any[], type: string): string => {
-    const component = components.find((comp: any) =>
-      comp.types?.includes(type) || comp.componentType === type
-    );
-    return component
-      ? component.longText || component.long_name || component.shortText || ""
-      : "";
+  const getAddressComponent = (
+    components: google.maps.GeocoderAddressComponent[] | undefined,
+    type: string
+  ): string => {
+    if (!components) return "";
+
+    const component = components.find((comp) => comp.types?.includes(type));
+
+    return component?.long_name || component?.short_name || "";
   };
 
-  useEffect(() => {
-    const autocompleteEl = placeAutocompleteRef.current;
-    if (!autocompleteEl || !showAddressModal) return;
+  const handlePlaceChanged = () => {
+    const autocomplete = autocompleteRef.current;
+    if (!autocomplete) return;
 
-    const handlePlaceSelect = (e: any) => {
-      const place = e.detail?.place || e.place;
-      if (!place?.addressComponents) return;
+    const place = autocomplete.getPlace();
+    if (!place) return;
 
-      const components = place.addressComponents;
+    const components = place.address_components;
 
-      const streetNumber = getAddressComponent(components, "street_number");
-      const route = getAddressComponent(components, "route");
+    const streetNumber = getAddressComponent(components, "street_number");
+    const route = getAddressComponent(components, "route");
 
-      let shippingAddressLine1 = "";
-      if (streetNumber && route) {
-        shippingAddressLine1 = `${streetNumber} ${route}`;
-      } else if (route) {
-        shippingAddressLine1 = route;
-      } else {
-        shippingAddressLine1 = place.formattedAddress || place.formatted_address || "";
-      }
+    let shippingAddressLine1 = "";
 
-      const shippingCity =
-        getAddressComponent(components, "locality") ||
-        getAddressComponent(components, "sublocality_level_1") ||
-        getAddressComponent(components, "administrative_area_level_3") ||
-        "";
+    if (streetNumber && route) {
+      shippingAddressLine1 = `${streetNumber} ${route}`;
+    } else if (route) {
+      shippingAddressLine1 = route;
+    } else {
+      shippingAddressLine1 = place.formatted_address || "";
+    }
 
-      const shippingState =
-        getAddressComponent(components, "administrative_area_level_1") ||
-        getAddressComponent(components, "administrative_area_level_2") ||
-        "";
+    const shippingCity =
+      getAddressComponent(components, "locality") ||
+      getAddressComponent(components, "sublocality_level_1") ||
+      getAddressComponent(components, "administrative_area_level_3") ||
+      "";
 
-      const shippingPostalCode = getAddressComponent(components, "postal_code") || "";
-      const shippingCountry = getAddressComponent(components, "country") || "";
+    const shippingState =
+      getAddressComponent(components, "administrative_area_level_1") ||
+      getAddressComponent(components, "administrative_area_level_2") ||
+      "";
 
-      setAddressForm((prev) => ({
-        ...prev,
-        shippingAddressLine1,
-        shippingCity,
-        shippingState,
-        shippingPostalCode,
-        shippingCountry,
-      }));
-    };
+    const shippingPostalCode = getAddressComponent(components, "postal_code") || "";
+    const shippingCountry = getAddressComponent(components, "country") || "";
 
-    autocompleteEl.addEventListener("gmp-placeselect", handlePlaceSelect);
-
-    return () => {
-      autocompleteEl.removeEventListener("gmp-placeselect", handlePlaceSelect);
-    };
-  }, [showAddressModal]);
+    setAddressForm((prev) => ({
+      ...prev,
+      shippingAddressLine1,
+      shippingCity,
+      shippingState,
+      shippingPostalCode,
+      shippingCountry,
+    }));
+  };
 
   const saveAddress = async () => {
     try {
@@ -215,6 +212,7 @@ export default function Dashboard() {
       router.push(tab.href);
       return;
     }
+
     setActiveTab(tab.value as DashboardTab);
   };
 
@@ -226,6 +224,7 @@ export default function Dashboard() {
         <div className="hidden xl:block absolute top-16 right-12 text-blue-200/20 text-[160px] leading-none pointer-events-none select-none">
           🌸
         </div>
+
         <div className="hidden xl:block absolute bottom-28 left-8 text-blue-200/20 text-[130px] leading-none pointer-events-none select-none rotate-12">
           🌺
         </div>
@@ -243,7 +242,6 @@ export default function Dashboard() {
         <LoadScript
           googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
           libraries={GOOGLE_LIBRARIES}
-          version="beta"   {/* ← Important for the web component */}
         >
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
             <div className="bg-white rounded-3xl max-w-lg w-full p-8 max-h-[90vh] overflow-auto">
@@ -253,28 +251,43 @@ export default function Dashboard() {
               <div className="space-y-5">
                 <div>
                   <label className="block text-sm mb-1">Address Line 1</label>
-                  {/* @ts-ignore — React 19 + web component typing workaround */}
-                  <gmp-place-autocomplete
-                    ref={placeAutocompleteRef}
-                    types='["address"]'
+
+                  <Autocomplete
+                    onLoad={(autocomplete) => {
+                      autocompleteRef.current = autocomplete;
+                    }}
+                    onPlaceChanged={handlePlaceChanged}
+                    options={{
+                      types: ["address"],
+                      fields: ["address_components", "formatted_address", "geometry", "name"],
+                    }}
                   >
                     <input
-                      ref={inputRef}
-                      slot="input"
                       type="text"
+                      value={addressForm.shippingAddressLine1}
+                      onChange={(e) =>
+                        setAddressForm({
+                          ...addressForm,
+                          shippingAddressLine1: e.target.value,
+                        })
+                      }
                       className="w-full border rounded-2xl px-4 py-4"
                       placeholder="123 Main Street"
                     />
-                  </gmp-place-autocomplete>
+                  </Autocomplete>
                 </div>
 
-                {/* Rest of your form fields unchanged */}
                 <div>
                   <label className="block text-sm mb-1">Address Line 2 (optional)</label>
                   <input
                     type="text"
                     value={addressForm.shippingAddressLine2}
-                    onChange={(e) => setAddressForm({ ...addressForm, shippingAddressLine2: e.target.value })}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        shippingAddressLine2: e.target.value,
+                      })
+                    }
                     className="w-full border rounded-2xl px-4 py-4"
                     placeholder="Apartment, suite, etc."
                   />
@@ -286,16 +299,27 @@ export default function Dashboard() {
                     <input
                       type="text"
                       value={addressForm.shippingCity}
-                      onChange={(e) => setAddressForm({ ...addressForm, shippingCity: e.target.value })}
+                      onChange={(e) =>
+                        setAddressForm({
+                          ...addressForm,
+                          shippingCity: e.target.value,
+                        })
+                      }
                       className="w-full border rounded-2xl px-4 py-4"
                     />
                   </div>
+
                   <div>
                     <label className="block text-sm mb-1">Province / State</label>
                     <input
                       type="text"
                       value={addressForm.shippingState}
-                      onChange={(e) => setAddressForm({ ...addressForm, shippingState: e.target.value })}
+                      onChange={(e) =>
+                        setAddressForm({
+                          ...addressForm,
+                          shippingState: e.target.value,
+                        })
+                      }
                       className="w-full border rounded-2xl px-4 py-4"
                     />
                   </div>
@@ -307,16 +331,27 @@ export default function Dashboard() {
                     <input
                       type="text"
                       value={addressForm.shippingPostalCode}
-                      onChange={(e) => setAddressForm({ ...addressForm, shippingPostalCode: e.target.value })}
+                      onChange={(e) =>
+                        setAddressForm({
+                          ...addressForm,
+                          shippingPostalCode: e.target.value,
+                        })
+                      }
                       className="w-full border rounded-2xl px-4 py-4"
                     />
                   </div>
+
                   <div>
                     <label className="block text-sm mb-1">Country</label>
                     <input
                       type="text"
                       value={addressForm.shippingCountry}
-                      onChange={(e) => setAddressForm({ ...addressForm, shippingCountry: e.target.value })}
+                      onChange={(e) =>
+                        setAddressForm({
+                          ...addressForm,
+                          shippingCountry: e.target.value,
+                        })
+                      }
                       className="w-full border rounded-2xl px-4 py-4"
                       placeholder="Canada"
                     />
