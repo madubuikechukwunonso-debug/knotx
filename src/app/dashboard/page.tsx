@@ -30,25 +30,8 @@ import BudgetSection from "./BudgetSection";
 
 import { LoadScript } from "@react-google-maps/api";
 
-// Static libraries array (fixes the performance warning)
+// Static libraries array
 const GOOGLE_LIBRARIES: ("places")[] = ["places"];
-
-// ─────────────────────────────────────────────────────────────
-// TYPESCRIPT FIX for Google Maps <gmp-place-autocomplete> web component
-// ─────────────────────────────────────────────────────────────
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      'gmp-place-autocomplete': React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & {
-          ref?: React.Ref<any>;
-          types?: string;
-        },
-        HTMLElement
-      >;
-    }
-  }
-}
 
 type DashboardTab =
   | "account"
@@ -91,7 +74,6 @@ export default function Dashboard() {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const router = useRouter();
 
-  // Address form state
   const [addressForm, setAddressForm] = useState({
     shippingAddressLine1: "",
     shippingAddressLine2: "",
@@ -127,7 +109,6 @@ export default function Dashboard() {
     loadUser();
   }, [router]);
 
-  // Helper to extract address parts
   const getAddressComponent = (components: any[], type: string): string => {
     const component = components.find((comp: any) =>
       comp.types?.includes(type) || comp.componentType === type
@@ -137,7 +118,6 @@ export default function Dashboard() {
       : "";
   };
 
-  // Handle selection from the NEW Place Autocomplete
   useEffect(() => {
     const autocompleteEl = placeAutocompleteRef.current;
     if (!autocompleteEl || !showAddressModal) return;
@@ -191,28 +171,21 @@ export default function Dashboard() {
     };
   }, [showAddressModal]);
 
-  // Uses the new dedicated shipping endpoint
   const saveAddress = async () => {
     try {
       const res = await fetch("/api/profile/shipping", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...addressForm,
-        }),
+        body: JSON.stringify({ ...addressForm }),
       });
 
       if (res.ok) {
         alert("✅ Shipping address saved!");
-
         setShowAddressModal(false);
 
-        // Refresh user data so modal doesn't show again
         const userRes = await fetch("/api/auth/me", { cache: "no-store" });
         const userData = await userRes.json();
-        if (userData?.user) {
-          setUser(userData.user);
-        }
+        if (userData?.user) setUser(userData.user);
       } else {
         const errorData = await res.json().catch(() => ({}));
         alert(errorData.message || "Failed to save address");
@@ -258,7 +231,6 @@ export default function Dashboard() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          {/* Header and Tabs unchanged - keep exactly as before */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as DashboardTab)}>
             {/* Your existing tab buttons and TabsContent blocks go here unchanged */}
           </Tabs>
@@ -267,11 +239,11 @@ export default function Dashboard() {
 
       <Footer />
 
-      {/* ADDRESS MODAL - Updated with NEW Google Places Autocomplete */}
       {showAddressModal && (
         <LoadScript
           googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
           libraries={GOOGLE_LIBRARIES}
+          version="beta"   {/* ← Important for the web component */}
         >
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
             <div className="bg-white rounded-3xl max-w-lg w-full p-8 max-h-[90vh] overflow-auto">
@@ -281,6 +253,7 @@ export default function Dashboard() {
               <div className="space-y-5">
                 <div>
                   <label className="block text-sm mb-1">Address Line 1</label>
+                  {/* @ts-ignore — React 19 + web component typing workaround */}
                   <gmp-place-autocomplete
                     ref={placeAutocompleteRef}
                     types='["address"]'
@@ -295,6 +268,7 @@ export default function Dashboard() {
                   </gmp-place-autocomplete>
                 </div>
 
+                {/* Rest of your form fields unchanged */}
                 <div>
                   <label className="block text-sm mb-1">Address Line 2 (optional)</label>
                   <input
