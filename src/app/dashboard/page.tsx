@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
@@ -27,11 +27,6 @@ import OrdersSection from "./OrdersSection";
 import WishlistSection from "./WishlistSection";
 import MessagesSection from "./MessagesSection";
 import BudgetSection from "./BudgetSection";
-
-import { LoadScript, Autocomplete } from "@react-google-maps/api";
-
-// Static libraries array
-const GOOGLE_LIBRARIES: ("places")[] = ["places"];
 
 type DashboardTab =
   | "account"
@@ -74,30 +69,28 @@ export default function Dashboard() {
   const [showAddressModal, setShowAddressModal] = useState(false);
   const router = useRouter();
 
+  // Address form state
   const [addressForm, setAddressForm] = useState({
     shippingAddressLine1: "",
     shippingAddressLine2: "",
     shippingCity: "",
     shippingState: "",
     shippingPostalCode: "",
-    shippingCountry: "",
+    shippingCountry: "Canada",
   });
-
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
   useEffect(() => {
     async function loadUser() {
       try {
         const response = await fetch("/api/auth/me", { cache: "no-store" });
         const data = await response.json();
-
         if (!data?.user) {
           router.push("/login");
           return;
         }
-
         setUser(data.user);
 
+        // Show address modal if user has no shipping address
         if (!data.user.shippingAddressLine1) {
           setShowAddressModal(true);
         }
@@ -107,88 +100,29 @@ export default function Dashboard() {
         setIsLoading(false);
       }
     }
-
     loadUser();
   }, [router]);
 
-  const getAddressComponent = (
-    components: google.maps.GeocoderAddressComponent[] | undefined,
-    type: string
-  ): string => {
-    if (!components) return "";
-
-    const component = components.find((comp) => comp.types?.includes(type));
-
-    return component?.long_name || component?.short_name || "";
-  };
-
-  const handlePlaceChanged = () => {
-    const autocomplete = autocompleteRef.current;
-    if (!autocomplete) return;
-
-    const place = autocomplete.getPlace();
-    if (!place) return;
-
-    const components = place.address_components;
-
-    const streetNumber = getAddressComponent(components, "street_number");
-    const route = getAddressComponent(components, "route");
-
-    let shippingAddressLine1 = "";
-
-    if (streetNumber && route) {
-      shippingAddressLine1 = `${streetNumber} ${route}`;
-    } else if (route) {
-      shippingAddressLine1 = route;
-    } else {
-      shippingAddressLine1 = place.formatted_address || "";
-    }
-
-    const shippingCity =
-      getAddressComponent(components, "locality") ||
-      getAddressComponent(components, "sublocality_level_1") ||
-      getAddressComponent(components, "administrative_area_level_3") ||
-      "";
-
-    const shippingState =
-      getAddressComponent(components, "administrative_area_level_1") ||
-      getAddressComponent(components, "administrative_area_level_2") ||
-      "";
-
-    const shippingPostalCode = getAddressComponent(components, "postal_code") || "";
-    const shippingCountry = getAddressComponent(components, "country") || "";
-
-    setAddressForm((prev) => ({
-      ...prev,
-      shippingAddressLine1,
-      shippingCity,
-      shippingState,
-      shippingPostalCode,
-      shippingCountry,
-    }));
-  };
-
   const saveAddress = async () => {
     try {
-      const res = await fetch("/api/profile/shipping", {
+      const res = await fetch("/api/profile/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...addressForm }),
+        body: JSON.stringify({
+          id: user.id,
+          ...addressForm,
+        }),
       });
 
       if (res.ok) {
         alert("✅ Shipping address saved!");
         setShowAddressModal(false);
-
-        const userRes = await fetch("/api/auth/me", { cache: "no-store" });
-        const userData = await userRes.json();
-        if (userData?.user) setUser(userData.user);
+        // Refresh user data
+        window.location.reload();
       } else {
-        const errorData = await res.json().catch(() => ({}));
-        alert(errorData.message || "Failed to save address");
+        alert("Failed to save address");
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       alert("Something went wrong");
     }
   };
@@ -212,7 +146,6 @@ export default function Dashboard() {
       router.push(tab.href);
       return;
     }
-
     setActiveTab(tab.value as DashboardTab);
   };
 
@@ -224,152 +157,210 @@ export default function Dashboard() {
         <div className="hidden xl:block absolute top-16 right-12 text-blue-200/20 text-[160px] leading-none pointer-events-none select-none">
           🌸
         </div>
-
         <div className="hidden xl:block absolute bottom-28 left-8 text-blue-200/20 text-[130px] leading-none pointer-events-none select-none rotate-12">
           🌺
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as DashboardTab)}>
-            {/* Your existing tab buttons and TabsContent blocks go here unchanged */}
+          <div className="mb-10">
+            <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/65 backdrop-blur-2xl shadow-xl px-5 py-5 sm:px-8 sm:py-7 lg:px-10 lg:py-8">
+              <div className="absolute -top-10 -right-8 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" />
+              <div className="absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-purple-200/30 blur-2xl" />
+              <div className="relative flex flex-col gap-5 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-4 sm:gap-5">
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[1.5rem] border border-white/70 bg-white shadow-lg sm:h-24 sm:w-24 lg:h-28 lg:w-28">
+                    <Image
+                      src="/images/owner/cup.jpeg"
+                      alt="Owner of KnotxandKrafts"
+                      fill
+                      className="object-cover"
+                      priority
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.24em] text-blue-700">
+                      <Sparkles size={14} />
+                      <span>WELCOME BACK</span>
+                    </div>
+                    <p className="mt-3 text-sm sm:text-base lg:text-lg text-black/65 leading-7 max-w-xl">
+                      Manage your bookings, orders, and essentials.
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden lg:flex items-center justify-center">
+                  <div className="rounded-full border border-blue-200/70 bg-white/70 px-4 py-2 text-sm text-blue-700 shadow-sm">
+                    KnotxandKrafts
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as DashboardTab)}
+          >
+            <div className="mb-10">
+              <div className="rounded-[2rem] border border-white/60 bg-white/70 backdrop-blur-2xl shadow-xl p-2 sm:p-3">
+                <div className="grid grid-cols-2 gap-2 sm:hidden">
+                  {visibleTabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = !tab.href && activeTab === tab.value;
+                    return (
+                      <button
+                        key={tab.value}
+                        type="button"
+                        onClick={() => handleTabClick(tab)}
+                        className={`min-h-[56px] inline-flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-medium transition-all ${
+                          isActive
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                            : tab.href
+                              ? "bg-gradient-to-r from-slate-900 to-black text-white shadow-md hover:opacity-95"
+                              : "bg-white text-black/70 hover:bg-white/90"
+                        }`}
+                      >
+                        <Icon size={18} />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="hidden sm:flex flex-wrap gap-3">
+                  {visibleTabs.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = !tab.href && activeTab === tab.value;
+                    return (
+                      <button
+                        key={tab.value}
+                        type="button"
+                        onClick={() => handleTabClick(tab)}
+                        className={`inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-medium transition-all ${
+                          isActive
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                            : tab.href
+                              ? "bg-gradient-to-r from-slate-900 to-black text-white shadow-md hover:opacity-95"
+                              : "bg-white/80 text-black/70 hover:bg-white"
+                        }`}
+                      >
+                        <Icon size={18} />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <TabsContent value="account" className="mt-0">
+              <AccountContent />
+            </TabsContent>
+            <TabsContent value="profile" className="mt-0">
+              <ProfileSection user={user} />
+            </TabsContent>
+            <TabsContent value="bookings" className="mt-0">
+              <BookingsSection />
+            </TabsContent>
+            <TabsContent value="orders" className="mt-0">
+              <OrdersSection />
+            </TabsContent>
+            <TabsContent value="wishlist" className="mt-0">
+              <WishlistSection />
+            </TabsContent>
+            <TabsContent value="messages" className="mt-0">
+              <MessagesSection />
+            </TabsContent>
+            <TabsContent value="budget" className="mt-0">
+              <BudgetSection />
+            </TabsContent>
           </Tabs>
         </div>
       </div>
 
       <Footer />
 
+      {/* ADDRESS MODAL - Shows on first load if no address */}
       {showAddressModal && (
-        <LoadScript
-          googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
-          libraries={GOOGLE_LIBRARIES}
-        >
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
-            <div className="bg-white rounded-3xl max-w-lg w-full p-8 max-h-[90vh] overflow-auto">
-              <h2 className="text-2xl font-serif mb-2">Shipping Address</h2>
-              <p className="text-black/60 mb-6">We need your address for product shipping</p>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-8 max-h-[90vh] overflow-auto">
+            <h2 className="text-2xl font-serif mb-2">Shipping Address</h2>
+            <p className="text-black/60 mb-6">We need your address for product shipping</p>
 
-              <div className="space-y-5">
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm mb-1">Address Line 1</label>
+                <input
+                  type="text"
+                  value={addressForm.shippingAddressLine1}
+                  onChange={(e) => setAddressForm({ ...addressForm, shippingAddressLine1: e.target.value })}
+                  className="w-full border rounded-2xl px-4 py-4"
+                  placeholder="123 Main Street"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Address Line 2 (optional)</label>
+                <input
+                  type="text"
+                  value={addressForm.shippingAddressLine2}
+                  onChange={(e) => setAddressForm({ ...addressForm, shippingAddressLine2: e.target.value })}
+                  className="w-full border rounded-2xl px-4 py-4"
+                  placeholder="Apartment, suite, etc."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm mb-1">Address Line 1</label>
-
-                  <Autocomplete
-                    onLoad={(autocomplete) => {
-                      autocompleteRef.current = autocomplete;
-                    }}
-                    onPlaceChanged={handlePlaceChanged}
-                    options={{
-                      types: ["address"],
-                      fields: ["address_components", "formatted_address", "geometry", "name"],
-                    }}
-                  >
-                    <input
-                      type="text"
-                      value={addressForm.shippingAddressLine1}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          shippingAddressLine1: e.target.value,
-                        })
-                      }
-                      className="w-full border rounded-2xl px-4 py-4"
-                      placeholder="123 Main Street"
-                    />
-                  </Autocomplete>
-                </div>
-
-                <div>
-                  <label className="block text-sm mb-1">Address Line 2 (optional)</label>
+                  <label className="block text-sm mb-1">City</label>
                   <input
                     type="text"
-                    value={addressForm.shippingAddressLine2}
-                    onChange={(e) =>
-                      setAddressForm({
-                        ...addressForm,
-                        shippingAddressLine2: e.target.value,
-                      })
-                    }
+                    value={addressForm.shippingCity}
+                    onChange={(e) => setAddressForm({ ...addressForm, shippingCity: e.target.value })}
                     className="w-full border rounded-2xl px-4 py-4"
-                    placeholder="Apartment, suite, etc."
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm mb-1">City</label>
-                    <input
-                      type="text"
-                      value={addressForm.shippingCity}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          shippingCity: e.target.value,
-                        })
-                      }
-                      className="w-full border rounded-2xl px-4 py-4"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm mb-1">Province / State</label>
-                    <input
-                      type="text"
-                      value={addressForm.shippingState}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          shippingState: e.target.value,
-                        })
-                      }
-                      className="w-full border rounded-2xl px-4 py-4"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm mb-1">Postal Code</label>
-                    <input
-                      type="text"
-                      value={addressForm.shippingPostalCode}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          shippingPostalCode: e.target.value,
-                        })
-                      }
-                      className="w-full border rounded-2xl px-4 py-4"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm mb-1">Country</label>
-                    <input
-                      type="text"
-                      value={addressForm.shippingCountry}
-                      onChange={(e) =>
-                        setAddressForm({
-                          ...addressForm,
-                          shippingCountry: e.target.value,
-                        })
-                      }
-                      className="w-full border rounded-2xl px-4 py-4"
-                      placeholder="Canada"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm mb-1">Province / State</label>
+                  <input
+                    type="text"
+                    value={addressForm.shippingState}
+                    onChange={(e) => setAddressForm({ ...addressForm, shippingState: e.target.value })}
+                    className="w-full border rounded-2xl px-4 py-4"
+                  />
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-8">
-                <button
-                  onClick={saveAddress}
-                  className="flex-1 bg-black text-white py-4 rounded-2xl font-medium"
-                >
-                  Save Shipping Address
-                </button>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-1">Postal Code</label>
+                  <input
+                    type="text"
+                    value={addressForm.shippingPostalCode}
+                    onChange={(e) => setAddressForm({ ...addressForm, shippingPostalCode: e.target.value })}
+                    className="w-full border rounded-2xl px-4 py-4"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Country</label>
+                  <input
+                    type="text"
+                    value={addressForm.shippingCountry}
+                    disabled
+                    className="w-full border rounded-2xl px-4 py-4 bg-gray-50"
+                  />
+                </div>
               </div>
             </div>
+
+            <div className="flex gap-3 mt-8">
+              <button
+                onClick={saveAddress}
+                className="flex-1 bg-black text-white py-4 rounded-2xl font-medium"
+              >
+                Save Shipping Address
+              </button>
+            </div>
           </div>
-        </LoadScript>
+        </div>
       )}
     </>
   );
