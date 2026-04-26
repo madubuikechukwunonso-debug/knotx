@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import Navigation from "@/components/Navigation";
@@ -27,6 +27,8 @@ import OrdersSection from "./OrdersSection";
 import WishlistSection from "./WishlistSection";
 import MessagesSection from "./MessagesSection";
 import BudgetSection from "./BudgetSection";
+
+import { LoadScript, Autocomplete } from "@react-google-maps/api";
 
 type DashboardTab =
   | "account"
@@ -76,8 +78,10 @@ export default function Dashboard() {
     shippingCity: "",
     shippingState: "",
     shippingPostalCode: "",
-    shippingCountry: "Canada",
+    shippingCountry: "",
   });
+
+  const autocompleteRef = useRef<any>(null);
 
   useEffect(() => {
     async function loadUser() {
@@ -102,6 +106,57 @@ export default function Dashboard() {
     }
     loadUser();
   }, [router]);
+
+  const getAddressComponent = (components: any[], type: string): string => {
+    const component = components.find((comp: any) => comp.types?.includes(type));
+    return component ? component.long_name : "";
+  };
+
+  const onPlaceChanged = () => {
+    const place = autocompleteRef.current?.getPlace();
+    if (!place || !place.address_components) {
+      return;
+    }
+
+    const components = place.address_components;
+
+    const streetNumber = getAddressComponent(components, "street_number");
+    const route = getAddressComponent(components, "route");
+
+    let shippingAddressLine1 = "";
+    if (streetNumber && route) {
+      shippingAddressLine1 = `${streetNumber} ${route}`;
+    } else if (route) {
+      shippingAddressLine1 = route;
+    } else {
+      shippingAddressLine1 = place.formatted_address?.split(",")[0] || place.name || "";
+    }
+
+    const shippingCity =
+      getAddressComponent(components, "locality") ||
+      getAddressComponent(components, "sublocality_level_1") ||
+      getAddressComponent(components, "administrative_area_level_3") ||
+      getAddressComponent(components, "sublocality") ||
+      "";
+
+    const shippingState =
+      getAddressComponent(components, "administrative_area_level_1") ||
+      getAddressComponent(components, "administrative_area_level_2") ||
+      "";
+
+    const shippingPostalCode = getAddressComponent(components, "postal_code") || "";
+    const shippingCountry = getAddressComponent(components, "country") || "";
+
+    setAddressForm((prev) => ({
+      ...prev,
+      shippingAddressLine1,
+      shippingCity,
+      shippingState,
+      shippingPostalCode,
+      shippingCountry,
+      // shippingAddressLine2 remains unchanged
+    }));
+  };
 
   const saveAddress = async () => {
     try {
@@ -280,87 +335,115 @@ export default function Dashboard() {
 
       {/* ADDRESS MODAL - Shows on first load if no address */}
       {showAddressModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-8 max-h-[90vh] overflow-auto">
-            <h2 className="text-2xl font-serif mb-2">Shipping Address</h2>
-            <p className="text-black/60 mb-6">We need your address for product shipping</p>
+        <LoadScript
+          googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
+          libraries={["places"]}
+        >
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
+            <div className="bg-white rounded-3xl max-w-lg w-full p-8 max-h-[90vh] overflow-auto">
+              <h2 className="text-2xl font-serif mb-2">Shipping Address</h2>
+              <p className="text-black/60 mb-6">We need your address for product shipping</p>
 
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm mb-1">Address Line 1</label>
-                <input
-                  type="text"
-                  value={addressForm.shippingAddressLine1}
-                  onChange={(e) => setAddressForm({ ...addressForm, shippingAddressLine1: e.target.value })}
-                  className="w-full border rounded-2xl px-4 py-4"
-                  placeholder="123 Main Street"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm mb-1">Address Line 2 (optional)</label>
-                <input
-                  type="text"
-                  value={addressForm.shippingAddressLine2}
-                  onChange={(e) => setAddressForm({ ...addressForm, shippingAddressLine2: e.target.value })}
-                  className="w-full border rounded-2xl px-4 py-4"
-                  placeholder="Apartment, suite, etc."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-5">
                 <div>
-                  <label className="block text-sm mb-1">City</label>
+                  <label className="block text-sm mb-1">Address Line 1</label>
+                  <Autocomplete
+                    onLoad={(autocompleteInstance) => {
+                      autocompleteRef.current = autocompleteInstance;
+                    }}
+                    onPlaceChanged={onPlaceChanged}
+                    options={{
+                      types: ["address"],
+                    }}
+                  >
+                    <input
+                      type="text"
+                      value={addressForm.shippingAddressLine1}
+                      onChange={(e) =>
+                        setAddressForm({ ...addressForm, shippingAddressLine1: e.target.value })
+                      }
+                      className="w-full border rounded-2xl px-4 py-4"
+                      placeholder="123 Main Street"
+                    />
+                  </Autocomplete>
+                </div>
+
+                <div>
+                  <label className="block text-sm mb-1">Address Line 2 (optional)</label>
                   <input
                     type="text"
-                    value={addressForm.shippingCity}
-                    onChange={(e) => setAddressForm({ ...addressForm, shippingCity: e.target.value })}
+                    value={addressForm.shippingAddressLine2}
+                    onChange={(e) =>
+                      setAddressForm({ ...addressForm, shippingAddressLine2: e.target.value })
+                    }
                     className="w-full border rounded-2xl px-4 py-4"
+                    placeholder="Apartment, suite, etc."
                   />
                 </div>
-                <div>
-                  <label className="block text-sm mb-1">Province / State</label>
-                  <input
-                    type="text"
-                    value={addressForm.shippingState}
-                    onChange={(e) => setAddressForm({ ...addressForm, shippingState: e.target.value })}
-                    className="w-full border rounded-2xl px-4 py-4"
-                  />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm mb-1">City</label>
+                    <input
+                      type="text"
+                      value={addressForm.shippingCity}
+                      onChange={(e) =>
+                        setAddressForm({ ...addressForm, shippingCity: e.target.value })
+                      }
+                      className="w-full border rounded-2xl px-4 py-4"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Province / State</label>
+                    <input
+                      type="text"
+                      value={addressForm.shippingState}
+                      onChange={(e) =>
+                        setAddressForm({ ...addressForm, shippingState: e.target.value })
+                      }
+                      className="w-full border rounded-2xl px-4 py-4"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm mb-1">Postal Code</label>
+                    <input
+                      type="text"
+                      value={addressForm.shippingPostalCode}
+                      onChange={(e) =>
+                        setAddressForm({ ...addressForm, shippingPostalCode: e.target.value })
+                      }
+                      className="w-full border rounded-2xl px-4 py-4"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">Country</label>
+                    <input
+                      type="text"
+                      value={addressForm.shippingCountry}
+                      onChange={(e) =>
+                        setAddressForm({ ...addressForm, shippingCountry: e.target.value })
+                      }
+                      className="w-full border rounded-2xl px-4 py-4"
+                      placeholder="Canada"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm mb-1">Postal Code</label>
-                  <input
-                    type="text"
-                    value={addressForm.shippingPostalCode}
-                    onChange={(e) => setAddressForm({ ...addressForm, shippingPostalCode: e.target.value })}
-                    className="w-full border rounded-2xl px-4 py-4"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm mb-1">Country</label>
-                  <input
-                    type="text"
-                    value={addressForm.shippingCountry}
-                    disabled
-                    className="w-full border rounded-2xl px-4 py-4 bg-gray-50"
-                  />
-                </div>
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={saveAddress}
+                  className="flex-1 bg-black text-white py-4 rounded-2xl font-medium"
+                >
+                  Save Shipping Address
+                </button>
               </div>
-            </div>
-
-            <div className="flex gap-3 mt-8">
-              <button
-                onClick={saveAddress}
-                className="flex-1 bg-black text-white py-4 rounded-2xl font-medium"
-              >
-                Save Shipping Address
-              </button>
             </div>
           </div>
-        </div>
+        </LoadScript>
       )}
     </>
   );
