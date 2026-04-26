@@ -26,25 +26,33 @@ model User {
 }
 
 model LocalUser {
-  id            Int      @id @default(autoincrement())
-  username      String   @unique
-  email         String   @unique
-  displayName   String?
-  passwordHash  String
-  role          String   @default("user")
-  isActive      Boolean  @default(true)
-  isBlocked     Boolean  @default(false)
-  blockedReason String?
-  blockedAt     DateTime?
-  invitedById   Int?
-  lastSignInAt  DateTime @default(now())
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                   Int      @id @default(autoincrement())
+  username             String   @unique
+  email                String   @unique
+  displayName          String?
+  passwordHash         String
+  role                 String   @default("user")
+  isActive             Boolean  @default(true)
+  isBlocked            Boolean  @default(false)
+  blockedReason        String?
+  blockedAt            DateTime?
+  invitedById          Int?
+  lastSignInAt         DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // SHIPPING ADDRESS FIELDS (added for product shipping)
+  shippingAddressLine1 String?
+  shippingAddressLine2 String?
+  shippingCity         String?
+  shippingState        String?
+  shippingPostalCode   String?
+  shippingCountry      String?  @default("Canada")
 
   // Relations
-  bookings      Booking[]
-  orders        Order[]
-  wishlist      Wishlist[]
+  bookings             Booking[]
+  orders               Order[]
+  wishlist             Wishlist[]
 }
 
 // ====================== PRODUCTS & SERVICES ======================
@@ -211,7 +219,7 @@ model Booking {
   user                    LocalUser? @relation(fields: [userId], references: [id])
 }
 
-// ====================== WISHLIST (NEW) ======================
+// ====================== WISHLIST ======================
 model Wishlist {
   id        Int      @id @default(autoincrement())
   userId    Int
