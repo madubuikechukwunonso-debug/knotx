@@ -33,6 +33,21 @@ import { LoadScript } from "@react-google-maps/api";
 // Static libraries array (fixes the performance warning)
 const GOOGLE_LIBRARIES: ("places")[] = ["places"];
 
+// === FIX FOR GOOGLE WEB COMPONENT ===
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'gmp-place-autocomplete': React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          ref?: React.Ref<any>;
+          types?: string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
+
 type DashboardTab =
   | "account"
   | "profile"
@@ -110,7 +125,7 @@ export default function Dashboard() {
     loadUser();
   }, [router]);
 
-  // Helper to extract address parts (works with both old + new Places API)
+  // Helper to extract address parts
   const getAddressComponent = (components: any[], type: string): string => {
     const component = components.find((comp: any) =>
       comp.types?.includes(type) || comp.componentType === type
@@ -120,7 +135,7 @@ export default function Dashboard() {
       : "";
   };
 
-  // Handle selection from the NEW Place Autocomplete
+  // Handle Google Place Autocomplete selection
   useEffect(() => {
     const autocompleteEl = placeAutocompleteRef.current;
     if (!autocompleteEl || !showAddressModal) return;
@@ -174,14 +189,13 @@ export default function Dashboard() {
     };
   }, [showAddressModal]);
 
-  // UPDATED: Now uses the new dedicated shipping endpoint
+  // UPDATED: Uses the new dedicated shipping endpoint
   const saveAddress = async () => {
     try {
       const res = await fetch("/api/profile/shipping", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // id is no longer needed — we use the secure session on the backend
           ...addressForm,
         }),
       });
@@ -189,10 +203,9 @@ export default function Dashboard() {
       if (res.ok) {
         alert("✅ Shipping address saved!");
 
-        // Close modal
         setShowAddressModal(false);
 
-        // Refresh user data so modal doesn't show again
+        // Refresh user data
         const userRes = await fetch("/api/auth/me", { cache: "no-store" });
         const userData = await userRes.json();
         if (userData?.user) {
@@ -235,7 +248,6 @@ export default function Dashboard() {
       <Navigation />
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 pt-20 pb-12 relative overflow-hidden">
-        {/* ... rest of your UI (header, tabs, etc.) remains 100% unchanged ... */}
         <div className="hidden xl:block absolute top-16 right-12 text-blue-200/20 text-[160px] leading-none pointer-events-none select-none">
           🌸
         </div>
@@ -244,19 +256,16 @@ export default function Dashboard() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          {/* Header and Tabs unchanged - omitted for brevity but keep exactly as before */}
-          {/* ... your existing header + tab buttons + TabsContent sections ... */}
-
+          {/* Header and Tabs unchanged - keep exactly as before */}
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as DashboardTab)}>
             {/* Your existing tab buttons and TabsContent blocks go here unchanged */}
-            {/* (I kept them exactly as in your original file) */}
           </Tabs>
         </div>
       </div>
 
       <Footer />
 
-      {/* ADDRESS MODAL - Updated with NEW Google Places Autocomplete */}
+      {/* ADDRESS MODAL */}
       {showAddressModal && (
         <LoadScript
           googleMapsApiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ""}
