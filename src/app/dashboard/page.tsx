@@ -17,12 +17,11 @@ import {
   Shield,
 } from "lucide-react";
 
-// Old full Account page (your previous account content)
+// Old full Account page
 import AccountContent from "@/src-pages/AccountPage";
 
 // New Edit Profile section
 import ProfileSection from "./ProfileSection";
-
 import BookingsSection from "./BookingsSection";
 import OrdersSection from "./OrdersSection";
 import WishlistSection from "./WishlistSection";
@@ -67,29 +66,66 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<DashboardTab>("account");
+  const [showAddressModal, setShowAddressModal] = useState(false);
   const router = useRouter();
+
+  // Address form state
+  const [addressForm, setAddressForm] = useState({
+    shippingAddressLine1: "",
+    shippingAddressLine2: "",
+    shippingCity: "",
+    shippingState: "",
+    shippingPostalCode: "",
+    shippingCountry: "Canada",
+  });
 
   useEffect(() => {
     async function loadUser() {
       try {
         const response = await fetch("/api/auth/me", { cache: "no-store" });
         const data = await response.json();
-
         if (!data?.user) {
           router.push("/login");
           return;
         }
-
         setUser(data.user);
+
+        // Show address modal if user has no shipping address
+        if (!data.user.shippingAddressLine1) {
+          setShowAddressModal(true);
+        }
       } catch {
         router.push("/login");
       } finally {
         setIsLoading(false);
       }
     }
-
     loadUser();
   }, [router]);
+
+  const saveAddress = async () => {
+    try {
+      const res = await fetch("/api/profile/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: user.id,
+          ...addressForm,
+        }),
+      });
+
+      if (res.ok) {
+        alert("✅ Shipping address saved!");
+        setShowAddressModal(false);
+        // Refresh user data
+        window.location.reload();
+      } else {
+        alert("Failed to save address");
+      }
+    } catch {
+      alert("Something went wrong");
+    }
+  };
 
   if (isLoading || !user) {
     return (
@@ -103,7 +139,6 @@ export default function Dashboard() {
   }
 
   const isAdmin = user.role === "admin" || user.role === "super_admin";
-
   const visibleTabs = tabItems.filter((tab) => !tab.adminOnly || isAdmin);
 
   const handleTabClick = (tab: TabItem) => {
@@ -111,7 +146,6 @@ export default function Dashboard() {
       router.push(tab.href);
       return;
     }
-
     setActiveTab(tab.value as DashboardTab);
   };
 
@@ -132,7 +166,6 @@ export default function Dashboard() {
             <div className="relative overflow-hidden rounded-[2rem] border border-white/60 bg-white/65 backdrop-blur-2xl shadow-xl px-5 py-5 sm:px-8 sm:py-7 lg:px-10 lg:py-8">
               <div className="absolute -top-10 -right-8 h-28 w-28 rounded-full bg-blue-200/30 blur-2xl" />
               <div className="absolute -bottom-10 -left-6 h-24 w-24 rounded-full bg-purple-200/30 blur-2xl" />
-
               <div className="relative flex flex-col gap-5 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-4 sm:gap-5">
                   <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[1.5rem] border border-white/70 bg-white shadow-lg sm:h-24 sm:w-24 lg:h-28 lg:w-28">
@@ -144,19 +177,16 @@ export default function Dashboard() {
                       priority
                     />
                   </div>
-
                   <div className="min-w-0">
                     <div className="inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-[11px] font-semibold tracking-[0.24em] text-blue-700">
                       <Sparkles size={14} />
                       <span>WELCOME BACK</span>
                     </div>
-
                     <p className="mt-3 text-sm sm:text-base lg:text-lg text-black/65 leading-7 max-w-xl">
                       Manage your bookings, orders, and essentials.
                     </p>
                   </div>
                 </div>
-
                 <div className="hidden lg:flex items-center justify-center">
                   <div className="rounded-full border border-blue-200/70 bg-white/70 px-4 py-2 text-sm text-blue-700 shadow-sm">
                     KnotxandKrafts
@@ -176,7 +206,6 @@ export default function Dashboard() {
                   {visibleTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = !tab.href && activeTab === tab.value;
-
                     return (
                       <button
                         key={tab.value}
@@ -196,12 +225,10 @@ export default function Dashboard() {
                     );
                   })}
                 </div>
-
                 <div className="hidden sm:flex flex-wrap gap-3">
                   {visibleTabs.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = !tab.href && activeTab === tab.value;
-
                     return (
                       <button
                         key={tab.value}
@@ -227,27 +254,21 @@ export default function Dashboard() {
             <TabsContent value="account" className="mt-0">
               <AccountContent />
             </TabsContent>
-
             <TabsContent value="profile" className="mt-0">
               <ProfileSection user={user} />
             </TabsContent>
-
             <TabsContent value="bookings" className="mt-0">
               <BookingsSection />
             </TabsContent>
-
             <TabsContent value="orders" className="mt-0">
               <OrdersSection />
             </TabsContent>
-
             <TabsContent value="wishlist" className="mt-0">
               <WishlistSection />
             </TabsContent>
-
             <TabsContent value="messages" className="mt-0">
               <MessagesSection />
             </TabsContent>
-
             <TabsContent value="budget" className="mt-0">
               <BudgetSection />
             </TabsContent>
@@ -256,6 +277,91 @@ export default function Dashboard() {
       </div>
 
       <Footer />
+
+      {/* ADDRESS MODAL - Shows on first load if no address */}
+      {showAddressModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-8 max-h-[90vh] overflow-auto">
+            <h2 className="text-2xl font-serif mb-2">Shipping Address</h2>
+            <p className="text-black/60 mb-6">We need your address for product shipping</p>
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm mb-1">Address Line 1</label>
+                <input
+                  type="text"
+                  value={addressForm.shippingAddressLine1}
+                  onChange={(e) => setAddressForm({ ...addressForm, shippingAddressLine1: e.target.value })}
+                  className="w-full border rounded-2xl px-4 py-4"
+                  placeholder="123 Main Street"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm mb-1">Address Line 2 (optional)</label>
+                <input
+                  type="text"
+                  value={addressForm.shippingAddressLine2}
+                  onChange={(e) => setAddressForm({ ...addressForm, shippingAddressLine2: e.target.value })}
+                  className="w-full border rounded-2xl px-4 py-4"
+                  placeholder="Apartment, suite, etc."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-1">City</label>
+                  <input
+                    type="text"
+                    value={addressForm.shippingCity}
+                    onChange={(e) => setAddressForm({ ...addressForm, shippingCity: e.target.value })}
+                    className="w-full border rounded-2xl px-4 py-4"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Province / State</label>
+                  <input
+                    type="text"
+                    value={addressForm.shippingState}
+                    onChange={(e) => setAddressForm({ ...addressForm, shippingState: e.target.value })}
+                    className="w-full border rounded-2xl px-4 py-4"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm mb-1">Postal Code</label>
+                  <input
+                    type="text"
+                    value={addressForm.shippingPostalCode}
+                    onChange={(e) => setAddressForm({ ...addressForm, shippingPostalCode: e.target.value })}
+                    className="w-full border rounded-2xl px-4 py-4"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Country</label>
+                  <input
+                    type="text"
+                    value={addressForm.shippingCountry}
+                    disabled
+                    className="w-full border rounded-2xl px-4 py-4 bg-gray-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-8">
+              <button
+                onClick={saveAddress}
+                className="flex-1 bg-black text-white py-4 rounded-2xl font-medium"
+              >
+                Save Shipping Address
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
