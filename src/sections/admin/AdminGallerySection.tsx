@@ -5,17 +5,16 @@ import { revalidatePath } from 'next/cache';
 
 const prisma = new PrismaClient();
 
-// ====================== SERVER ACTION ======================
+// ====================== SERVER ACTION - UPLOAD FILES (supports folder) ======================
 async function uploadGalleryFiles(formData: FormData) {
   'use server';
-
   const files = formData.getAll('files') as File[];
   const category = (formData.get('category') as string) || 'general';
 
   for (const file of files) {
     if (!file) continue;
 
-    // Convert file to base64
+    // Convert file to base64 data URL
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const base64 = buffer.toString('base64');
@@ -30,7 +29,7 @@ async function uploadGalleryFiles(formData: FormData) {
         type,
         title: file.name.replace(/\.\w+$/, ''),
         caption: '',
-        url: dataUrl,           // ← base64 data URL
+        url: dataUrl,
         thumbnailUrl: dataUrl,
         category,
         isFeatured: false,
@@ -56,6 +55,7 @@ async function toggleActive(formData: FormData) {
   const id = parseInt(formData.get('id') as string, 10);
   const current = await prisma.galleryItem.findUnique({ where: { id } });
   if (!current) return;
+
   await prisma.galleryItem.update({
     where: { id },
     data: { isActive: !current.isActive },
@@ -79,7 +79,7 @@ export default async function AdminGallerySection() {
           </p>
         </div>
 
-        {/* FILE PICKER FORM */}
+        {/* FILE UPLOAD FORM (supports single files + entire folders) */}
         <form action={uploadGalleryFiles} className="flex items-center gap-3">
           <label className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm cursor-pointer w-full sm:w-auto justify-center sm:justify-start">
             <Upload size={20} />
@@ -89,7 +89,8 @@ export default async function AdminGallerySection() {
               name="files"
               accept="image/*,video/*"
               multiple
-              webkitdirectory=""   // ← enables full directory picker
+              // @ts-expect-error webkitdirectory is a non-standard WebKit attribute for folder upload
+              webkitdirectory=""
               className="hidden"
             />
           </label>
@@ -97,7 +98,7 @@ export default async function AdminGallerySection() {
         </form>
       </div>
 
-      {/* GALLERY GRID – Mobile-first */}
+      {/* GALLERY GRID – Fully responsive & mobile-first */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {items.map((item) => (
           <div
@@ -106,7 +107,12 @@ export default async function AdminGallerySection() {
           >
             <div className="relative aspect-square">
               {item.type === 'video' ? (
-                <video src={item.url} className="w-full h-full object-cover" muted />
+                <video
+                  src={item.url}
+                  className="w-full h-full object-cover"
+                  muted
+                  loop
+                />
               ) : (
                 <img
                   src={item.url}
@@ -115,7 +121,7 @@ export default async function AdminGallerySection() {
                 />
               )}
 
-              {/* Badges */}
+              {/* Status badges */}
               <div className="absolute top-3 right-3 flex flex-col gap-1">
                 {item.isFeatured && (
                   <span className="flex items-center gap-1 bg-yellow-400 text-yellow-900 text-[10px] font-medium px-2 py-px rounded-2xl">
@@ -123,16 +129,22 @@ export default async function AdminGallerySection() {
                   </span>
                 )}
                 {item.isActive ? (
-                  <span className="bg-emerald-500 text-white text-[10px] font-medium px-2 py-px rounded-2xl">Active</span>
+                  <span className="bg-emerald-500 text-white text-[10px] font-medium px-2 py-px rounded-2xl">
+                    Active
+                  </span>
                 ) : (
-                  <span className="bg-red-400 text-white text-[10px] font-medium px-2 py-px rounded-2xl">Hidden</span>
+                  <span className="bg-red-400 text-white text-[10px] font-medium px-2 py-px rounded-2xl">
+                    Hidden
+                  </span>
                 )}
               </div>
             </div>
 
             <div className="p-4">
               <p className="font-medium text-emerald-950 line-clamp-2 text-sm">{item.title}</p>
-              {item.caption && <p className="text-xs text-emerald-500 mt-1 line-clamp-2">{item.caption}</p>}
+              {item.caption && (
+                <p className="text-xs text-emerald-500 mt-1 line-clamp-2">{item.caption}</p>
+              )}
             </div>
 
             {/* Actions */}
