@@ -34,7 +34,7 @@ const fullTabs: AdminTab[] = [
   { id: "bookings", label: "Bookings", description: "Appointments", icon: Calendar },
 ];
 
-// ====================== STAFF-ONLY TABS (limited view) ======================
+// ====================== STAFF-ONLY TABS ======================
 const staffTabs: AdminTab[] = [
   { id: "overview", label: "Overview", description: "Your dashboard & metrics", icon: LayoutDashboard },
   { id: "services", label: "Services", description: "View available services", icon: Briefcase },
@@ -55,8 +55,6 @@ export default function AdminUI({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isStaff = role === "staff";
-
-  // Use filtered tabs for staff
   const tabs: AdminTab[] = isStaff ? staffTabs : fullTabs;
 
   const getActiveTab = (): AdminTabId => {
@@ -86,7 +84,7 @@ export default function AdminUI({
         onChange={handleTabChange}
         mobileOpen={mobileOpen}
         onClose={handleClose}
-        role={role}                    {/* ← new prop for staff header */}
+        role={role}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -104,7 +102,7 @@ export default function AdminUI({
   );
 }
 
-// Keep the same header content map (unchanged)
+// Header content map
 const getHeaderContent = (tab: AdminTabId): { title: string; description: string } => {
   const map: Record<AdminTabId, { title: string; description: string }> = {
     overview: { title: "Overview", description: "Real-time business metrics • $ Knotx & Krafts" },
