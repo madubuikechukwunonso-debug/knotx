@@ -61,7 +61,7 @@ export default async function AdminDashboardPage() {
         />
         <AdminStatCard
           label="Total Revenue"
-          value={`$${(stats.totalRevenue / 100).toLocaleString()}`}   {/* assuming cents; change /100 to /1 if whole dollars */}
+          value={`$${(stats.totalRevenue / 100).toLocaleString()}`}
           helper="CAD • All time"
           icon={<DollarSign className="h-6 w-6" />}
         />
