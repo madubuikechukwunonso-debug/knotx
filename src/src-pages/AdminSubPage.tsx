@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import type { AdminTabId } from '@/components/admin/AdminSidebar';
 
-// ✅ All fully functional sections (Prisma + mobile green theme)
+// All fully functional sections (now compatible with Pages Router)
 import AdminOverviewSection from '@/sections/admin/AdminOverviewSection';
 import AdminServicesSection from '@/sections/admin/AdminServicesSection';
 import AdminProductsSection from '@/sections/admin/AdminProductsSection';
@@ -12,8 +12,9 @@ import AdminGallerySection from '@/sections/admin/AdminGallerySection';
 import AdminOrdersSection from '@/sections/admin/AdminOrdersSection';
 import AdminStaffSection from '@/sections/admin/AdminStaffSection';
 import AdminMessagesSection from '@/sections/admin/AdminMessagesSection';
+import AdminBookingsSection from '@/sections/admin/AdminBookingsSection';
 
-// Placeholder for remaining tabs
+// Placeholder for any remaining tabs
 import AdminModulePlaceholder from '@/sections/admin/AdminModulePlaceholder';
 
 export default function AdminSubPage({ tab }: { tab: AdminTabId }) {
@@ -33,42 +34,24 @@ export default function AdminSubPage({ tab }: { tab: AdminTabId }) {
         return <AdminStaffSection />;
       case 'messages':
         return <AdminMessagesSection />;
-
-      // Bookings (you already had this one)
       case 'bookings':
-        return <AdminBookingsSection />;   // ← will use your existing one
+        return <AdminBookingsSection />;
 
-      // Still in progress (show nice placeholder)
+      // Tabs still under development
       case 'newsletter':
       case 'users':
         return (
           <AdminModulePlaceholder
             eyebrow={tab.toUpperCase()}
             title={`Manage ${tab}`}
-            description="This module is fully wired and ready for real data."
-            bullets={[
-              "Prisma models exist",
-              "Full CRUD forms coming next",
-              "Real-time updates enabled",
-            ]}
+            description="This module is wired and ready for real data."
           />
         );
 
       default:
-        return (
-          <AdminModulePlaceholder
-            eyebrow={tab.toUpperCase()}
-            title={`Manage ${tab}`}
-            description="Backend wiring in progress. This tab is fully ready for real data + CRUD."
-            bullets={[
-              "Prisma models already exist",
-              "Full CRUD + forms coming in next steps",
-              "Real-time data will appear here",
-            ]}
-          />
-        );
+        return <AdminModulePlaceholder title={`Manage ${tab}`} />;
     }
   }, [tab]);
 
-  return <>{content}</>;
+  return <div className="w-full">{content}</div>;
 }
