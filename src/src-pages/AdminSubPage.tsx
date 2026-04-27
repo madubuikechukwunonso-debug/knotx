@@ -1,73 +1,52 @@
 // src/src-pages/AdminSubPage.tsx
-'use client';
-
-import { useMemo } from 'react';
 import type { AdminTabId } from '@/components/admin/AdminSidebar';
-
-// All fully functional sections
-import AdminOverviewSection from '@/sections/admin/AdminOverviewSection';
-import AdminServicesSection from '@/sections/admin/AdminServicesSection';
-import AdminProductsSection from '@/sections/admin/AdminProductsSection';
-import AdminGallerySection from '@/sections/admin/AdminGallerySection';
-import AdminOrdersSection from '@/sections/admin/AdminOrdersSection';
-import AdminStaffSection from '@/sections/admin/AdminStaffSection';
-import AdminMessagesSection from '@/sections/admin/AdminMessagesSection';
-import AdminBookingsSection from '@/sections/admin/AdminBookingsSection';
-
-// Placeholder component
 import AdminModulePlaceholder from '@/sections/admin/AdminModulePlaceholder';
+import AdminServicesSection from '@/sections/admin/AdminServicesSection';
+import AdminBookingsSection from '@/sections/admin/AdminBookingsSection';
+import AdminProductsSection from '@/sections/admin/AdminProductsSection';
+import AdminOrdersSection from '@/sections/admin/AdminOrdersSection';
+import AdminGallerySection from '@/sections/admin/AdminGallerySection';
+import AdminUsersSection from '@/sections/admin/AdminUsersSection';
 
-export default function AdminSubPage({ tab }: { tab: AdminTabId }) {
-  const content = useMemo(() => {
-    switch (tab) {
-      case 'overview':
-        return <AdminOverviewSection />;
-      case 'services':
-        return <AdminServicesSection />;
-      case 'products':
-        return <AdminProductsSection />;
-      case 'gallery':
-        return <AdminGallerySection />;
-      case 'orders':
-        return <AdminOrdersSection />;
-      case 'staff':
-        return <AdminStaffSection />;
-      case 'messages':
-        return <AdminMessagesSection />;
-      case 'bookings':
-        return <AdminBookingsSection />;
+type AdminSubPageProps = {
+  tab: AdminTabId | string;
+};
 
-      // Remaining tabs (still using placeholder)
-      case 'newsletter':
-      case 'users':
-        return (
-          <AdminModulePlaceholder
-            eyebrow={tab.toUpperCase()}
-            title={`Manage ${tab}`}
-            description="This module is wired and ready for real data."
-            bullets={[
-              "Prisma models already exist",
-              "Full CRUD forms coming next",
-              "Real-time updates enabled",
-            ]}
-          />
-        );
+export default function AdminSubPage({ tab }: AdminSubPageProps) {
+  switch (tab) {
+    case 'services':
+      return <AdminServicesSection />;
 
-      default:
-        return (
-          <AdminModulePlaceholder
-            eyebrow={tab.toUpperCase()}
-            title={`Manage ${tab}`}
-            description="This section is under active development."
-            bullets={[
-              "Backend models are ready",
-              "UI is fully responsive",
-              "Connecting to database next",
-            ]}
-          />
-        );
+    case 'bookings':
+      return <AdminBookingsSection />;
+
+    case 'products':
+      return <AdminProductsSection />;
+
+    case 'orders':
+      return <AdminOrdersSection />;
+
+    case 'gallery':
+      return <AdminGallerySection />;
+
+    case 'users':
+      return <AdminUsersSection />;
+
+    default: {
+      const fallbackTab = String(tab || 'admin');
+
+      return (
+        <AdminModulePlaceholder
+          eyebrow={fallbackTab.toUpperCase()}
+          title={`Manage ${fallbackTab}`}
+          description="This section is under active development."
+          bullets={[
+            'Prisma models can be connected here',
+            'Full CRUD can be added when this tab is ready',
+            'Real-time data will appear here once wired',
+          ]}
+        />
+      );
     }
-  }, [tab]);
-
-  return <div className="w-full">{content}</div>;
+  }
 }
