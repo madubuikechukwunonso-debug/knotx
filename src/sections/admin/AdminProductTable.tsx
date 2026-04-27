@@ -9,13 +9,19 @@ type Product = {
   id: number;
   name: string;
   slug: string;
+  description: string | null;
   price: number;
+  priceCurrency?: string;
   category: string;
   inventory: number;
-  image?: string | null;
+  image: string | null;
   featured: boolean;
   active: boolean;
   sortOrder: number;
+  stripeProductId?: string | null;
+  stripePriceId?: string | null;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 type Props = {
@@ -44,6 +50,7 @@ export default function AdminProductTable({
     } else {
       await onCreate(formData);
     }
+
     setModalOpen(false);
     setEditingProduct(null);
     router.refresh();
@@ -69,6 +76,7 @@ export default function AdminProductTable({
   return (
     <>
       <button
+        type="button"
         onClick={() => {
           setEditingProduct(null);
           setModalOpen(true);
@@ -92,6 +100,7 @@ export default function AdminProductTable({
               <th className="px-6 py-4 text-right text-xs font-medium">Actions</th>
             </tr>
           </thead>
+
           <tbody className="divide-y">
             {products.map((product) => (
               <tr key={product.id} className="hover:bg-black/5">
@@ -101,13 +110,18 @@ export default function AdminProductTable({
                     <p className="text-xs text-black/50">/{product.slug}</p>
                   </div>
                 </td>
+
                 <td className="px-6 py-4 text-sm capitalize">{product.category}</td>
+
                 <td className="px-6 py-4 font-medium">
                   ${(product.price / 100).toFixed(2)} CAD
                 </td>
+
                 <td className="px-6 py-4 text-sm font-medium">{product.inventory}</td>
+
                 <td className="px-6 py-4">
                   <button
+                    type="button"
                     onClick={() => handleToggle(product)}
                     className="flex items-center gap-1 text-xs"
                   >
@@ -116,13 +130,16 @@ export default function AdminProductTable({
                     ) : (
                       <ToggleLeft className="h-5 w-5 text-gray-400" />
                     )}
+
                     <span className={product.active ? 'text-green-600' : 'text-gray-400'}>
                       {product.active ? 'Active' : 'Inactive'}
                     </span>
                   </button>
                 </td>
+
                 <td className="px-6 py-4 text-right">
                   <button
+                    type="button"
                     onClick={() => {
                       setEditingProduct(product);
                       setModalOpen(true);
@@ -131,7 +148,9 @@ export default function AdminProductTable({
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
+
                   <button
+                    type="button"
                     onClick={() => handleDelete(product.id)}
                     className="text-red-500 hover:text-red-700"
                   >
@@ -140,6 +159,14 @@ export default function AdminProductTable({
                 </td>
               </tr>
             ))}
+
+            {products.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-sm text-black/50">
+                  No products yet.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -159,7 +186,7 @@ export default function AdminProductTable({
                 <label className="block text-xs font-medium mb-1">Product Name</label>
                 <input
                   name="name"
-                  defaultValue={editingProduct?.name}
+                  defaultValue={editingProduct?.name || ''}
                   required
                   className="w-full rounded-2xl border border-black/10 px-4 py-3"
                 />
@@ -181,11 +208,12 @@ export default function AdminProductTable({
                   <input
                     name="price"
                     type="number"
-                    defaultValue={editingProduct?.price}
+                    defaultValue={editingProduct?.price ?? 0}
                     required
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
                   />
                 </div>
+
                 <div>
                   <label className="block text-xs font-medium mb-1">Category</label>
                   <input
@@ -207,8 +235,9 @@ export default function AdminProductTable({
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-medium mb-1">Image URL (optional)</label>
+                  <label className="block text-xs font-medium mb-1">Image URL optional</label>
                   <input
                     name="image"
                     defaultValue={editingProduct?.image || ''}
@@ -222,10 +251,11 @@ export default function AdminProductTable({
                   <input
                     type="checkbox"
                     name="featured"
-                    defaultChecked={editingProduct?.featured}
+                    defaultChecked={editingProduct?.featured || false}
                   />
                   Featured
                 </label>
+
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -236,17 +266,15 @@ export default function AdminProductTable({
                 </label>
               </div>
 
-              {editingProduct && (
-                <div>
-                  <label className="block text-xs font-medium mb-1">Sort Order</label>
-                  <input
-                    name="sortOrder"
-                    type="number"
-                    defaultValue={editingProduct.sortOrder}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-medium mb-1">Sort Order</label>
+                <input
+                  name="sortOrder"
+                  type="number"
+                  defaultValue={editingProduct?.sortOrder ?? 0}
+                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                />
+              </div>
 
               <div className="flex gap-3 pt-4">
                 <button
@@ -259,6 +287,7 @@ export default function AdminProductTable({
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   className="flex-1 py-4 rounded-2xl bg-black text-white font-medium"
