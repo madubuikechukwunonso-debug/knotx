@@ -1,6 +1,6 @@
 // src/sections/admin/AdminStaffSection.tsx
 import { PrismaClient } from '@prisma/client';
-import { Plus, Edit, UserCog, Calendar, Briefcase } from 'lucide-react';
+import { Plus, Edit, UserCog, Calendar, Briefcase, Shield } from 'lucide-react';
 
 const prisma = new PrismaClient();
 
@@ -17,23 +17,18 @@ export default async function AdminStaffSection() {
         },
       },
       ServiceStaffAssignment: {
-        include: {
-          service: {
-            select: { name: true },
-          },
-        },
+        include: { service: { select: { name: true } } },
       },
     },
   });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-serif text-emerald-950">Staff</h1>
           <p className="text-emerald-600 text-sm mt-1">
-            {staff.length} team member{staff.length !== 1 ? 's' : ''} • Manage team & permissions
+            {staff.length} team member{staff.length !== 1 ? 's' : ''} • Limited admin powers
           </p>
         </div>
 
@@ -43,7 +38,6 @@ export default async function AdminStaffSection() {
         </button>
       </div>
 
-      {/* STAFF GRID / TABLE */}
       <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -52,67 +46,64 @@ export default async function AdminStaffSection() {
                 <th className="px-6 py-5 text-left font-medium text-emerald-700">Staff Member</th>
                 <th className="px-6 py-5 text-left font-medium text-emerald-700">Role</th>
                 <th className="px-6 py-5 text-left font-medium text-emerald-700">Services</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700">Bookings Allowed</th>
+                <th className="px-6 py-5 text-left font-medium text-emerald-700">Dashboard Access</th>
+                <th className="px-6 py-5 text-left font-medium text-emerald-700">Bookings</th>
                 <th className="px-6 py-5 text-right font-medium text-emerald-700">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-emerald-100">
-              {staff.map((profile) => (
-                <tr key={profile.id} className="hover:bg-emerald-50 transition-colors group">
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-700 font-medium">
-                        {profile.user.displayName?.[0] || 'S'}
+              {staff.map((profile) => {
+                const isAdmin = profile.user.role === 'admin' || profile.user.role === 'super_admin';
+                return (
+                  <tr key={profile.id} className="hover:bg-emerald-50 transition-colors group">
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-700 font-medium">
+                          {profile.displayName?.[0] || 'S'}
+                        </div>
+                        <div>
+                          <p className="font-medium text-emerald-950">{profile.displayName}</p>
+                          <p className="text-xs text-emerald-500">{profile.user.email}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-emerald-950">{profile.displayName}</p>
-                        <p className="text-xs text-emerald-500">{profile.user.email}</p>
+                    </td>
+
+                    <td className="px-6 py-5">
+                      <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl bg-emerald-100 text-emerald-700">
+                        {isAdmin ? 'ADMIN' : 'STAFF'}
+                      </span>
+                    </td>
+
+                    <td className="px-6 py-5 text-emerald-600 text-sm">
+                      {profile.ServiceStaffAssignment.length > 0
+                        ? profile.ServiceStaffAssignment.map((a) => a.service.name).join(', ')
+                        : '—'}
+                    </td>
+
+                    <td className="px-6 py-5">
+                      <div className="flex items-center gap-1 text-emerald-600">
+                        <Shield size={16} />
+                        <span className="text-xs">Limited</span>
                       </div>
-                    </div>
-                  </td>
+                    </td>
 
-                  <td className="px-6 py-5">
-                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl bg-emerald-100 text-emerald-700">
-                      STAFF
-                    </span>
-                  </td>
+                    <td className="px-6 py-5">
+                      <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl ${profile.bookingEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                        {profile.bookingEnabled ? '✓ Enabled' : '✕ Disabled'}
+                      </span>
+                    </td>
 
-                  <td className="px-6 py-5 text-emerald-600 text-sm">
-                    {profile.ServiceStaffAssignment.length > 0
-                      ? profile.ServiceStaffAssignment.map((a) => a.service.name).join(', ')
-                      : 'No services assigned'}
-                  </td>
-
-                  <td className="px-6 py-5">
-                    <span
-                      className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl ${
-                        profile.bookingEnabled
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}
-                    >
-                      {profile.bookingEnabled ? '✓ Enabled' : '✕ Disabled'}
-                    </span>
-                  </td>
-
-                  <td className="px-6 py-5 text-right">
-                    <button className="p-3 hover:bg-emerald-100 rounded-2xl transition-colors text-emerald-700">
-                      <Edit size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    <td className="px-6 py-5 text-right">
+                      <button className="p-3 hover:bg-emerald-100 rounded-2xl transition-colors text-emerald-700">
+                        <Edit size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-
-        {staff.length === 0 && (
-          <div className="px-6 py-16 text-center">
-            <UserCog className="h-12 w-12 mx-auto text-emerald-300 mb-4" />
-            <p className="text-emerald-500 text-lg">No staff members yet</p>
-            <p className="text-emerald-400 text-sm mt-2">Add your first team member above</p>
-          </div>
-        )}
       </div>
     </div>
   );
