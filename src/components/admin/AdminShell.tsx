@@ -141,7 +141,7 @@ function getHeaderCopy(tab: AdminTabId) {
         description:
           "Reply to contact form messages, track follow-ups, and keep client conversations organized.",
       };
-    case "booking":
+    case "bookings":
       return {
         title: "Booking Hours",
         description:
