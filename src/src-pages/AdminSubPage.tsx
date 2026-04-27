@@ -5,6 +5,7 @@ import type { AdminTabId } from '@/components/admin/AdminSidebar';
 import AdminModulePlaceholder from '@/sections/admin/AdminModulePlaceholder';
 import AdminServicesSection from '@/sections/admin/AdminServicesSection';
 import AdminBookingsSection from '@/sections/admin/AdminBookingsSection';
+import AdminProductsSection from '@/sections/admin/AdminProductsSection';
 
 export default function AdminSubPage({ tab }: { tab: AdminTabId }) {
   const content = useMemo(() => {
@@ -13,6 +14,8 @@ export default function AdminSubPage({ tab }: { tab: AdminTabId }) {
         return <AdminServicesSection />;
       case 'bookings':
         return <AdminBookingsSection />;
+      case 'products':
+        return <AdminProductsSection />;
       default:
         return (
           <AdminModulePlaceholder
