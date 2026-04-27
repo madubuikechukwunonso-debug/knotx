@@ -11,7 +11,7 @@ export default async function AdminProductsSection() {
       id: true,
       name: true,
       price: true,
-      stock: true,
+      inventory: true,        // ← Fixed: this is the correct field in your schema
       active: true,
       featured: true,
       image: true,
@@ -47,7 +47,7 @@ export default async function AdminProductsSection() {
                 <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Product</th>
                 <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Category</th>
                 <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Price</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Stock</th>
+                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Inventory</th>
                 <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Status</th>
                 <th className="px-6 py-5 text-right font-medium text-emerald-700 whitespace-nowrap">Actions</th>
               </tr>
@@ -92,18 +92,18 @@ export default async function AdminProductsSection() {
                     </div>
                   </td>
 
-                  {/* Stock */}
+                  {/* Inventory (was previously called "stock") */}
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
                       <Package size={16} className="text-emerald-600" />
                       <span
                         className={`font-medium ${
-                          product.stock <= 5
+                          product.inventory <= 5
                             ? 'text-red-600'
                             : 'text-emerald-700'
                         }`}
                       >
-                        {product.stock} left
+                        {product.inventory} left
                       </span>
                     </div>
                   </td>
