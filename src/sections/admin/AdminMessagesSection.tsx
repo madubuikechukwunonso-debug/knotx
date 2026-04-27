@@ -25,7 +25,7 @@ async function replyToMessage(formData: FormData) {
   await prisma.contactReply.create({
     data: {
       messageId,
-      sentById: 1, // TODO: replace with real admin user ID later
+      sentById: 1, // TODO: replace with real admin/staff user ID from session later
       body,
     },
   });
@@ -46,12 +46,7 @@ async function replyToMessage(formData: FormData) {
 export default async function AdminMessagesSection() {
   const messages = await prisma.contactMessage.findMany({
     orderBy: { createdAt: 'desc' },
-    include: {
-      replies: {
-        orderBy: { sentAt: 'desc' },
-        take: 3,
-      },
-    },
+    // replies relation removed because it is not defined in Prisma schema yet
   });
 
   return (
@@ -97,14 +92,6 @@ export default async function AdminMessagesSection() {
 
                 <h3 className="mt-4 font-medium text-emerald-950">{msg.subject || 'No subject'}</h3>
                 <p className="text-emerald-700 mt-2 line-clamp-3 text-sm">{msg.message}</p>
-
-                {/* Previous replies preview */}
-                {msg.replies.length > 0 && (
-                  <div className="mt-4 text-xs bg-emerald-50 rounded-2xl p-3">
-                    <p className="text-emerald-500 mb-1">Latest reply:</p>
-                    <p className="line-clamp-2 text-emerald-700">{msg.replies[0].body}</p>
-                  </div>
-                )}
               </div>
 
               {/* Status & Actions */}
