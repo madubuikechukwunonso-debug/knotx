@@ -1,72 +1,61 @@
 // src/sections/admin/AdminGallerySection.tsx
-import { PrismaClient } from '@prisma/client';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Eye, Star, Upload } from 'lucide-react';
-import { revalidatePath } from 'next/cache';
 
-const prisma = new PrismaClient();
+export default function AdminGallerySection() {
+  const [items, setItems] = useState<any[]>([]);
 
-// ====================== SERVER ACTION - UPLOAD FILES (supports folder) ======================
-async function uploadGalleryFiles(formData: FormData) {
-  'use server';
-  const files = formData.getAll('files') as File[];
-  const category = (formData.get('category') as string) || 'general';
+  // TODO: Replace this with real Prisma fetch later (via API route or Server Component wrapper)
+  useEffect(() => {
+    // Mock data for now - you can fetch from /api/gallery later
+    setItems([]);
+  }, []);
 
-  for (const file of files) {
-    if (!file) continue;
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
 
-    // Convert file to base64 data URL
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64 = buffer.toString('base64');
-    const mimeType = file.type;
-    const dataUrl = `data:${mimeType};base64,${base64}`;
+    const newItems: any[] = [];
 
-    const isVideo = file.type.startsWith('video/');
-    const type = isVideo ? 'video' : 'image';
+    for (const file of files) {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const base64 = buffer.toString('base64');
+      const mimeType = file.type;
+      const dataUrl = `data:${mimeType};base64,${base64}`;
 
-    await prisma.galleryItem.create({
-      data: {
-        type,
+      const isVideo = file.type.startsWith('video/');
+
+      newItems.push({
+        id: Date.now() + Math.random(),
+        type: isVideo ? 'video' : 'image',
         title: file.name.replace(/\.\w+$/, ''),
         caption: '',
         url: dataUrl,
         thumbnailUrl: dataUrl,
-        category,
         isFeatured: false,
         isActive: true,
-        sortOrder: 0,
-      },
-    });
-  }
+      });
+    }
 
-  revalidatePath('/admin/gallery');
-}
+    setItems((prev) => [...prev, ...newItems]);
+    // TODO: Send to real server action / API route here
+  };
 
-// ====================== DELETE & TOGGLE ======================
-async function deleteGalleryItem(formData: FormData) {
-  'use server';
-  const id = parseInt(formData.get('id') as string, 10);
-  await prisma.galleryItem.delete({ where: { id } });
-  revalidatePath('/admin/gallery');
-}
+  const toggleActive = (id: number) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, isActive: !item.isActive } : item
+      )
+    );
+  };
 
-async function toggleActive(formData: FormData) {
-  'use server';
-  const id = parseInt(formData.get('id') as string, 10);
-  const current = await prisma.galleryItem.findUnique({ where: { id } });
-  if (!current) return;
-
-  await prisma.galleryItem.update({
-    where: { id },
-    data: { isActive: !current.isActive },
-  });
-  revalidatePath('/admin/gallery');
-}
-
-export default async function AdminGallerySection() {
-  const items = await prisma.galleryItem.findMany({
-    orderBy: { sortOrder: 'asc' },
-  });
+  const deleteItem = (id: number) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+    // TODO: Call real delete server action here
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -79,23 +68,20 @@ export default async function AdminGallerySection() {
           </p>
         </div>
 
-        {/* FILE UPLOAD FORM (supports single files + entire folders) */}
-        <form action={uploadGalleryFiles} className="flex items-center gap-3">
-          <label className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm cursor-pointer w-full sm:w-auto justify-center sm:justify-start">
-            <Upload size={20} />
-            <span className="font-medium">Add Images / Videos or Folder</span>
-            <input
-              type="file"
-              name="files"
-              accept="image/*,video/*"
-              multiple
-              // @ts-expect-error webkitdirectory is a non-standard WebKit attribute for folder upload
-              webkitdirectory=""
-              className="hidden"
-            />
-          </label>
-          <input type="hidden" name="category" value="general" />
-        </form>
+        {/* FILE UPLOAD FORM */}
+        <label className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm cursor-pointer w-full sm:w-auto justify-center sm:justify-start">
+          <Upload size={20} />
+          <span className="font-medium">Add Images / Videos or Folder</span>
+          <input
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            // @ts-expect-error webkitdirectory is a non-standard WebKit attribute
+            webkitdirectory=""
+            className="hidden"
+            onChange={handleFileUpload}
+          />
+        </label>
       </div>
 
       {/* GALLERY GRID – Fully responsive & mobile-first */}
@@ -149,20 +135,20 @@ export default async function AdminGallerySection() {
 
             {/* Actions */}
             <div className="border-t border-emerald-100 px-4 py-3 flex items-center justify-between text-xs">
-              <form action={toggleActive}>
-                <input type="hidden" name="id" value={item.id} />
-                <button className="flex items-center gap-1 hover:text-emerald-700 transition-colors">
-                  <Eye size={16} />
-                  {item.isActive ? 'Hide' : 'Show'}
-                </button>
-              </form>
+              <button
+                onClick={() => toggleActive(item.id)}
+                className="flex items-center gap-1 hover:text-emerald-700 transition-colors"
+              >
+                <Eye size={16} />
+                {item.isActive ? 'Hide' : 'Show'}
+              </button>
 
-              <form action={deleteGalleryItem}>
-                <input type="hidden" name="id" value={item.id} />
-                <button className="p-2 hover:bg-red-100 text-red-600 rounded-2xl transition-colors">
-                  <Trash2 size={16} />
-                </button>
-              </form>
+              <button
+                onClick={() => deleteItem(item.id)}
+                className="p-2 hover:bg-red-100 text-red-600 rounded-2xl transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
           </div>
         ))}
