@@ -1,52 +1,54 @@
 // src/src-pages/AdminSubPage.tsx
 import type { AdminTabId } from '@/components/admin/AdminSidebar';
-import AdminModulePlaceholder from '@/sections/admin/AdminModulePlaceholder';
+
+import AdminOverviewSection from '@/sections/admin/AdminOverviewSection';
 import AdminServicesSection from '@/sections/admin/AdminServicesSection';
-import AdminBookingsSection from '@/sections/admin/AdminBookingsSection';
 import AdminProductsSection from '@/sections/admin/AdminProductsSection';
-import AdminOrdersSection from '@/sections/admin/AdminOrdersSection';
 import AdminGallerySection from '@/sections/admin/AdminGallerySection';
+import AdminOrdersSection from '@/sections/admin/AdminOrdersSection';
+import AdminNewsletterSection from '@/sections/admin/AdminNewsletterSection';
 import AdminUsersSection from '@/sections/admin/AdminUsersSection';
+import AdminStaffSection from '@/sections/admin/AdminStaffSection';
+import AdminMessagesSection from '@/sections/admin/AdminMessagesSection';
+import AdminBookingsSection from '@/sections/admin/AdminBookingsSection';
 
 type AdminSubPageProps = {
-  tab: AdminTabId | string;
+  tab: AdminTabId;
 };
 
 export default function AdminSubPage({ tab }: AdminSubPageProps) {
   switch (tab) {
+    case 'overview':
+      return <AdminOverviewSection />;
+
     case 'services':
       return <AdminServicesSection />;
-
-    case 'bookings':
-      return <AdminBookingsSection />;
 
     case 'products':
       return <AdminProductsSection />;
 
+    case 'gallery':
+      return <AdminGallerySection />;
+
     case 'orders':
       return <AdminOrdersSection />;
 
-    case 'gallery':
-      return <AdminGallerySection />;
+    case 'newsletter':
+      return <AdminNewsletterSection />;
 
     case 'users':
       return <AdminUsersSection />;
 
-    default: {
-      const fallbackTab = String(tab || 'admin');
+    case 'staff':
+      return <AdminStaffSection />;
 
-      return (
-        <AdminModulePlaceholder
-          eyebrow={fallbackTab.toUpperCase()}
-          title={`Manage ${fallbackTab}`}
-          description="This section is under active development."
-          bullets={[
-            'Prisma models can be connected here',
-            'Full CRUD can be added when this tab is ready',
-            'Real-time data will appear here once wired',
-          ]}
-        />
-      );
-    }
+    case 'messages':
+      return <AdminMessagesSection />;
+
+    case 'bookings':
+      return <AdminBookingsSection />;
+
+    default:
+      return <AdminOverviewSection />;
   }
 }
