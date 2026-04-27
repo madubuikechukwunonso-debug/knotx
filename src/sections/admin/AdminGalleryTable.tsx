@@ -7,7 +7,8 @@ import { Pencil, Trash2, Plus, ToggleLeft, ToggleRight, Eye } from 'lucide-react
 
 type GalleryItem = {
   id: number;
-  title: string;
+  type: string;
+  title: string | null;
   caption?: string | null;
   url: string;
   thumbnailUrl?: string | null;
@@ -96,13 +97,13 @@ export default function AdminGalleryTable({
                 <td className="px-6 py-4">
                   <img
                     src={item.thumbnailUrl || item.url}
-                    alt={item.title}
+                    alt={item.title || 'Gallery item'}
                     className="h-12 w-12 rounded-2xl object-cover border border-black/10"
                   />
                 </td>
                 <td className="px-6 py-4">
                   <div>
-                    <p className="font-medium">{item.title}</p>
+                    <p className="font-medium">{item.title || 'Untitled gallery item'}</p>
                     {item.caption && (
                       <p className="text-xs text-black/50 line-clamp-1">{item.caption}</p>
                     )}
@@ -168,10 +169,22 @@ export default function AdminGalleryTable({
               {editingItem && <input type="hidden" name="id" value={editingItem.id} />}
 
               <div>
+                <label className="block text-xs font-medium mb-1">Type</label>
+                <select
+                  name="type"
+                  defaultValue={editingItem?.type || 'image'}
+                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                >
+                  <option value="image">Image</option>
+                  <option value="video">Video</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-xs font-medium mb-1">Title</label>
                 <input
                   name="title"
-                  defaultValue={editingItem?.title}
+                  defaultValue={editingItem?.title || ''}
                   required
                   className="w-full rounded-2xl border border-black/10 px-4 py-3"
                 />
