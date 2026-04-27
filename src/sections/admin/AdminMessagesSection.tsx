@@ -1,53 +1,39 @@
 // src/sections/admin/AdminMessagesSection.tsx
-import { PrismaClient } from '@prisma/client';
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Mail, Eye, CheckCircle, Reply, MessageCircle } from 'lucide-react';
-import { revalidatePath } from 'next/cache';
 
-const prisma = new PrismaClient();
+export default function AdminMessagesSection() {
+  const [messages, setMessages] = useState<any[]>([]);
 
-// ====================== SERVER ACTIONS ======================
-async function markAsRead(formData: FormData) {
-  'use server';
-  const id = parseInt(formData.get('id') as string, 10);
-  await prisma.contactMessage.update({
-    where: { id },
-    data: { read: true, status: 'read' },
-  });
-  revalidatePath('/admin/messages');
-}
+  // TODO: Replace with real fetch from API route (e.g. /api/admin/messages)
+  useEffect(() => {
+    // Mock data for now - real data will load here once connected
+    setMessages([]);
+  }, []);
 
-async function replyToMessage(formData: FormData) {
-  'use server';
-  const messageId = parseInt(formData.get('messageId') as string, 10);
-  const body = formData.get('body') as string;
+  const markAsRead = (id: number) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === id ? { ...msg, read: true, status: 'read' } : msg
+      )
+    );
+    // TODO: Call real API here to update in database
+  };
 
-  // Create reply
-  await prisma.contactReply.create({
-    data: {
-      messageId,
-      sentById: 1, // TODO: replace with real admin/staff user ID from session later
-      body,
-    },
-  });
+  const replyToMessage = (messageId: number, body: string) => {
+    // TODO: Call real API route to create reply + update message
+    console.log('Reply sent to message', messageId, '→', body);
 
-  // Update original message
-  await prisma.contactMessage.update({
-    where: { id: messageId },
-    data: {
-      read: true,
-      status: 'replied',
-      lastRepliedAt: new Date(),
-    },
-  });
-
-  revalidatePath('/admin/messages');
-}
-
-export default async function AdminMessagesSection() {
-  const messages = await prisma.contactMessage.findMany({
-    orderBy: { createdAt: 'desc' },
-    // replies relation removed because it is not defined in Prisma schema yet
-  });
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId
+          ? { ...msg, status: 'replied', lastRepliedAt: new Date() }
+          : msg
+      )
+    );
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -59,7 +45,6 @@ export default async function AdminMessagesSection() {
             {messages.length} customer message{messages.length !== 1 ? 's' : ''} • Direct support inbox
           </p>
         </div>
-
         <div className="text-emerald-600 flex items-center gap-2 text-sm">
           <MessageCircle size={18} />
           <span>Inbox • Real-time customer inquiries</span>
@@ -84,7 +69,6 @@ export default async function AdminMessagesSection() {
                     <p className="font-medium text-emerald-950">{msg.name}</p>
                     <p className="text-emerald-600 text-sm truncate">{msg.email}</p>
                   </div>
-
                   <div className="text-right text-xs text-emerald-500 whitespace-nowrap">
                     {new Date(msg.createdAt).toLocaleDateString('en-CA')}
                   </div>
@@ -108,19 +92,25 @@ export default async function AdminMessagesSection() {
                   {msg.status.toUpperCase()}
                 </span>
 
-                <form action={markAsRead}>
-                  <input type="hidden" name="id" value={msg.id} />
-                  <button
-                    type="submit"
-                    className="flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors text-sm"
-                  >
-                    <CheckCircle size={16} />
-                    Mark as Read
-                  </button>
-                </form>
+                <button
+                  onClick={() => markAsRead(msg.id)}
+                  className="flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors text-sm"
+                >
+                  <CheckCircle size={16} />
+                  Mark as Read
+                </button>
 
                 {/* REPLY FORM */}
-                <form action={replyToMessage} className="w-full">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget;
+                    const body = (form.elements.namedItem('body') as HTMLTextAreaElement).value;
+                    replyToMessage(msg.id, body);
+                    form.reset();
+                  }}
+                  className="w-full"
+                >
                   <input type="hidden" name="messageId" value={msg.id} />
                   <textarea
                     name="body"
