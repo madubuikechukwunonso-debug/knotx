@@ -20,8 +20,8 @@ import {
 import AdminSidebar, { type AdminTabId, type AdminTab } from "./AdminSidebar";
 import AdminHeader from "./AdminHeader";
 
-// ====================== TABS ======================
-const tabs: AdminTab[] = [
+// ====================== FULL TABS (for admin / super_admin) ======================
+const fullTabs: AdminTab[] = [
   { id: "overview", label: "Overview", description: "Business dashboard & metrics", icon: LayoutDashboard },
   { id: "services", label: "Services", description: "Manage offerings & pricing", icon: Briefcase },
   { id: "products", label: "Products", description: "Inventory & catalog", icon: Package },
@@ -34,27 +34,30 @@ const tabs: AdminTab[] = [
   { id: "bookings", label: "Bookings", description: "Appointments", icon: Calendar },
 ];
 
-// ====================== HEADER CONTENT ======================
-const getHeaderContent = (tab: AdminTabId): { title: string; description: string } => {
-  const map: Record<AdminTabId, { title: string; description: string }> = {
-    overview: { title: "Overview", description: "Real-time business metrics • $ Knotx & Krafts" },
-    services: { title: "Services", description: "Manage your service catalog" },
-    products: { title: "Products", description: "Inventory & pricing" },
-    gallery: { title: "Gallery", description: "Curate your visual story" },
-    orders: { title: "Orders", description: "Fulfill customer orders" },
-    newsletter: { title: "Newsletter", description: "Send campaigns & grow list" },
-    users: { title: "Users", description: "Customer management" },
-    staff: { title: "Staff", description: "Team & permissions" },
-    messages: { title: "Messages", description: "Customer support inbox" },
-    bookings: { title: "Bookings", description: "Manage appointments" },
-  };
-  return map[tab] || { title: "Admin", description: "Knotx & Krafts Dashboard" };
-};
+// ====================== STAFF-ONLY TABS (limited view) ======================
+const staffTabs: AdminTab[] = [
+  { id: "overview", label: "Overview", description: "Your dashboard & metrics", icon: LayoutDashboard },
+  { id: "services", label: "Services", description: "View available services", icon: Briefcase },
+  { id: "bookings", label: "Bookings", description: "Manage your appointments", icon: Calendar },
+  { id: "messages", label: "Messages", description: "Customer inquiries", icon: MessageCircle },
+  { id: "orders", label: "Orders", description: "Customer orders", icon: ShoppingCart },
+];
 
-export default function AdminUI({ children }: { children: React.ReactNode }) {
+export default function AdminUI({
+  children,
+  role,
+}: {
+  children: React.ReactNode;
+  role: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const isStaff = role === "staff";
+
+  // Use filtered tabs for staff
+  const tabs: AdminTab[] = isStaff ? staffTabs : fullTabs;
 
   const getActiveTab = (): AdminTabId => {
     if (pathname === "/admin" || pathname === "/admin/") return "overview";
@@ -77,24 +80,22 @@ export default function AdminUI({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-dvh bg-emerald-50 overflow-hidden">
-      {/* SIDEBAR */}
       <AdminSidebar
         tabs={tabs}
         activeTab={activeTab}
         onChange={handleTabChange}
         mobileOpen={mobileOpen}
         onClose={handleClose}
+        role={role}                    {/* ← new prop for staff header */}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* HEADER */}
         <AdminHeader
           title={title}
           description={description}
           onMenuClick={handleMenuClick}
         />
 
-        {/* MAIN CONTENT AREA */}
         <main className="flex-1 overflow-auto p-4 sm:p-6 bg-emerald-50">
           {children}
         </main>
@@ -102,3 +103,20 @@ export default function AdminUI({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
+
+// Keep the same header content map (unchanged)
+const getHeaderContent = (tab: AdminTabId): { title: string; description: string } => {
+  const map: Record<AdminTabId, { title: string; description: string }> = {
+    overview: { title: "Overview", description: "Real-time business metrics • $ Knotx & Krafts" },
+    services: { title: "Services", description: "Manage your service catalog" },
+    products: { title: "Products", description: "Inventory & pricing" },
+    gallery: { title: "Gallery", description: "Curate your visual story" },
+    orders: { title: "Orders", description: "Fulfill customer orders" },
+    newsletter: { title: "Newsletter", description: "Send campaigns & grow list" },
+    users: { title: "Users", description: "Customer management" },
+    staff: { title: "Staff", description: "Team & permissions" },
+    messages: { title: "Messages", description: "Customer support inbox" },
+    bookings: { title: "Bookings", description: "Manage appointments" },
+  };
+  return map[tab] || { title: "Dashboard", description: "Knotx & Krafts" };
+};
