@@ -12,12 +12,13 @@ type Service = {
   description: string | null;
   durationMinutes: number;
   price: number;
-  priceCurrency?: string;
-  category: string;
+  priceCurrency: string;
   image: string | null;
   featured: boolean;
   active: boolean;
   sortOrder: number;
+  stripeProductId?: string | null;
+  stripePriceId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 };
@@ -90,9 +91,9 @@ export default function AdminServiceTable({
           <thead className="bg-black/5">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-medium">Service</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Category</th>
               <th className="px-6 py-4 text-left text-xs font-medium">Price</th>
               <th className="px-6 py-4 text-left text-xs font-medium">Duration</th>
+              <th className="px-6 py-4 text-left text-xs font-medium">Featured</th>
               <th className="px-6 py-4 text-left text-xs font-medium">Status</th>
               <th className="px-6 py-4 text-right text-xs font-medium">Actions</th>
             </tr>
@@ -105,17 +106,31 @@ export default function AdminServiceTable({
                   <div>
                     <p className="font-medium">{service.name}</p>
                     <p className="text-xs text-black/50">/{service.slug}</p>
+
+                    {service.description && (
+                      <p className="mt-1 text-xs text-black/50 line-clamp-1">
+                        {service.description}
+                      </p>
+                    )}
                   </div>
                 </td>
 
-                <td className="px-6 py-4 text-sm capitalize">{service.category}</td>
-
                 <td className="px-6 py-4 font-medium">
-                  ${(service.price / 100).toFixed(2)} CAD
+                  ${(service.price / 100).toFixed(2)} {service.priceCurrency || 'CAD'}
                 </td>
 
                 <td className="px-6 py-4 text-sm font-medium">
                   {service.durationMinutes} mins
+                </td>
+
+                <td className="px-6 py-4">
+                  {service.featured ? (
+                    <span className="inline-flex items-center rounded-2xl bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+                      Featured
+                    </span>
+                  ) : (
+                    <span className="text-xs text-black/40">—</span>
+                  )}
                 </td>
 
                 <td className="px-6 py-4">
@@ -228,26 +243,15 @@ export default function AdminServiceTable({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-medium mb-1">Category</label>
-                  <input
-                    name="category"
-                    defaultValue={editingService?.category || 'general'}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium mb-1">
-                    Image URL optional
-                  </label>
-                  <input
-                    name="image"
-                    defaultValue={editingService?.image || ''}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">
+                  Image URL optional
+                </label>
+                <input
+                  name="image"
+                  defaultValue={editingService?.image || ''}
+                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                />
               </div>
 
               <div className="flex gap-6">
