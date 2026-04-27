@@ -12,7 +12,7 @@ export type AdminTabId =
   | "users"
   | "staff"
   | "messages"
-  | "booking";
+  | "bookings";
 
 export type AdminTab = {
   id: AdminTabId;
