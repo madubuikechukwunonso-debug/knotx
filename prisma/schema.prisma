@@ -26,91 +26,92 @@ model User {
 }
 
 model LocalUser {
-  id                   Int      @id @default(autoincrement())
-  username             String   @unique
-  email                String   @unique
+  id                   Int       @id @default(autoincrement())
+  username             String    @unique
+  email                String    @unique
   displayName          String?
   passwordHash         String
-  role                 String   @default("user")
-  isActive             Boolean  @default(true)
-  isBlocked            Boolean  @default(false)
+  role                 String    @default("user")
+  isActive             Boolean   @default(true)
+  isBlocked            Boolean   @default(false)
   blockedReason        String?
   blockedAt            DateTime?
   invitedById          Int?
-  lastSignInAt         DateTime @default(now())
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  lastSignInAt         DateTime  @default(now())
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  // SHIPPING ADDRESS FIELDS (added for product shipping)
-  shippingAddressLine1 String?
-  shippingAddressLine2 String?
-  shippingCity         String?
-  shippingState        String?
-  shippingPostalCode   String?
-  shippingCountry      String?  @default("Canada")
+  // SHIPPING ADDRESS FIELDS
+  shippingAddressLine1  String?
+  shippingAddressLine2  String?
+  shippingCity          String?
+  shippingState         String?
+  shippingPostalCode    String?
+  shippingCountry       String?   @default("Canada")
 
   // Relations
   bookings             Booking[]
   orders               Order[]
   wishlist             Wishlist[]
+  subscribers          Subscriber[]   // ← new relation
 }
 
 // ====================== PRODUCTS & SERVICES ======================
 model Product {
-  id              Int      @id @default(autoincrement())
-  name            String
-  slug            String   @unique
-  description     String?
-  price           Int
-  priceCurrency   String   @default("cad")
-  image           String?
-  category        String   @default("general")
-  inventory       Int      @default(0)
-  featured        Boolean  @default(false)
-  active          Boolean  @default(true)
-  sortOrder       Int      @default(0)
-  stripeProductId String?
-  stripePriceId   String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               Int      @id @default(autoincrement())
+  name             String
+  slug             String   @unique
+  description      String?
+  price            Int
+  priceCurrency    String   @default("cad")
+  image            String?
+  category         String   @default("general")
+  inventory        Int      @default(0)
+  featured         Boolean  @default(false)
+  active           Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  stripeProductId  String?
+  stripePriceId    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  wishlistItems   Wishlist[]
-  orderItems      OrderItem[]
+  wishlistItems    Wishlist[]
+  orderItems       OrderItem[]
 }
 
 model Service {
-  id              Int      @id @default(autoincrement())
-  name            String
-  slug            String   @unique
-  description     String?
-  price           Int
-  priceCurrency   String   @default("cad")
-  durationMinutes Int
-  image           String?
-  featured        Boolean  @default(false)
-  active          Boolean  @default(true)
-  sortOrder       Int      @default(0)
-  stripeProductId String?
-  stripePriceId   String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id               Int      @id @default(autoincrement())
+  name             String
+  slug             String   @unique
+  description      String?
+  price            Int
+  priceCurrency    String   @default("cad")
+  durationMinutes  Int
+  image            String?
+  featured         Boolean  @default(false)
+  active           Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  stripeProductId  String?
+  stripePriceId    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 // ====================== GALLERY & HERO ======================
 model GalleryItem {
-  id            Int      @id @default(autoincrement())
-  type          String
-  url           String
-  thumbnailUrl  String?
-  title         String?
-  caption       String?
-  category      String   @default("general")
-  isFeatured    Boolean  @default(false)
-  isActive      Boolean  @default(true)
-  sortOrder     Int      @default(0)
-  createdById   Int?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  type         String
+  url          String
+  thumbnailUrl String?
+  title        String?
+  caption      String?
+  category     String   @default("general")
+  isFeatured   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdById  Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model HeroImage {
@@ -145,19 +146,19 @@ model StaffWorkingHour {
 }
 
 model StaffTimeOff {
-  id          Int      @id @default(autoincrement())
-  staffUserId Int
-  startAt     DateTime
-  endAt       DateTime
-  reason      String?
-  createdAt   DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  staffUserId  Int
+  startAt      DateTime
+  endAt        DateTime
+  reason       String?
+  createdAt    DateTime @default(now())
 }
 
 model ServiceStaffAssignment {
-  id          Int      @id @default(autoincrement())
-  serviceId   Int
-  staffUserId Int
-  createdAt   DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  serviceId    Int
+  staffUserId  Int
+  createdAt    DateTime @default(now())
 }
 
 // ====================== ORDERS ======================
@@ -184,39 +185,39 @@ model Order {
 }
 
 model OrderItem {
-  id        Int   @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   orderId   Int
   productId Int
   quantity  Int
   price     Int
 
-  order     Order   @relation(fields: [orderId], references: [id])
-  product   Product @relation(fields: [productId], references: [id])
+  order     Order    @relation(fields: [orderId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
 }
 
 // ====================== BOOKINGS ======================
 model Booking {
-  id                      Int      @id @default(autoincrement())
-  userId                  Int?
-  userType                String?
-  customerName            String
-  customerEmail           String
-  customerPhone           String?
-  serviceId               Int?
-  staffUserId             Int?
-  serviceType             String
-  durationMinutes         Int      @default(60)
-  price                   Int      @default(0)
-  paymentStatus           String   @default("unpaid")
+  id                     Int      @id @default(autoincrement())
+  userId                 Int?
+  userType               String?
+  customerName           String
+  customerEmail          String
+  customerPhone          String?
+  serviceId              Int?
+  staffUserId            Int?
+  serviceType            String
+  durationMinutes        Int      @default(60)
+  price                  Int      @default(0)
+  paymentStatus          String   @default("unpaid")
   stripeCheckoutSessionId String?
-  date                    String
-  time                    String
-  status                  String   @default("pending")
-  notes                   String?
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  date                   String
+  time                   String
+  status                 String   @default("pending")
+  notes                  String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
-  user                    LocalUser? @relation(fields: [userId], references: [id])
+  user                   LocalUser? @relation(fields: [userId], references: [id])
 }
 
 // ====================== WISHLIST ======================
@@ -233,25 +234,43 @@ model Wishlist {
 }
 
 // ====================== NEWSLETTER & CONTACT ======================
+
+enum SubscriberSource {
+  REGISTRATION
+  HOMEPAGE
+  CHECKOUT
+  MANUAL
+}
+
 model Subscriber {
-  id             Int      @id @default(autoincrement())
+  id             Int              @id @default(autoincrement())
+  email          String           @unique
   name           String?
-  email          String   @unique
-  source         String   @default("newsletter")
-  isActive       Boolean  @default(true)
+  source         SubscriberSource @default(HOMEPAGE)
+
+  // Link to registered LocalUser (optional)
+  localUserId    Int?
+  localUser      LocalUser?       @relation(fields: [localUserId], references: [id], onDelete: Cascade)
+
+  isActive       Boolean          @default(true)
   unsubscribedAt DateTime?
-  createdAt      DateTime @default(now())
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([source])
+  @@index([isActive])
 }
 
 model NewsletterCampaign {
-  id             Int      @id @default(autoincrement())
-  subject        String
-  htmlBody       String
-  audienceType   String   @default("selected")
-  sendToEveryone Boolean  @default(false)
-  createdById    Int?
-  sentAt         DateTime?
-  createdAt      DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  subject         String
+  htmlBody        String
+  audienceType    String   @default("selected")
+  sendToEveryone  Boolean  @default(false)
+  createdById     Int?
+  sentAt          DateTime?
+  createdAt       DateTime @default(now())
 }
 
 model NewsletterRecipient {
@@ -264,19 +283,19 @@ model NewsletterRecipient {
 }
 
 model ContactMessage {
-  id              Int      @id @default(autoincrement())
-  name            String
-  email           String
-  subject         String?
-  message         String
-  read            Boolean  @default(false)
-  status          String   @default("new")
-  assignedToId    Int?
-  lastRepliedAt   DateTime?
-  followUpAt      DateTime?
-  followUpNotes   String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  name           String
+  email          String
+  subject        String?
+  message        String
+  read           Boolean  @default(false)
+  status         String   @default("new")
+  assignedToId   Int?
+  lastRepliedAt  DateTime?
+  followUpAt     DateTime?
+  followUpNotes  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model ContactReply {
