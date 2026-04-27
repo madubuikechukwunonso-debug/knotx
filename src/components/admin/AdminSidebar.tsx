@@ -2,19 +2,11 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { X } from "lucide-react";
+import { X, DollarSign } from "lucide-react";
 
 export type AdminTabId =
-  | "overview"
-  | "services"
-  | "products"
-  | "gallery"
-  | "orders"
-  | "newsletter"
-  | "users"
-  | "staff"
-  | "messages"
-  | "bookings";
+  | "overview" | "services" | "products" | "gallery" | "orders"
+  | "newsletter" | "users" | "staff" | "messages" | "bookings";
 
 export type AdminTab = {
   id: AdminTabId;
@@ -23,7 +15,7 @@ export type AdminTab = {
   icon: LucideIcon;
 };
 
-type AdminSidebarProps = {
+type Props = {
   tabs: AdminTab[];
   activeTab: AdminTabId;
   onChange: (tab: AdminTabId) => void;
@@ -31,67 +23,53 @@ type AdminSidebarProps = {
   onClose: () => void;
 };
 
-function SidebarContent({
-  tabs,
-  activeTab,
-  onChange,
-  onClose,
-}: Omit<AdminSidebarProps, "mobileOpen">) {
+function SidebarContent({ tabs, activeTab, onChange, onClose }: Omit<Props, "mobileOpen">) {
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-5 lg:px-6">
-        <div>
-          <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
-            KNOTXANDKRAFTS
-          </p>
-          <h2 className="mt-2 font-serif text-2xl text-white">Admin</h2>
+    <div className="flex h-full flex-col bg-emerald-950 text-white">
+      {/* HEADER BAR */}
+      <div className="flex items-center justify-between border-b border-emerald-800 px-5 py-5 lg:px-6">
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-7 w-7 text-emerald-400" />
+          <div>
+            <p className="text-[10px] uppercase tracking-[1px] text-emerald-300">KNOTX & KRAFTS</p>
+            <h2 className="font-serif text-2xl">Admin</h2>
+          </div>
         </div>
-
         <button
-          type="button"
           onClick={onClose}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-white lg:hidden"
-          aria-label="Close admin navigation"
+          className="lg:hidden h-10 w-10 flex items-center justify-center rounded-2xl border border-emerald-700 hover:bg-emerald-900 transition-colors"
         >
-          <X size={18} />
+          <X size={20} />
         </button>
       </div>
 
+      {/* NAV */}
       <div className="flex-1 overflow-y-auto px-3 py-4">
-        <nav className="flex flex-col gap-2">
+        <nav className="flex flex-col gap-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
-            const isActive = tab.id === activeTab;
-
+            const active = tab.id === activeTab;
             return (
               <button
                 key={tab.id}
-                type="button"
                 onClick={() => {
                   onChange(tab.id);
                   onClose();
                 }}
-                className={`group flex w-full items-start gap-3 rounded-2xl px-4 py-4 text-left transition-all duration-200 ${
-                  isActive
-                    ? "bg-white text-black shadow-[0_10px_25px_rgba(0,0,0,0.18)]"
-                    : "text-white/75 hover:bg-white/8 hover:text-white"
+                className={`group flex w-full items-start gap-3 rounded-3xl px-4 py-4 text-left transition-all duration-200 ${
+                  active
+                    ? "bg-white text-emerald-950 shadow-xl"
+                    : "hover:bg-emerald-900/50 text-emerald-100"
                 }`}
               >
-                <div
-                  className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
-                    isActive ? "bg-black text-white" : "bg-white/10 text-white"
-                  }`}
-                >
-                  <Icon size={18} />
+                <div className={`h-10 w-10 flex items-center justify-center rounded-2xl transition-colors ${
+                  active ? "bg-emerald-600 text-white" : "bg-emerald-900/70 text-emerald-300"
+                }`}>
+                  <Icon size={20} />
                 </div>
-
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{tab.label}</p>
-                  <p
-                    className={`mt-1 text-xs leading-5 ${
-                      isActive ? "text-black/60" : "text-white/45"
-                    }`}
-                  >
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <p className="font-medium text-base">{tab.label}</p>
+                  <p className={`text-xs mt-0.5 ${active ? "text-emerald-700" : "text-emerald-400"}`}>
                     {tab.description}
                   </p>
                 </div>
@@ -101,58 +79,34 @@ function SidebarContent({
         </nav>
       </div>
 
-      <div className="border-t border-white/10 px-5 py-5 lg:px-6">
-        <div className="rounded-3xl bg-white/8 p-4 text-white/75">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-white/45">
-            Workflow
-          </p>
-          <p className="mt-2 text-sm leading-6">
-            Manage services, products, bookings, users, messages, newsletters,
-            and gallery content from one place.
-          </p>
+      {/* BOTTOM FOOTER */}
+      <div className="border-t border-emerald-800 p-5 text-xs text-emerald-400">
+        <div className="rounded-3xl bg-emerald-900/40 p-4">
+          <p className="uppercase text-[10px] tracking-widest mb-1">💰 Money moves</p>
+          <p className="text-emerald-200 text-sm">All your business tools in one beautiful place.</p>
         </div>
       </div>
     </div>
   );
 }
 
-export default function AdminSidebar({
-  tabs,
-  activeTab,
-  onChange,
-  mobileOpen,
-  onClose,
-}: AdminSidebarProps) {
+export default function AdminSidebar(props: Props) {
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:w-[320px] lg:shrink-0 lg:flex-col lg:bg-black">
-        <SidebarContent
-          tabs={tabs}
-          activeTab={activeTab}
-          onChange={onChange}
-          onClose={onClose}
-        />
+      {/* DESKTOP */}
+      <aside className="hidden lg:flex lg:w-80 lg:shrink-0 lg:flex-col">
+        <SidebarContent {...props} />
       </aside>
 
-      {/* Mobile drawer */}
-      {mobileOpen && (
+      {/* MOBILE DRAWER */}
+      {props.mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
           <button
-            type="button"
-            onClick={onClose}
-            className="absolute inset-0 bg-black/55 backdrop-blur-[1px]"
-            aria-label="Close admin menu overlay"
+            onClick={props.onClose}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           />
-          {/* Sliding panel */}
-          <aside className="absolute left-0 top-0 h-full w-[88%] max-w-[340px] bg-black shadow-2xl">
-            <SidebarContent
-              tabs={tabs}
-              activeTab={activeTab}
-              onChange={onChange}
-              onClose={onClose}
-            />
+          <aside className="absolute left-0 top-0 h-full w-[92%] max-w-[340px] shadow-2xl">
+            <SidebarContent {...props} />
           </aside>
         </div>
       )}
