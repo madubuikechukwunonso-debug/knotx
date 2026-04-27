@@ -3,12 +3,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Trash2, Plus, ToggleLeft, ToggleRight, Eye } from 'lucide-react';
+import { Pencil, Trash2, Plus, ToggleLeft, ToggleRight } from 'lucide-react';
 
 type GalleryItem = {
   id: number;
   type: string;
-  title: string | null;
+  title: string;
   caption?: string | null;
   url: string;
   thumbnailUrl?: string | null;
@@ -44,6 +44,7 @@ export default function AdminGalleryTable({
     } else {
       await onCreate(formData);
     }
+
     setModalOpen(false);
     setEditingItem(null);
     router.refresh();
@@ -85,31 +86,44 @@ export default function AdminGalleryTable({
             <tr>
               <th className="px-6 py-4 text-left text-xs font-medium">Preview</th>
               <th className="px-6 py-4 text-left text-xs font-medium">Title</th>
+              <th className="px-6 py-4 text-left text-xs font-medium">Type</th>
               <th className="px-6 py-4 text-left text-xs font-medium">Category</th>
               <th className="px-6 py-4 text-left text-xs font-medium">Featured</th>
               <th className="px-6 py-4 text-left text-xs font-medium">Status</th>
               <th className="px-6 py-4 text-right text-xs font-medium">Actions</th>
             </tr>
           </thead>
+
           <tbody className="divide-y">
             {items.map((item) => (
               <tr key={item.id} className="hover:bg-black/5">
                 <td className="px-6 py-4">
-                  <img
-                    src={item.thumbnailUrl || item.url}
-                    alt={item.title || 'Gallery item'}
-                    className="h-12 w-12 rounded-2xl object-cover border border-black/10"
-                  />
+                  {item.type === 'video' ? (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-black/10 bg-black/5 text-xs font-medium text-black/60">
+                      Video
+                    </div>
+                  ) : (
+                    <img
+                      src={item.thumbnailUrl || item.url}
+                      alt={item.title}
+                      className="h-12 w-12 rounded-2xl object-cover border border-black/10"
+                    />
+                  )}
                 </td>
+
                 <td className="px-6 py-4">
                   <div>
-                    <p className="font-medium">{item.title || 'Untitled gallery item'}</p>
+                    <p className="font-medium">{item.title}</p>
                     {item.caption && (
                       <p className="text-xs text-black/50 line-clamp-1">{item.caption}</p>
                     )}
                   </div>
                 </td>
+
+                <td className="px-6 py-4 text-sm capitalize">{item.type}</td>
+
                 <td className="px-6 py-4 text-sm capitalize">{item.category}</td>
+
                 <td className="px-6 py-4">
                   {item.isFeatured ? (
                     <span className="inline-flex items-center rounded-2xl bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
@@ -119,8 +133,10 @@ export default function AdminGalleryTable({
                     <span className="text-xs text-black/40">—</span>
                   )}
                 </td>
+
                 <td className="px-6 py-4">
                   <button
+                    type="button"
                     onClick={() => handleToggle(item)}
                     className="flex items-center gap-1 text-xs"
                   >
@@ -129,13 +145,16 @@ export default function AdminGalleryTable({
                     ) : (
                       <ToggleLeft className="h-5 w-5 text-gray-400" />
                     )}
+
                     <span className={item.isActive ? 'text-green-600' : 'text-gray-400'}>
                       {item.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </button>
                 </td>
+
                 <td className="px-6 py-4 text-right">
                   <button
+                    type="button"
                     onClick={() => {
                       setEditingItem(item);
                       setModalOpen(true);
@@ -144,7 +163,9 @@ export default function AdminGalleryTable({
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
+
                   <button
+                    type="button"
                     onClick={() => handleDelete(item.id)}
                     className="text-red-500 hover:text-red-700"
                   >
@@ -153,6 +174,14 @@ export default function AdminGalleryTable({
                 </td>
               </tr>
             ))}
+
+            {items.length === 0 && (
+              <tr>
+                <td colSpan={7} className="px-6 py-12 text-center text-sm text-black/50">
+                  No gallery items yet.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -173,6 +202,7 @@ export default function AdminGalleryTable({
                 <select
                   name="type"
                   defaultValue={editingItem?.type || 'image'}
+                  required
                   className="w-full rounded-2xl border border-black/10 px-4 py-3"
                 >
                   <option value="image">Image</option>
@@ -191,7 +221,7 @@ export default function AdminGalleryTable({
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Caption (optional)</label>
+                <label className="block text-xs font-medium mb-1">Caption optional</label>
                 <textarea
                   name="caption"
                   defaultValue={editingItem?.caption || ''}
@@ -201,17 +231,21 @@ export default function AdminGalleryTable({
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Image URL</label>
+                <label className="block text-xs font-medium mb-1">
+                  Image or Video URL
+                </label>
                 <input
                   name="url"
-                  defaultValue={editingItem?.url}
+                  defaultValue={editingItem?.url || ''}
                   required
                   className="w-full rounded-2xl border border-black/10 px-4 py-3"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Thumbnail URL (optional)</label>
+                <label className="block text-xs font-medium mb-1">
+                  Thumbnail URL optional
+                </label>
                 <input
                   name="thumbnailUrl"
                   defaultValue={editingItem?.thumbnailUrl || ''}
@@ -228,6 +262,7 @@ export default function AdminGalleryTable({
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
                   />
                 </div>
+
                 <div>
                   <label className="block text-xs font-medium mb-1">Sort Order</label>
                   <input
@@ -244,10 +279,11 @@ export default function AdminGalleryTable({
                   <input
                     type="checkbox"
                     name="isFeatured"
-                    defaultChecked={editingItem?.isFeatured}
+                    defaultChecked={editingItem?.isFeatured || false}
                   />
                   Featured
                 </label>
+
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -269,6 +305,7 @@ export default function AdminGalleryTable({
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   className="flex-1 py-4 rounded-2xl bg-black text-white font-medium"
