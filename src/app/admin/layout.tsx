@@ -10,9 +10,14 @@ export default async function AdminLayout({
 }) {
   const session = await getSession();
 
-  if (!session?.userId || !["admin", "super_admin"].includes(session.role || "")) {
+  // ✅ Now allows staff + admin roles
+  if (!session?.userId || !["admin", "super_admin", "staff"].includes(session.role || "")) {
     redirect("/dashboard");
   }
 
-  return <AdminUI>{children}</AdminUI>;
+  return (
+    <AdminUI role={session.role}>
+      {children}
+    </AdminUI>
+  );
 }
