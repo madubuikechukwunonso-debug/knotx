@@ -15,26 +15,40 @@ export type AdminTab = {
   icon: LucideIcon;
 };
 
-type Props = {
+type AdminSidebarProps = {
   tabs: AdminTab[];
   activeTab: AdminTabId;
   onChange: (tab: AdminTabId) => void;
   mobileOpen: boolean;
   onClose: () => void;
+  role: string;                    // ← new prop
 };
 
-function SidebarContent({ tabs, activeTab, onChange, onClose }: Omit<Props, "mobileOpen">) {
+function SidebarContent({
+  tabs,
+  activeTab,
+  onChange,
+  onClose,
+  role,
+}: Omit<AdminSidebarProps, "mobileOpen">) {
+  const isStaff = role === "staff";
+
   return (
     <div className="flex h-full flex-col bg-emerald-950 text-white">
-      {/* HEADER BAR */}
+      {/* HEADER BAR – now role-aware */}
       <div className="flex items-center justify-between border-b border-emerald-800 px-5 py-5 lg:px-6">
         <div className="flex items-center gap-2">
           <DollarSign className="h-7 w-7 text-emerald-400" />
           <div>
-            <p className="text-[10px] uppercase tracking-[1px] text-emerald-300">KNOTX & KRAFTS</p>
-            <h2 className="font-serif text-2xl">Admin</h2>
+            <p className="text-[10px] uppercase tracking-[1px] text-emerald-300">
+              KNOTX & KRAFTS
+            </p>
+            <h2 className="font-serif text-2xl">
+              {isStaff ? "Staff Portal" : "Admin"}
+            </h2>
           </div>
         </div>
+
         <button
           onClick={onClose}
           className="lg:hidden h-10 w-10 flex items-center justify-center rounded-2xl border border-emerald-700 hover:bg-emerald-900 transition-colors"
@@ -43,7 +57,7 @@ function SidebarContent({ tabs, activeTab, onChange, onClose }: Omit<Props, "mob
         </button>
       </div>
 
-      {/* NAV */}
+      {/* NAV – uses the filtered tabs passed from AdminUI */}
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <nav className="flex flex-col gap-1">
           {tabs.map((tab) => {
@@ -82,15 +96,21 @@ function SidebarContent({ tabs, activeTab, onChange, onClose }: Omit<Props, "mob
       {/* BOTTOM FOOTER */}
       <div className="border-t border-emerald-800 p-5 text-xs text-emerald-400">
         <div className="rounded-3xl bg-emerald-900/40 p-4">
-          <p className="uppercase text-[10px] tracking-widest mb-1">💰 Money moves</p>
-          <p className="text-emerald-200 text-sm">All your business tools in one beautiful place.</p>
+          <p className="uppercase text-[10px] tracking-widest mb-1">
+            {isStaff ? "💼 My Tasks" : "💰 Money moves"}
+          </p>
+          <p className="text-emerald-200 text-sm">
+            {isStaff
+              ? "Handle bookings, messages, and services efficiently."
+              : "All your business tools in one beautiful place."}
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-export default function AdminSidebar(props: Props) {
+export default function AdminSidebar(props: AdminSidebarProps) {
   return (
     <>
       {/* DESKTOP */}
