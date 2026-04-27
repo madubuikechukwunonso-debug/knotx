@@ -9,12 +9,17 @@ type Service = {
   id: number;
   name: string;
   slug: string;
-  price: number;
+  description: string | null;
   durationMinutes: number;
-  image?: string | null;
+  price: number;
+  priceCurrency?: string;
+  category: string;
+  image: string | null;
   featured: boolean;
   active: boolean;
   sortOrder: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 };
 
 type Props = {
@@ -43,9 +48,10 @@ export default function AdminServiceTable({
     } else {
       await onCreate(formData);
     }
+
     setModalOpen(false);
     setEditingService(null);
-    router.refresh(); // instant UI update
+    router.refresh();
   };
 
   const handleDelete = async (id: number) => {
@@ -68,6 +74,7 @@ export default function AdminServiceTable({
   return (
     <>
       <button
+        type="button"
         onClick={() => {
           setEditingService(null);
           setModalOpen(true);
@@ -78,18 +85,19 @@ export default function AdminServiceTable({
         New Service
       </button>
 
-      {/* Table */}
       <div className="rounded-3xl border border-black/10 bg-white overflow-hidden">
         <table className="w-full">
           <thead className="bg-black/5">
             <tr>
               <th className="px-6 py-4 text-left text-xs font-medium">Service</th>
+              <th className="px-6 py-4 text-left text-xs font-medium">Category</th>
               <th className="px-6 py-4 text-left text-xs font-medium">Price</th>
               <th className="px-6 py-4 text-left text-xs font-medium">Duration</th>
               <th className="px-6 py-4 text-left text-xs font-medium">Status</th>
               <th className="px-6 py-4 text-right text-xs font-medium">Actions</th>
             </tr>
           </thead>
+
           <tbody className="divide-y">
             {services.map((service) => (
               <tr key={service.id} className="hover:bg-black/5">
@@ -99,14 +107,20 @@ export default function AdminServiceTable({
                     <p className="text-xs text-black/50">/{service.slug}</p>
                   </div>
                 </td>
+
+                <td className="px-6 py-4 text-sm capitalize">{service.category}</td>
+
                 <td className="px-6 py-4 font-medium">
                   ${(service.price / 100).toFixed(2)} CAD
                 </td>
-                <td className="px-6 py-4 text-sm text-black/70">
-                  {service.durationMinutes} min
+
+                <td className="px-6 py-4 text-sm font-medium">
+                  {service.durationMinutes} mins
                 </td>
+
                 <td className="px-6 py-4">
                   <button
+                    type="button"
                     onClick={() => handleToggle(service)}
                     className="flex items-center gap-1 text-xs"
                   >
@@ -115,13 +129,16 @@ export default function AdminServiceTable({
                     ) : (
                       <ToggleLeft className="h-5 w-5 text-gray-400" />
                     )}
+
                     <span className={service.active ? 'text-green-600' : 'text-gray-400'}>
                       {service.active ? 'Active' : 'Inactive'}
                     </span>
                   </button>
                 </td>
+
                 <td className="px-6 py-4 text-right">
                   <button
+                    type="button"
                     onClick={() => {
                       setEditingService(service);
                       setModalOpen(true);
@@ -130,7 +147,9 @@ export default function AdminServiceTable({
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
+
                   <button
+                    type="button"
                     onClick={() => handleDelete(service.id)}
                     className="text-red-500 hover:text-red-700"
                   >
@@ -139,26 +158,33 @@ export default function AdminServiceTable({
                 </td>
               </tr>
             ))}
+
+            {services.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-12 text-center text-sm text-black/50">
+                  No services yet.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
 
-      {/* Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-white rounded-3xl max-w-lg w-full mx-4 shadow-2xl">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full mx-auto shadow-2xl">
             <form action={handleSubmit} className="p-8 space-y-6">
               <h2 className="text-2xl font-serif">
                 {editingService ? 'Edit Service' : 'New Service'}
               </h2>
 
-              <input type="hidden" name="id" value={editingService?.id} />
+              {editingService && <input type="hidden" name="id" value={editingService.id} />}
 
               <div>
                 <label className="block text-xs font-medium mb-1">Service Name</label>
                 <input
                   name="name"
-                  defaultValue={editingService?.name}
+                  defaultValue={editingService?.name || ''}
                   required
                   className="w-full rounded-2xl border border-black/10 px-4 py-3"
                 />
@@ -174,36 +200,54 @@ export default function AdminServiceTable({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-xs font-medium mb-1">Price (cents)</label>
+                  <label className="block text-xs font-medium mb-1">
+                    Price (cents)
+                  </label>
                   <input
                     name="price"
                     type="number"
-                    defaultValue={editingService?.price}
+                    defaultValue={editingService?.price ?? 0}
                     required
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
                   />
                 </div>
+
                 <div>
-                  <label className="block text-xs font-medium mb-1">Duration (minutes)</label>
+                  <label className="block text-xs font-medium mb-1">
+                    Duration Minutes
+                  </label>
                   <input
                     name="durationMinutes"
                     type="number"
-                    defaultValue={editingService?.durationMinutes}
+                    defaultValue={editingService?.durationMinutes ?? 60}
                     required
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium mb-1">Image URL (optional)</label>
-                <input
-                  name="image"
-                  defaultValue={editingService?.image || ''}
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                />
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-xs font-medium mb-1">Category</label>
+                  <input
+                    name="category"
+                    defaultValue={editingService?.category || 'general'}
+                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Image URL optional
+                  </label>
+                  <input
+                    name="image"
+                    defaultValue={editingService?.image || ''}
+                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                  />
+                </div>
               </div>
 
               <div className="flex gap-6">
@@ -211,10 +255,11 @@ export default function AdminServiceTable({
                   <input
                     type="checkbox"
                     name="featured"
-                    defaultChecked={editingService?.featured}
+                    defaultChecked={editingService?.featured || false}
                   />
                   Featured
                 </label>
+
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -225,17 +270,15 @@ export default function AdminServiceTable({
                 </label>
               </div>
 
-              {editingService && (
-                <div>
-                  <label className="block text-xs font-medium mb-1">Sort Order</label>
-                  <input
-                    name="sortOrder"
-                    type="number"
-                    defaultValue={editingService.sortOrder}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-xs font-medium mb-1">Sort Order</label>
+                <input
+                  name="sortOrder"
+                  type="number"
+                  defaultValue={editingService?.sortOrder ?? 0}
+                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                />
+              </div>
 
               <div className="flex gap-3 pt-4">
                 <button
@@ -248,6 +291,7 @@ export default function AdminServiceTable({
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   className="flex-1 py-4 rounded-2xl bg-black text-white font-medium"
