@@ -78,7 +78,7 @@ export const ADMIN_TABS: AdminTab[] = [
     icon: MessageSquareMore,
   },
   {
-    id: "booking",
+    id: "bookings",
     label: "Booking Hours",
     description: "Set working days, hours, and availability",
     icon: CalendarClock,
