@@ -1,39 +1,31 @@
+// src/components/admin/AdminHeader.tsx
 "use client";
-import { Menu } from "lucide-react";
+import { Menu, DollarSign } from "lucide-react";
 
-type AdminHeaderProps = {
+type Props = {
   title: string;
   description: string;
   onMenuClick: () => void;
 };
 
-export default function AdminHeader({
-  title,
-  description,
-  onMenuClick,
-}: AdminHeaderProps) {
+export default function AdminHeader({ title, description, onMenuClick }: Props) {
   return (
-    <header className="sticky top-0 z-30 border-b border-black/5 bg-[#f8f5f0]/90 backdrop-blur-md">
-      <div className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="min-w-0">
-          <p className="mb-1 text-[10px] uppercase tracking-[0.32em] text-black/45">
-            Admin Dashboard
-          </p>
-          <h1 className="truncate font-serif text-2xl text-black sm:text-3xl">
-            {title}
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-black/60">
-            {description}
-          </p>
+    <header className="sticky top-0 z-40 border-b border-emerald-200 bg-white/95 backdrop-blur-lg shadow-sm">
+      <div className="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-3 min-w-0">
+          <DollarSign className="h-8 w-8 text-emerald-600 flex-shrink-0" />
+          <div className="min-w-0">
+            <h1 className="font-serif text-3xl text-emerald-950 truncate">{title}</h1>
+            <p className="text-emerald-600 text-sm mt-px">{description}</p>
+          </div>
         </div>
 
+        {/* Mobile menu button */}
         <button
-          type="button"
           onClick={onMenuClick}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-black/10 bg-white text-black lg:hidden"
-          aria-label="Open admin navigation"
+          className="lg:hidden h-12 w-12 flex items-center justify-center rounded-3xl bg-emerald-100 text-emerald-700 hover:bg-emerald-200 transition-colors"
         >
-          <Menu size={18} />
+          <Menu size={24} />
         </button>
       </div>
     </header>
