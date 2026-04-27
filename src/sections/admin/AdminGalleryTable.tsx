@@ -7,11 +7,14 @@ import { Pencil, Trash2, Plus, ToggleLeft, ToggleRight } from 'lucide-react';
 
 type GalleryItem = {
   id: number;
+  createdById?: number | null;
+  createdAt?: Date;
+  updatedAt?: Date;
   type: string;
-  title: string;
-  caption?: string | null;
+  title: string | null;
+  caption: string | null;
   url: string;
-  thumbnailUrl?: string | null;
+  thumbnailUrl: string | null;
   category: string;
   isFeatured: boolean;
   isActive: boolean;
@@ -69,6 +72,7 @@ export default function AdminGalleryTable({
   return (
     <>
       <button
+        type="button"
         onClick={() => {
           setEditingItem(null);
           setModalOpen(true);
@@ -79,7 +83,6 @@ export default function AdminGalleryTable({
         New Gallery Item
       </button>
 
-      {/* Table */}
       <div className="rounded-3xl border border-black/10 bg-white overflow-hidden">
         <table className="w-full">
           <thead className="bg-black/5">
@@ -95,85 +98,96 @@ export default function AdminGalleryTable({
           </thead>
 
           <tbody className="divide-y">
-            {items.map((item) => (
-              <tr key={item.id} className="hover:bg-black/5">
-                <td className="px-6 py-4">
-                  {item.type === 'video' ? (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-black/10 bg-black/5 text-xs font-medium text-black/60">
-                      Video
-                    </div>
-                  ) : (
-                    <img
-                      src={item.thumbnailUrl || item.url}
-                      alt={item.title}
-                      className="h-12 w-12 rounded-2xl object-cover border border-black/10"
-                    />
-                  )}
-                </td>
+            {items.map((item) => {
+              const itemTitle = item.title || 'Untitled gallery item';
 
-                <td className="px-6 py-4">
-                  <div>
-                    <p className="font-medium">{item.title}</p>
-                    {item.caption && (
-                      <p className="text-xs text-black/50 line-clamp-1">{item.caption}</p>
-                    )}
-                  </div>
-                </td>
-
-                <td className="px-6 py-4 text-sm capitalize">{item.type}</td>
-
-                <td className="px-6 py-4 text-sm capitalize">{item.category}</td>
-
-                <td className="px-6 py-4">
-                  {item.isFeatured ? (
-                    <span className="inline-flex items-center rounded-2xl bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-                      Featured
-                    </span>
-                  ) : (
-                    <span className="text-xs text-black/40">—</span>
-                  )}
-                </td>
-
-                <td className="px-6 py-4">
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(item)}
-                    className="flex items-center gap-1 text-xs"
-                  >
-                    {item.isActive ? (
-                      <ToggleRight className="h-5 w-5 text-green-600" />
+              return (
+                <tr key={item.id} className="hover:bg-black/5">
+                  <td className="px-6 py-4">
+                    {item.type === 'video' ? (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-black/10 bg-black/5 text-xs font-medium text-black/60">
+                        Video
+                      </div>
                     ) : (
-                      <ToggleLeft className="h-5 w-5 text-gray-400" />
+                      <img
+                        src={item.thumbnailUrl || item.url}
+                        alt={itemTitle}
+                        className="h-12 w-12 rounded-2xl object-cover border border-black/10"
+                      />
                     )}
+                  </td>
 
-                    <span className={item.isActive ? 'text-green-600' : 'text-gray-400'}>
-                      {item.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </button>
-                </td>
+                  <td className="px-6 py-4">
+                    <div>
+                      <p className="font-medium">{itemTitle}</p>
 
-                <td className="px-6 py-4 text-right">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEditingItem(item);
-                      setModalOpen(true);
-                    }}
-                    className="mr-3 text-black/70 hover:text-black"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
+                      {item.caption && (
+                        <p className="text-xs text-black/50 line-clamp-1">
+                          {item.caption}
+                        </p>
+                      )}
+                    </div>
+                  </td>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
+                  <td className="px-6 py-4 text-sm capitalize">
+                    {item.type || 'image'}
+                  </td>
+
+                  <td className="px-6 py-4 text-sm capitalize">
+                    {item.category || 'general'}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    {item.isFeatured ? (
+                      <span className="inline-flex items-center rounded-2xl bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+                        Featured
+                      </span>
+                    ) : (
+                      <span className="text-xs text-black/40">—</span>
+                    )}
+                  </td>
+
+                  <td className="px-6 py-4">
+                    <button
+                      type="button"
+                      onClick={() => handleToggle(item)}
+                      className="flex items-center gap-1 text-xs"
+                    >
+                      {item.isActive ? (
+                        <ToggleRight className="h-5 w-5 text-green-600" />
+                      ) : (
+                        <ToggleLeft className="h-5 w-5 text-gray-400" />
+                      )}
+
+                      <span className={item.isActive ? 'text-green-600' : 'text-gray-400'}>
+                        {item.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </button>
+                  </td>
+
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingItem(item);
+                        setModalOpen(true);
+                      }}
+                      className="mr-3 text-black/70 hover:text-black"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
 
             {items.length === 0 && (
               <tr>
@@ -186,7 +200,6 @@ export default function AdminGalleryTable({
         </table>
       </div>
 
-      {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full mx-auto shadow-2xl">
