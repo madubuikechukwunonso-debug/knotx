@@ -3,8 +3,22 @@
 
 import { PrismaClient } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
+import { put } from '@vercel/blob';
 
 const prisma = new PrismaClient();
+
+// ====================== VERCEL BLOB UPLOAD HELPER ======================
+async function uploadGalleryMedia(file: File): Promise<string> {
+  const timestamp = Date.now();
+  const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const filename = `${timestamp}-${safeName}`;
+
+  const blob = await put(`gallery/${filename}`, file, {
+    access: 'public',
+  });
+
+  return blob.url;
+}
 
 export async function uploadGalleryFiles(formData: FormData) {
   const files = formData.getAll('files') as File[];
@@ -12,20 +26,18 @@ export async function uploadGalleryFiles(formData: FormData) {
 
   for (const file of files) {
     if (!file || file.size === 0) continue;
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64 = buffer.toString('base64');
-    const mimeType = file.type;
-    const dataUrl = `data:${mimeType};base64,${base64}`;
+
+    const url = await uploadGalleryMedia(file);
     const isVideo = file.type.startsWith('video/');
     const type = isVideo ? 'video' : 'image';
+
     await prisma.galleryItem.create({
       data: {
         type,
         title: file.name.replace(/\.\w+$/, ''),
         caption: '',
-        url: dataUrl,
-        thumbnailUrl: dataUrl,
+        url,
+        thumbnailUrl: url,
         category,
         isFeatured: false,
         isActive: true,
@@ -33,7 +45,9 @@ export async function uploadGalleryFiles(formData: FormData) {
       },
     });
   }
+
   revalidatePath('/admin/gallery');
+  revalidatePath('/admin');
 }
 
 export async function deleteGalleryItem(formData: FormData) {
