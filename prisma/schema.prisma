@@ -80,7 +80,7 @@ model Service {
   name                String
   slug                String   @unique
   description         String?
-  price               Int      // Full service price
+  price               Int
   depositAmount       Int      @default(0)
   priceCurrency       String   @default("cad")
   durationMinutes     Int
@@ -93,6 +93,19 @@ model Service {
   stripePriceId       String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+
+  // Opposite relation for ServiceStaffAssignment
+  assignments         ServiceStaffAssignment[]
+}
+
+model ServiceStaffAssignment {
+  id          Int      @id @default(autoincrement())
+  serviceId   Int
+  staffUserId Int
+  createdAt   DateTime @default(now())
+
+  service     Service      @relation(fields: [serviceId], references: [id])
+  staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
 // ====================== GALLERY & HERO ======================
@@ -114,142 +127,131 @@ model GalleryItem {
 }
 
 model HeroImage {
-  id Int @id @default(autoincrement())
-  url String
-  alt String?
-  sortOrder Int @default(0)
-  active Boolean @default(true)
+  id        Int      @id @default(autoincrement())
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
 
 // ====================== STAFF ======================
 model StaffProfile {
-  id Int @id @default(autoincrement())
-  userId Int
-  displayName String
-  bio String?
-  bookingEnabled Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  displayName    String
+  bio            String?
+  bookingEnabled Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  workingHours StaffWorkingHour[]
-  timeOffs     StaffTimeOff[]
-  blockedSlots BlockedSlot[]           // ← FIXED: Added opposite relation
-  assignments  ServiceStaffAssignment[]
+  workingHours   StaffWorkingHour[]
+  timeOffs       StaffTimeOff[]
+  blockedSlots   BlockedSlot[]
+  assignments    ServiceStaffAssignment[]
 }
 
 model StaffWorkingHour {
-  id Int @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   staffUserId Int
-  dayOfWeek Int
-  startTime String
-  endTime String
-  isWorking Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  isWorking   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  staff StaffProfile @relation(fields: [staffUserId], references: [id])
+  staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
 model StaffTimeOff {
-  id Int @id @default(autoincrement())
-  staffUserId Int
-  startAt DateTime
-  endAt DateTime
-  reason String?
-  createdAt DateTime @default(now())
-
-  staff StaffProfile @relation(fields: [staffUserId], references: [id])
-}
-
-// Blocked slots for admin/staff to prevent double bookings
-model BlockedSlot {
   id          Int      @id @default(autoincrement())
   staffUserId Int
-  date        String   // Format: "2026-05-15"
-  startTime   String   // Format: "09:00"
-  endTime     String   // Format: "10:30"
+  startAt     DateTime
+  endAt       DateTime
   reason      String?
   createdAt   DateTime @default(now())
 
   staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
-model ServiceStaffAssignment {
-  id Int @id @default(autoincrement())
-  serviceId Int
+model BlockedSlot {
+  id          Int      @id @default(autoincrement())
   staffUserId Int
-  createdAt DateTime @default(now())
+  date        String
+  startTime   String
+  endTime     String
+  reason      String?
+  createdAt   DateTime @default(now())
 
-  service Service @relation(fields: [serviceId], references: [id])
-  staff   StaffProfile @relation(fields: [staffUserId], references: [id])
+  staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
 // ====================== ORDERS ======================
 model Order {
-  id Int @id @default(autoincrement())
-  userId Int?
-  userType String?
-  customerName String
-  customerEmail String
-  customerPhone String?
-  total Int
-  status String @default("pending")
-  shippingStatus String @default("pending")
-  shippingCarrier String?
-  trackingNumber String?
-  fulfilledAt DateTime?
-  fulfilledById Int?
+  id                  Int      @id @default(autoincrement())
+  userId              Int?
+  userType            String?
+  customerName        String
+  customerEmail       String
+  customerPhone       String?
+  total               Int
+  status              String   @default("pending")
+  shippingStatus      String   @default("pending")
+  shippingCarrier     String?
+  trackingNumber      String?
+  fulfilledAt         DateTime?
+  fulfilledById       Int?
   stripePaymentIntent String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user LocalUser? @relation(fields: [userId], references: [id])
-  items OrderItem[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                LocalUser? @relation(fields: [userId], references: [id])
+  items               OrderItem[]
 }
 
 model OrderItem {
-  id Int @id @default(autoincrement())
-  orderId Int
+  id        Int    @id @default(autoincrement())
+  orderId   Int
   productId Int
-  quantity Int
-  price Int
-  order Order @relation(fields: [orderId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Int
+  order     Order    @relation(fields: [orderId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
 }
 
 // ====================== BOOKINGS ======================
 model Booking {
-  id Int @id @default(autoincrement())
-  userId Int?
-  userType String?
-  customerName String
-  customerEmail String
-  customerPhone String?
-  serviceId Int?
-  staffUserId Int?
-  serviceType String
-  durationMinutes Int @default(60)
-  price Int @default(0)
-  paymentStatus String @default("unpaid")
+  id                     Int      @id @default(autoincrement())
+  userId                 Int?
+  userType               String?
+  customerName           String
+  customerEmail          String
+  customerPhone          String?
+  serviceId              Int?
+  staffUserId            Int?
+  serviceType            String
+  durationMinutes        Int      @default(60)
+  price                  Int      @default(0)
+  paymentStatus          String   @default("unpaid")
   stripeCheckoutSessionId String?
-  date String
-  time String
-  status String @default("pending")
-  notes String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user LocalUser? @relation(fields: [userId], references: [id])
+  date                   String
+  time                   String
+  status                 String   @default("pending")
+  notes                  String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  user                   LocalUser? @relation(fields: [userId], references: [id])
 }
 
 // ====================== WISHLIST ======================
 model Wishlist {
-  id Int @id @default(autoincrement())
-  userId Int
+  id        Int      @id @default(autoincrement())
+  userId    Int
   productId Int
   createdAt DateTime @default(now())
-  user LocalUser @relation(fields: [userId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  user      LocalUser @relation(fields: [userId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
   @@unique([userId, productId])
 }
 
@@ -262,62 +264,62 @@ enum SubscriberSource {
 }
 
 model Subscriber {
-  id Int @id @default(autoincrement())
-  email String @unique
-  name String?
-  source SubscriberSource @default(HOMEPAGE)
-  localUserId Int?
-  localUser LocalUser? @relation(fields: [localUserId], references: [id], onDelete: Cascade)
-  isActive Boolean @default(true)
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  name          String?
+  source        SubscriberSource @default(HOMEPAGE)
+  localUserId   Int?
+  localUser     LocalUser? @relation(fields: [localUserId], references: [id], onDelete: Cascade)
+  isActive      Boolean  @default(true)
   unsubscribedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
   @@index([source])
   @@index([isActive])
 }
 
 model NewsletterCampaign {
-  id Int @id @default(autoincrement())
-  subject String
-  htmlBody String
-  audienceType String @default("selected")
-  sendToEveryone Boolean @default(false)
-  createdById Int?
-  sentAt DateTime?
-  createdAt DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  subject         String
+  htmlBody        String
+  audienceType    String   @default("selected")
+  sendToEveryone  Boolean  @default(false)
+  createdById     Int?
+  sentAt          DateTime?
+  createdAt       DateTime @default(now())
 }
 
 model NewsletterRecipient {
-  id Int @id @default(autoincrement())
-  campaignId Int
-  email String
-  name String?
-  deliveryStatus String @default("pending")
-  createdAt DateTime @default(now())
+  id             Int      @id @default(autoincrement())
+  campaignId     Int
+  email          String
+  name           String?
+  deliveryStatus String   @default("pending")
+  createdAt      DateTime @default(now())
 }
 
 model ContactMessage {
-  id Int @id @default(autoincrement())
-  name String
-  email String
-  subject String?
-  message String
-  read Boolean @default(false)
-  status String @default("new")
-  assignedToId Int?
-  lastRepliedAt DateTime?
-  followUpAt DateTime?
-  followUpNotes String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  replies ContactReply[]
+  id             Int      @id @default(autoincrement())
+  name           String
+  email          String
+  subject        String?
+  message        String
+  read           Boolean  @default(false)
+  status         String   @default("new")
+  assignedToId   Int?
+  lastRepliedAt  DateTime?
+  followUpAt     DateTime?
+  followUpNotes  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  replies        ContactReply[]
 }
 
 model ContactReply {
-  id Int @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   messageId Int
-  sentById Int
-  body String
-  sentAt DateTime @default(now())
-  message ContactMessage @relation(fields: [messageId], references: [id])
+  sentById  Int
+  body      String
+  sentAt    DateTime @default(now())
+  message   ContactMessage @relation(fields: [messageId], references: [id])
 }
