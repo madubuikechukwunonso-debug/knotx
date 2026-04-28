@@ -2,59 +2,97 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Eye, Star, Upload } from 'lucide-react';
+import { Trash2, Eye, Star, Upload, Camera } from 'lucide-react';
 
 export default function AdminGallerySection() {
   const [items, setItems] = useState<any[]>([]);
+  const [uploading, setUploading] = useState(false);
 
-  // TODO: Replace this with real Prisma fetch later (via API route or Server Component wrapper)
+  // Fetch all gallery items
+  const fetchItems = async () => {
+    try {
+      const res = await fetch('/api/admin/gallery');
+      if (res.ok) {
+        const data = await res.json();
+        setItems(data.items || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch gallery items');
+    }
+  };
+
   useEffect(() => {
-    // Mock data for now - you can fetch from /api/gallery later
-    setItems([]);
+    fetchItems();
   }, []);
 
+  // Upload files (from picker or folder)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
 
-    const newItems: any[] = [];
+    setUploading(true);
 
     for (const file of files) {
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const base64 = buffer.toString('base64');
-      const mimeType = file.type;
-      const dataUrl = `data:${mimeType};base64,${base64}`;
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const base64 = buffer.toString('base64');
+        const dataUrl = `data:${file.type};base64,${base64}`;
 
-      const isVideo = file.type.startsWith('video/');
+        const isVideo = file.type.startsWith('video/');
 
-      newItems.push({
-        id: Date.now() + Math.random(),
-        type: isVideo ? 'video' : 'image',
-        title: file.name.replace(/\.\w+$/, ''),
-        caption: '',
-        url: dataUrl,
-        thumbnailUrl: dataUrl,
-        isFeatured: false,
-        isActive: true,
-      });
+        const res = await fetch('/api/admin/gallery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: isVideo ? 'video' : 'image',
+            title: file.name.replace(/\.\w+$/, ''),
+            url: dataUrl,
+            thumbnailUrl: dataUrl,
+            category: 'general',
+          }),
+        });
+
+        if (!res.ok) console.error('Upload failed for', file.name);
+      } catch (err) {
+        console.error('Error uploading file', err);
+      }
     }
 
-    setItems((prev) => [...prev, ...newItems]);
-    // TODO: Send to real server action / API route here
+    setUploading(false);
+    fetchItems(); // refresh list
+    // Clear input
+    e.target.value = '';
   };
 
-  const toggleActive = (id: number) => {
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, isActive: !item.isActive } : item
-      )
-    );
+  // Toggle active status
+  const toggleActive = async (id: number) => {
+    try {
+      const item = items.find((i) => i.id === id);
+      if (!item) return;
+
+      await fetch(`/api/admin/gallery?id=${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !item.isActive }),
+      });
+
+      fetchItems();
+    } catch (err) {
+      console.error('Toggle failed');
+    }
   };
 
-  const deleteItem = (id: number) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-    // TODO: Call real delete server action here
+  // Delete item
+  const deleteItem = async (id: number) => {
+    if (!confirm('Delete this gallery item?')) return;
+
+    try {
+      await fetch(`/api/admin/gallery?id=${id}`, { method: 'DELETE' });
+      fetchItems();
+    } catch (err) {
+      console.error('Delete failed');
+    }
   };
 
   return (
@@ -68,23 +106,38 @@ export default function AdminGallerySection() {
           </p>
         </div>
 
-        {/* FILE UPLOAD FORM */}
-        <label className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm cursor-pointer w-full sm:w-auto justify-center sm:justify-start">
-          <Upload size={20} />
-          <span className="font-medium">Add Images / Videos or Folder</span>
-          <input
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            // @ts-expect-error webkitdirectory is a non-standard WebKit attribute
-            webkitdirectory=""
-            className="hidden"
-            onChange={handleFileUpload}
-          />
-        </label>
+        <div className="flex gap-3">
+          {/* Camera Capture */}
+          <label className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-3xl transition-colors shadow-sm cursor-pointer">
+            <Camera size={20} />
+            <span className="font-medium text-sm">Camera</span>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+          </label>
+
+          {/* File / Folder Picker */}
+          <label className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm cursor-pointer">
+            <Upload size={20} />
+            <span className="font-medium">Add Images / Videos or Folder</span>
+            <input
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              // @ts-expect-error webkitdirectory is non-standard
+              webkitdirectory=""
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+          </label>
+        </div>
       </div>
 
-      {/* GALLERY GRID – Fully responsive & mobile-first */}
+      {/* GALLERY GRID */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {items.map((item) => (
           <div
@@ -107,7 +160,7 @@ export default function AdminGallerySection() {
                 />
               )}
 
-              {/* Status badges */}
+              {/* Badges */}
               <div className="absolute top-3 right-3 flex flex-col gap-1">
                 {item.isFeatured && (
                   <span className="flex items-center gap-1 bg-yellow-400 text-yellow-900 text-[10px] font-medium px-2 py-px rounded-2xl">
@@ -128,9 +181,6 @@ export default function AdminGallerySection() {
 
             <div className="p-4">
               <p className="font-medium text-emerald-950 line-clamp-2 text-sm">{item.title}</p>
-              {item.caption && (
-                <p className="text-xs text-emerald-500 mt-1 line-clamp-2">{item.caption}</p>
-              )}
             </div>
 
             {/* Actions */}
@@ -160,9 +210,13 @@ export default function AdminGallerySection() {
           <Upload className="h-12 w-12 mx-auto text-emerald-300 mb-4" />
           <p className="text-emerald-500 text-lg">Your gallery is empty</p>
           <p className="text-emerald-400 text-sm mt-2">
-            Click the button above and choose files or an entire folder
+            Use the buttons above to add images, videos, or take a photo
           </p>
         </div>
+      )}
+
+      {uploading && (
+        <p className="text-center text-emerald-600 text-sm">Uploading files...</p>
       )}
     </div>
   );
