@@ -1,39 +1,68 @@
 // src/sections/admin/AdminMessagesSection.tsx
-'use client';
+import { PrismaClient } from '@prisma/client';
+import { revalidatePath } from 'next/cache';
+import { Mail, CheckCircle, Reply, MessageCircle } from 'lucide-react';
 
-import { useState, useEffect } from 'react';
-import { Mail, Eye, CheckCircle, Reply, MessageCircle } from 'lucide-react';
+const prisma = new PrismaClient();
 
-export default function AdminMessagesSection() {
-  const [messages, setMessages] = useState<any[]>([]);
+async function getMessages() {
+  return prisma.contactMessage.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      replies: {
+        orderBy: { sentAt: 'asc' },
+      },
+    },
+  });
+}
 
-  // TODO: Replace with real fetch from API route (e.g. /api/admin/messages)
-  useEffect(() => {
-    // Mock data for now - real data will load here once connected
-    setMessages([]);
-  }, []);
+// ====================== SERVER ACTIONS ======================
+async function markAsRead(formData: FormData) {
+  'use server';
+  const id = parseInt(formData.get('id') as string, 10);
 
-  const markAsRead = (id: number) => {
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === id ? { ...msg, read: true, status: 'read' } : msg
-      )
-    );
-    // TODO: Call real API here to update in database
-  };
+  await prisma.contactMessage.update({
+    where: { id },
+    data: {
+      read: true,
+      status: 'read',
+    },
+  });
 
-  const replyToMessage = (messageId: number, body: string) => {
-    // TODO: Call real API route to create reply + update message
-    console.log('Reply sent to message', messageId, '→', body);
+  revalidatePath('/admin/messages');
+}
 
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId
-          ? { ...msg, status: 'replied', lastRepliedAt: new Date() }
-          : msg
-      )
-    );
-  };
+async function sendReply(formData: FormData) {
+  'use server';
+  const messageId = parseInt(formData.get('messageId') as string, 10);
+  const body = (formData.get('body') as string)?.trim();
+
+  if (!body || !messageId) return;
+
+  // Create the reply
+  await prisma.contactReply.create({
+    data: {
+      messageId,
+      sentById: 1, // TODO: replace with real logged-in admin/staff ID from session
+      body,
+    },
+  });
+
+  // Update parent message status
+  await prisma.contactMessage.update({
+    where: { id: messageId },
+    data: {
+      status: 'replied',
+      lastRepliedAt: new Date(),
+      read: true,
+    },
+  });
+
+  revalidatePath('/admin/messages');
+}
+
+export default async function AdminMessagesSection() {
+  const messages = await getMessages();
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -76,6 +105,22 @@ export default function AdminMessagesSection() {
 
                 <h3 className="mt-4 font-medium text-emerald-950">{msg.subject || 'No subject'}</h3>
                 <p className="text-emerald-700 mt-2 line-clamp-3 text-sm">{msg.message}</p>
+
+                {/* Conversation Thread (Replies) */}
+                {msg.replies.length > 0 && (
+                  <div className="mt-4 pl-4 border-l-2 border-emerald-200 space-y-3">
+                    {msg.replies.map((reply) => (
+                      <div key={reply.id} className="bg-emerald-50 rounded-2xl p-3 text-sm">
+                        <div className="flex items-center gap-2 text-emerald-600 text-xs mb-1">
+                          <span className="font-medium">You (Admin)</span>
+                          <span>•</span>
+                          <span>{new Date(reply.sentAt).toLocaleString('en-CA')}</span>
+                        </div>
+                        <p className="text-emerald-950">{reply.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Status & Actions */}
@@ -92,25 +137,19 @@ export default function AdminMessagesSection() {
                   {msg.status.toUpperCase()}
                 </span>
 
-                <button
-                  onClick={() => markAsRead(msg.id)}
-                  className="flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors text-sm"
-                >
-                  <CheckCircle size={16} />
-                  Mark as Read
-                </button>
+                <form action={markAsRead}>
+                  <input type="hidden" name="id" value={msg.id} />
+                  <button
+                    type="submit"
+                    className="flex items-center gap-2 text-emerald-700 hover:text-emerald-800 transition-colors text-sm"
+                  >
+                    <CheckCircle size={16} />
+                    Mark as Read
+                  </button>
+                </form>
 
-                {/* REPLY FORM */}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const form = e.currentTarget;
-                    const body = (form.elements.namedItem('body') as HTMLTextAreaElement).value;
-                    replyToMessage(msg.id, body);
-                    form.reset();
-                  }}
-                  className="w-full"
-                >
+                {/* REPLY FORM (now fully wired) */}
+                <form action={sendReply} className="w-full">
                   <input type="hidden" name="messageId" value={msg.id} />
                   <textarea
                     name="body"
@@ -139,7 +178,7 @@ export default function AdminMessagesSection() {
           <Mail className="h-12 w-12 mx-auto text-emerald-300 mb-4" />
           <p className="text-emerald-500 text-lg">No messages yet</p>
           <p className="text-emerald-400 text-sm mt-2">
-            Customer inquiries from the contact form will appear here
+            Customer inquiries from the contact form will appear here instantly
           </p>
         </div>
       )}
