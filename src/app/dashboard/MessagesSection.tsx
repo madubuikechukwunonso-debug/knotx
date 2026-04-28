@@ -13,8 +13,8 @@ type Message = {
 };
 
 interface MessagesSectionProps {
-  name?: string;   // ← real user name
-  email?: string;  // ← real user email
+  name?: string;
+  email?: string;
 }
 
 export default function MessagesSection({ 
@@ -36,7 +36,7 @@ export default function MessagesSection({
     }
   };
 
-  // Load messages on mount + poll every 8 seconds for new admin replies
+  // Load messages on mount + poll every 8 seconds
   useEffect(() => {
     fetchMessages();
     const interval = setInterval(fetchMessages, 8000);
@@ -61,13 +61,13 @@ export default function MessagesSection({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: newMessage.trim(),
-          name: name,      // ← now uses real name
-          email: email,    // ← now uses real email
+          name: name,     // ← now uses real name
+          email: email,   // ← now uses real email
         }),
       });
 
       setNewMessage("");
-      await fetchMessages(); // refresh to show new message
+      await fetchMessages(); // refresh list
     } catch (e) {
       alert("Failed to send message. Please try again.");
     } finally {
