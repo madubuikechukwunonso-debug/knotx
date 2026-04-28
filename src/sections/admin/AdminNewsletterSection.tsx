@@ -84,7 +84,7 @@ export default async function AdminNewsletterSection() {
       },
     }),
     prisma.localUser.findMany({
-      where: { email: { not: null } },
+      where: { email: { not: { equals: null } } },   // ← FIXED: correct Prisma syntax
       select: {
         id: true,
         email: true,
@@ -94,7 +94,7 @@ export default async function AdminNewsletterSection() {
     }),
   ]);
 
-  // Merge into unified list
+  // Merge into unified list (remove duplicates)
   const contacts = [
     ...subscribers.map((s) => ({
       id: `sub-${s.id}`,
@@ -109,7 +109,7 @@ export default async function AdminNewsletterSection() {
       .filter((u) => !subscribers.some((s) => s.email === u.email))
       .map((u) => ({
         id: `user-${u.id}`,
-        email: u.email!,
+        email: u.email!, // safe because of the where filter above
         name: u.displayName || '—',
         source: 'REGISTRATION' as const,
         isActive: true,
@@ -276,7 +276,7 @@ export default async function AdminNewsletterSection() {
               </tr>
             </thead>
             <tbody className="divide-y divide-emerald-100">
-              {contacts.map((contact, index) => (
+              {contacts.map((contact) => (
                 <tr key={contact.id} className="hover:bg-emerald-50 transition-colors">
                   <td className="px-6 py-5 font-medium text-emerald-950">{contact.name}</td>
                   <td className="px-6 py-5 text-emerald-600">{contact.email}</td>
