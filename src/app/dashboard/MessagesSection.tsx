@@ -2,72 +2,71 @@
 
 import { useEffect, useState, useRef } from "react";
 
+type Message = {
+  id: number;
+  name?: string;
+  email?: string;
+  subject?: string;
+  message: string;
+  createdAt: string;
+  replies?: { id: number; body: string; sentAt: string }[];
+};
+
 export default function MessagesSection() {
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load initial messages
+  const fetchMessages = async () => {
+    try {
+      const res = await fetch("/api/messages");
+      const data = await res.json();
+      setMessages(data.messages || []);
+    } catch (e) {
+      console.error("Failed to load messages");
+    }
+  };
+
+  // Load messages on mount + poll every 8 seconds for new admin replies
   useEffect(() => {
-    fetch("/api/messages")
-      .then((r) => r.json())
-      .then((d) => setMessages(d.messages || []))
-      .catch(() => {});
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 8000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Scroll to bottom when new message arrives
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [messages, isSending]);
 
-  // Simulate receiving a reply from admin/staff
-  const simulateAdminReply = (userMessage: string) => {
-    setIsTyping(true);
-
-    setTimeout(() => {
-      setIsTyping(false);
-
-      const replies = [
-        "Thank you for your message! We'll get back to you shortly.",
-        "Got it! Our team has been notified.",
-        "Perfect, we'll handle this for you.",
-        "Thanks for reaching out. How can we help you today?",
-      ];
-
-      const randomReply = replies[Math.floor(Math.random() * replies.length)];
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now() + 1,
-          isAdmin: true,
-          message: randomReply,
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-    }, 1800);
-  };
-
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!newMessage.trim()) return;
 
-    const userMsg = {
-      id: Date.now(),
-      isAdmin: false,
-      message: newMessage,
-      createdAt: new Date().toISOString(),
-    };
+    setIsSending(true);
 
-    setMessages((prev) => [...prev, userMsg]);
-    setNewMessage("");
+    try {
+      await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: newMessage.trim(),
+          // TODO: pass real user name/email from session if available
+          name: "Website Visitor",
+          email: "visitor@example.com",
+        }),
+      });
 
-    // Simulate admin typing & reply
-    simulateAdminReply(newMessage);
+      setNewMessage("");
+      await fetchMessages(); // refresh to show new message
+    } catch (e) {
+      alert("Failed to send message. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -87,25 +86,28 @@ export default function MessagesSection() {
           </div>
         ) : (
           messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.isAdmin ? "justify-start" : "justify-end"}`}
-            >
-              <div
-                className={`max-w-[75%] px-5 py-3 rounded-3xl text-sm ${
-                  msg.isAdmin
-                    ? "bg-white border border-black/10"
-                    : "bg-blue-600 text-white"
-                }`}
-              >
-                {msg.message}
+            <div key={msg.id} className="space-y-2">
+              {/* User message */}
+              <div className="flex justify-end">
+                <div className="max-w-[75%] px-5 py-3 rounded-3xl text-sm bg-blue-600 text-white">
+                  {msg.message}
+                </div>
               </div>
+
+              {/* Admin replies (real from database) */}
+              {msg.replies?.map((reply) => (
+                <div key={reply.id} className="flex justify-start">
+                  <div className="max-w-[75%] px-5 py-3 rounded-3xl text-sm bg-white border border-black/10">
+                    {reply.body}
+                  </div>
+                </div>
+              ))}
             </div>
           ))
         )}
 
-        {/* Typing Indicator */}
-        {isTyping && (
+        {/* Typing / Sending Indicator */}
+        {isSending && (
           <div className="flex justify-start">
             <div className="bg-white border border-black/10 px-5 py-3 rounded-3xl flex items-center gap-2">
               <div className="flex gap-1">
@@ -113,7 +115,7 @@ export default function MessagesSection() {
                 <div className="w-2 h-2 bg-black/30 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></div>
                 <div className="w-2 h-2 bg-black/30 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></div>
               </div>
-              <span className="text-xs text-black/40">Admin is typing...</span>
+              <span className="text-xs text-black/40">Admin is thinking...</span>
             </div>
           </div>
         )}
@@ -127,15 +129,17 @@ export default function MessagesSection() {
           type="text"
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && handleSend()}
+          onKeyPress={(e) => e.key === "Enter" && !isSending && handleSend()}
           placeholder="Type your message to support..."
           className="flex-1 border border-black/10 rounded-3xl px-6 py-4 text-sm focus:outline-none focus:border-blue-500"
+          disabled={isSending}
         />
         <button
           onClick={handleSend}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 rounded-3xl text-sm font-medium transition-colors"
+          disabled={isSending || !newMessage.trim()}
+          className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-8 rounded-3xl text-sm font-medium transition-colors"
         >
-          Send
+          {isSending ? "Sending..." : "Send"}
         </button>
       </div>
     </div>
