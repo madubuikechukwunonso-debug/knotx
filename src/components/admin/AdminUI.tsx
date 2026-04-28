@@ -15,6 +15,7 @@ import {
   UserCog,
   MessageCircle,
   Calendar,
+  Clock,          // ← NEW icon for availability
 } from "lucide-react";
 
 import AdminSidebar, { type AdminTabId, type AdminTab } from "./AdminSidebar";
@@ -32,6 +33,7 @@ const fullTabs: AdminTab[] = [
   { id: "staff", label: "Staff", description: "Team & permissions", icon: UserCog },
   { id: "messages", label: "Messages", description: "Inquiries & replies", icon: MessageCircle },
   { id: "bookings", label: "Bookings", description: "Appointments", icon: Calendar },
+  { id: "availability", label: "Availability", description: "Staff schedules & slots", icon: Clock }, // ← NEW
 ];
 
 // ====================== STAFF-ONLY TABS ======================
@@ -115,6 +117,7 @@ const getHeaderContent = (tab: AdminTabId): { title: string; description: string
     staff: { title: "Staff", description: "Team & permissions" },
     messages: { title: "Messages", description: "Customer support inbox" },
     bookings: { title: "Bookings", description: "Manage appointments" },
+    availability: { title: "Availability", description: "Staff schedules & blocked slots" }, // ← NEW
   };
   return map[tab] || { title: "Dashboard", description: "Knotx & Krafts" };
 };
