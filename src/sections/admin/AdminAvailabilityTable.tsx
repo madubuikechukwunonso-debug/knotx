@@ -27,6 +27,7 @@ type Props = {
 };
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export default function AdminAvailabilityTable({ staff }: Props) {
   const router = useRouter();
@@ -40,16 +41,14 @@ export default function AdminAvailabilityTable({ staff }: Props) {
   const openWorkingHours = (member: StaffWithRelations) => {
     setSelectedStaff(member);
     
-    // Initialize with existing hours or defaults
     const existing = [...member.workingHours];
     const defaults: WorkingHour[] = DAYS.map((_, index) => {
       const existingHour = existing.find(h => h.dayOfWeek === index);
       if (existingHour) return existingHour;
       
-      // Default schedule (your example)
-      if (index === 0) return { dayOfWeek: 0, startTime: '00:00', endTime: '00:00', isWorking: false }; // Sunday closed
-      if (index === 6) return { dayOfWeek: 6, startTime: '14:00', endTime: '19:00', isWorking: true }; // Saturday
-      return { dayOfWeek: index, startTime: '08:00', endTime: '22:00', isWorking: true }; // Mon-Fri
+      if (index === 0) return { dayOfWeek: 0, startTime: '00:00', endTime: '00:00', isWorking: false };
+      if (index === 6) return { dayOfWeek: 6, startTime: '14:00', endTime: '19:00', isWorking: true };
+      return { dayOfWeek: index, startTime: '08:00', endTime: '22:00', isWorking: true };
     });
     
     setWorkingHours(defaults);
@@ -79,9 +78,9 @@ export default function AdminAvailabilityTable({ staff }: Props) {
 
   const setStandardHours = () => {
     const standard: WorkingHour[] = DAYS.map((_, index) => {
-      if (index === 0) return { dayOfWeek: 0, startTime: '00:00', endTime: '00:00', isWorking: false }; // Sunday closed
-      if (index === 6) return { dayOfWeek: 6, startTime: '14:00', endTime: '19:00', isWorking: true }; // Saturday
-      return { dayOfWeek: index, startTime: '08:00', endTime: '22:00', isWorking: true }; // Mon-Fri 8am-10pm
+      if (index === 0) return { dayOfWeek: 0, startTime: '00:00', endTime: '00:00', isWorking: false };
+      if (index === 6) return { dayOfWeek: 6, startTime: '14:00', endTime: '19:00', isWorking: true };
+      return { dayOfWeek: index, startTime: '08:00', endTime: '22:00', isWorking: true };
     });
     setWorkingHours(standard);
   };
@@ -143,123 +142,113 @@ export default function AdminAvailabilityTable({ staff }: Props) {
 
   return (
     <>
+      {/* MOBILE-FRIENDLY TABLE */}
       <div className="rounded-3xl border border-black/10 bg-white overflow-hidden">
-        <div className="px-6 py-4 border-b border-black/10 flex items-center justify-between">
-          <div>
-            <h2 className="font-medium">Staff Availability</h2>
-            <p className="text-xs text-black/50">Click "Hours" to edit working times • Click "Block" to close full days</p>
-          </div>
-          <div className="text-xs text-emerald-600 bg-emerald-50 px-3 py-1 rounded-2xl">
-            {staff.length} staff members
-          </div>
-        </div>
-
-        <table className="w-full">
-          <thead className="bg-black/5">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium">Staff Member</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Current Schedule</th>
-              <th className="px-6 py-4 text-center text-xs font-medium">Status</th>
-              <th className="px-6 py-4 text-right text-xs font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {staff.length === 0 ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[700px]">
+            <thead className="bg-black/5">
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-black/50">
-                  No staff members yet. Add staff from the Staff section first.
-                </td>
+                <th className="px-4 py-4 text-left text-xs font-medium whitespace-nowrap">Staff Member</th>
+                <th className="px-4 py-4 text-left text-xs font-medium">Current Schedule</th>
+                <th className="px-4 py-4 text-center text-xs font-medium whitespace-nowrap">Status</th>
+                <th className="px-4 py-4 text-right text-xs font-medium whitespace-nowrap">Actions</th>
               </tr>
-            ) : (
-              staff.map((member) => (
-                <tr key={member.id} className="hover:bg-black/5">
-                  <td className="px-6 py-5">
-                    <div className="font-medium text-emerald-950 flex items-center gap-2">
-                      {member.displayName}
-                      {!member.bookingEnabled && (
-                        <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded">Disabled</span>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="px-6 py-5">
-                    <div className="text-xs space-y-1 max-w-[420px]">
-                      {member.workingHours.length > 0 ? (
-                        member.workingHours
-                          .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
-                          .map((wh, idx) => (
-                            <div key={idx} className="flex items-center gap-2 text-black/80">
-                              <span className="font-medium w-[70px]">{DAYS[wh.dayOfWeek]}</span>
-                              <span className={wh.isWorking ? 'text-emerald-700' : 'text-red-600'}>
-                                {wh.isWorking ? `${wh.startTime} – ${wh.endTime}` : 'Closed'}
-                              </span>
-                            </div>
-                          ))
-                      ) : (
-                        <span className="text-black/40 italic">No schedule set yet</span>
-                      )}
-                    </div>
-                  </td>
-
-                  <td className="px-6 py-5 text-center">
-                    <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-3xl ${
-                      member.bookingEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                    }`}>
-                      {member.bookingEnabled ? 'Accepting Bookings' : 'Not Available'}
-                    </span>
-                  </td>
-
-                  <td className="px-6 py-5 text-right">
-                    <div className="flex items-center gap-2 justify-end">
-                      <button
-                        onClick={() => openWorkingHours(member)}
-                        className="flex items-center gap-1.5 px-4 py-2 text-xs border border-black/10 hover:bg-black hover:text-white rounded-2xl transition-colors"
-                      >
-                        <Clock size={14} /> Hours
-                      </button>
-                      <button
-                        onClick={() => openBlockDate(member)}
-                        className="flex items-center gap-1.5 px-4 py-2 text-xs border border-amber-200 text-amber-700 hover:bg-amber-50 rounded-2xl transition-colors"
-                      >
-                        <Ban size={14} /> Block Date
-                      </button>
-                    </div>
+            </thead>
+            <tbody className="divide-y">
+              {staff.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-black/50">
+                    No staff members yet. Add staff from the Staff section first.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                staff.map((member) => (
+                  <tr key={member.id} className="hover:bg-black/5">
+                    <td className="px-4 py-5">
+                      <div className="font-medium text-emerald-950 flex items-center gap-2">
+                        {member.displayName}
+                        {!member.bookingEnabled && (
+                          <span className="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded">Disabled</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-5">
+                      <div className="text-xs space-y-1 max-w-[380px]">
+                        {member.workingHours.length > 0 ? (
+                          member.workingHours
+                            .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+                            .map((wh, idx) => (
+                              <div key={idx} className="flex items-center gap-2 text-black/80">
+                                <span className="font-medium w-[52px]">{DAY_SHORT[wh.dayOfWeek]}</span>
+                                <span className={wh.isWorking ? 'text-emerald-700' : 'text-red-600'}>
+                                  {wh.isWorking ? `${wh.startTime}–${wh.endTime}` : 'Closed'}
+                                </span>
+                              </div>
+                            ))
+                        ) : (
+                          <span className="text-black/40 italic">No schedule set</span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-4 py-5 text-center">
+                      <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-3xl ${
+                        member.bookingEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {member.bookingEnabled ? 'Open' : 'Closed'}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-5 text-right">
+                      <div className="flex items-center gap-2 justify-end">
+                        <button
+                          onClick={() => openWorkingHours(member)}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs border border-black/10 hover:bg-black hover:text-white rounded-2xl transition-colors"
+                        >
+                          <Clock size={14} /> Hours
+                        </button>
+                        <button
+                          onClick={() => openBlockDate(member)}
+                          className="flex items-center gap-1.5 px-4 py-2 text-xs border border-amber-200 text-amber-700 hover:bg-amber-50 rounded-2xl transition-colors"
+                        >
+                          <Ban size={14} /> Block
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* WORKING HOURS MODAL - GRAPHICAL SELECTOR */}
       {modalType === 'workingHours' && selectedStaff && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[92vh] overflow-hidden shadow-2xl flex flex-col">
-            {/* Header */}
-            <div className="px-8 py-6 border-b flex items-center justify-between bg-emerald-950 text-white">
+            <div className="px-6 py-5 border-b flex items-center justify-between bg-emerald-950 text-white">
               <div>
                 <h2 className="text-2xl font-serif">Working Hours</h2>
                 <p className="text-emerald-400 text-sm">{selectedStaff.displayName}</p>
               </div>
-              <button onClick={closeModal} className="text-emerald-400 hover:text-white">✕</button>
+              <button onClick={closeModal} className="text-emerald-400 hover:text-white text-2xl">×</button>
             </div>
 
-            <div className="p-8 overflow-y-auto flex-1">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-sm text-black/60">Set the weekly schedule for this staff member</p>
-                </div>
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+                <p className="text-sm text-black/60">Set the weekly schedule for this staff member</p>
                 <button
                   onClick={setStandardHours}
-                  className="flex items-center gap-2 text-sm px-4 py-2 border border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-2xl"
+                  className="flex items-center gap-2 text-sm px-4 py-2 border border-emerald-200 text-emerald-700 hover:bg-emerald-50 rounded-2xl whitespace-nowrap"
                 >
-                  <RotateCw size={16} /> Use Standard Hours (Mon–Fri 8am–10pm, Sat 2–7pm)
+                  <RotateCw size={16} /> Use Standard Hours
                 </button>
               </div>
 
-              {/* Graphical Day Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {/* Graphical Day Cards - Mobile Friendly */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {workingHours.map((day, index) => (
                   <div 
                     key={index} 
@@ -309,15 +298,14 @@ export default function AdminAvailabilityTable({ staff }: Props) {
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="px-8 py-5 border-t flex items-center justify-between bg-white">
-              <button onClick={closeModal} className="px-8 py-3 text-sm border border-black/20 rounded-2xl hover:bg-black/5">
+            <div className="px-6 py-5 border-t flex flex-col sm:flex-row items-center gap-3 bg-white">
+              <button onClick={closeModal} className="w-full sm:w-auto px-8 py-3 text-sm border border-black/20 rounded-2xl hover:bg-black/5">
                 Cancel
               </button>
               <button 
                 onClick={saveWorkingHours} 
                 disabled={saving}
-                className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-8 py-3 rounded-2xl text-sm font-medium transition-colors"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-8 py-3 rounded-2xl text-sm font-medium transition-colors"
               >
                 <Save size={18} /> {saving ? 'Saving...' : 'Save Working Hours'}
               </button>
@@ -355,7 +343,7 @@ export default function AdminAvailabilityTable({ staff }: Props) {
               </div>
             </div>
 
-            <div className="flex gap-3 mt-8">
+            <div className="flex flex-col sm:flex-row gap-3 mt-8">
               <button onClick={closeModal} className="flex-1 py-4 border border-black/20 rounded-2xl text-sm">Cancel</button>
               <button 
                 onClick={blockFullDay} 
