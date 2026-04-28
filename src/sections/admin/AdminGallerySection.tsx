@@ -1,66 +1,11 @@
 // src/sections/admin/AdminGallerySection.tsx
 import { PrismaClient } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
-import { Plus, Trash2, Eye, Star, Upload, Camera } from 'lucide-react';
+import { Trash2, Eye, Star, Upload } from 'lucide-react';
+import GalleryUploadControls from './GalleryUploadControls';
+import { deleteGalleryItem, toggleActive } from './gallery-actions';
 
 const prisma = new PrismaClient();
-
-// ====================== SERVER ACTIONS ======================
-async function uploadGalleryFiles(formData: FormData) {
-  'use server';
-
-  const files = formData.getAll('files') as File[];
-  const category = (formData.get('category') as string) || 'general';
-
-  for (const file of files) {
-    if (!file || file.size === 0) continue;
-
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const base64 = buffer.toString('base64');
-    const mimeType = file.type;
-    const dataUrl = `data:${mimeType};base64,${base64}`;
-
-    const isVideo = file.type.startsWith('video/');
-    const type = isVideo ? 'video' : 'image';
-
-    await prisma.galleryItem.create({
-      data: {
-        type,
-        title: file.name.replace(/\.\w+$/, ''),
-        caption: '',
-        url: dataUrl,
-        thumbnailUrl: dataUrl,
-        category,
-        isFeatured: false,
-        isActive: true,
-        sortOrder: 0,
-      },
-    });
-  }
-
-  revalidatePath('/admin/gallery');
-}
-
-async function deleteGalleryItem(formData: FormData) {
-  'use server';
-  const id = parseInt(formData.get('id') as string, 10);
-  await prisma.galleryItem.delete({ where: { id } });
-  revalidatePath('/admin/gallery');
-}
-
-async function toggleActive(formData: FormData) {
-  'use server';
-  const id = parseInt(formData.get('id') as string, 10);
-  const current = await prisma.galleryItem.findUnique({ where: { id } });
-  if (!current) return;
-
-  await prisma.galleryItem.update({
-    where: { id },
-    data: { isActive: !current.isActive },
-  });
-  revalidatePath('/admin/gallery');
-}
 
 export default async function AdminGallerySection() {
   const items = await prisma.galleryItem.findMany({
@@ -77,42 +22,7 @@ export default async function AdminGallerySection() {
             {items.length} item{items.length !== 1 ? 's' : ''} • Visual storytelling
           </p>
         </div>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* UPLOAD BUTTON (Images / Videos / Folder) */}
-          <form action={uploadGalleryFiles} className="flex items-center gap-3">
-            <label className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm cursor-pointer w-full sm:w-auto justify-center sm:justify-start">
-              <Upload size={20} />
-              <span className="font-medium">Upload Images / Videos or Folder</span>
-              <input
-                type="file"
-                name="files"
-                accept="image/jpeg,image/png,image/webp,image/gif,image/heic,video/*"
-                multiple
-                // @ts-expect-error non-standard but widely supported
-                webkitdirectory=""
-                className="hidden"
-              />
-            </label>
-            <input type="hidden" name="category" value="general" />
-          </form>
-
-          {/* CAMERA CAPTURE BUTTON (NEW) */}
-          <form action={uploadGalleryFiles} className="flex items-center gap-3">
-            <label className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm cursor-pointer w-full sm:w-auto justify-center sm:justify-start">
-              <Camera size={20} />
-              <span className="font-medium">Take Photo</span>
-              <input
-                type="file"
-                name="files"
-                accept="image/*"
-                capture="environment"   // ← back camera (use "user" for front camera)
-                className="hidden"
-              />
-            </label>
-            <input type="hidden" name="category" value="general" />
-          </form>
-        </div>
+        <GalleryUploadControls />
       </div>
 
       {/* GALLERY GRID – Your original beautiful design */}
@@ -137,7 +47,6 @@ export default async function AdminGallerySection() {
                   className="w-full h-full object-cover"
                 />
               )}
-
               {/* Badges */}
               <div className="absolute top-3 right-3 flex flex-col gap-1">
                 {item.isFeatured && (
@@ -156,14 +65,12 @@ export default async function AdminGallerySection() {
                 )}
               </div>
             </div>
-
             <div className="p-4">
               <p className="font-medium text-emerald-950 line-clamp-2 text-sm">{item.title}</p>
               {item.caption && (
                 <p className="text-xs text-emerald-500 mt-1 line-clamp-2">{item.caption}</p>
               )}
             </div>
-
             {/* Actions */}
             <div className="border-t border-emerald-100 px-4 py-3 flex items-center justify-between text-xs">
               <form action={toggleActive}>
@@ -176,7 +83,6 @@ export default async function AdminGallerySection() {
                   {item.isActive ? 'Hide' : 'Show'}
                 </button>
               </form>
-
               <form action={deleteGalleryItem}>
                 <input type="hidden" name="id" value={item.id} />
                 <button
@@ -190,7 +96,6 @@ export default async function AdminGallerySection() {
           </div>
         ))}
       </div>
-
       {/* Empty state */}
       {items.length === 0 && (
         <div className="bg-white rounded-3xl border border-emerald-100 p-12 text-center">
