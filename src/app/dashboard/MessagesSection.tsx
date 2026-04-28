@@ -12,7 +12,15 @@ type Message = {
   replies?: { id: number; body: string; sentAt: string }[];
 };
 
-export default function MessagesSection() {
+interface MessagesSectionProps {
+  name?: string;   // ← real user name
+  email?: string;  // ← real user email
+}
+
+export default function MessagesSection({ 
+  name = "Website Visitor", 
+  email = "visitor@example.com" 
+}: MessagesSectionProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -45,7 +53,6 @@ export default function MessagesSection() {
 
   const handleSend = async () => {
     if (!newMessage.trim()) return;
-
     setIsSending(true);
 
     try {
@@ -54,9 +61,8 @@ export default function MessagesSection() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: newMessage.trim(),
-          // TODO: pass real user name/email from session if available
-          name: "Website Visitor",
-          email: "visitor@example.com",
+          name: name,      // ← now uses real name
+          email: email,    // ← now uses real email
         }),
       });
 
@@ -93,8 +99,7 @@ export default function MessagesSection() {
                   {msg.message}
                 </div>
               </div>
-
-              {/* Admin replies (real from database) */}
+              {/* Admin replies */}
               {msg.replies?.map((reply) => (
                 <div key={reply.id} className="flex justify-start">
                   <div className="max-w-[75%] px-5 py-3 rounded-3xl text-sm bg-white border border-black/10">
@@ -119,7 +124,6 @@ export default function MessagesSection() {
             </div>
           </div>
         )}
-
         <div ref={messagesEndRef} />
       </div>
 
