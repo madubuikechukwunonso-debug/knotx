@@ -1,7 +1,7 @@
 // src/sections/admin/AdminServicesSection.tsx
 import { PrismaClient } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
-import AdminServiceTable from './AdminServiceTable'; // we'll create this next
+import AdminServiceTable from './AdminServiceTable';
 import { put } from '@vercel/blob';
 import { getStripe } from '@/lib/stripe';
 
@@ -17,7 +17,7 @@ async function uploadServiceImage(file: File): Promise<string> {
   return blob.url;
 }
 
-// ====================== STRIPE SYNC (uses deposit as chargeable price) ======================
+// ====================== STRIPE SYNC ======================
 async function syncServiceToStripe(
   name: string,
   description: string | undefined,
@@ -61,7 +61,7 @@ async function createService(formData: FormData) {
   const name = formData.get('name') as string;
   let slug = (formData.get('slug') as string) || name.toLowerCase().replace(/\s+/g, '-');
   const description = (formData.get('description') as string) || undefined;
-  const price = parseInt(formData.get('price') as string);           // full price
+  const price = parseInt(formData.get('price') as string);
   const depositAmount = parseInt(formData.get('depositAmount') as string) || 0;
   const durationMinutes = parseInt(formData.get('durationMinutes') as string);
   const imageFile = formData.get('image') as File | null;
@@ -96,7 +96,6 @@ async function createService(formData: FormData) {
   });
 
   revalidatePath('/admin');
-  revalidatePath('/services'); // or whatever your booking page is
 }
 
 async function updateService(formData: FormData) {
@@ -179,11 +178,12 @@ export default async function AdminServicesSection() {
       slug: true,
       description: true,
       price: true,
-      depositAmount: true,
+      depositAmount: true,        // ← Required
       durationMinutes: true,
       image: true,
       featured: true,
       active: true,
+      sortOrder: true,            // ← Fixed: Now included
       stripeProductId: true,
       stripePriceId: true,
     },
