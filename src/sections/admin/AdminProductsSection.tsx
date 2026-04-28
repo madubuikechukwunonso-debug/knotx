@@ -1,8 +1,202 @@
 // src/sections/admin/AdminProductsSection.tsx
 import { PrismaClient } from '@prisma/client';
-import { Plus, Edit, Trash2, DollarSign, Package } from 'lucide-react';
+import { revalidatePath } from 'next/cache';
+import AdminProductTable from './AdminProductTable';
+import fs from 'fs/promises';
+import path from 'path';
+import { getStripe } from '@/lib/stripe';   // ← Stripe client
 
 const prisma = new PrismaClient();
+
+// ====================== IMAGE UPLOAD HELPER ======================
+async function uploadProductImage(file: File): Promise<string> {
+  const bytes = await file.arrayBuffer();
+  const buffer = Buffer.from(bytes);
+
+  const timestamp = Date.now();
+  const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const filename = `${timestamp}-${safeName}`;
+
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'products');
+  await fs.mkdir(uploadDir, { recursive: true });
+
+  const filepath = path.join(uploadDir, filename);
+  await fs.writeFile(filepath, buffer);
+
+  return `/uploads/products/${filename}`;
+}
+
+// ====================== SLUG GENERATOR ======================
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 80);
+}
+
+// ====================== STRIPE SYNC HELPERS ======================
+async function syncToStripe(
+  name: string,
+  description: string | undefined,
+  imageUrl: string | undefined,
+  priceInCents: number,
+  existingStripeProductId?: string | null
+) {
+  const stripe = getStripe();
+
+  // 1. Create or update Stripe Product
+  let stripeProductId = existingStripeProductId;
+
+  if (!stripeProductId) {
+    const product = await stripe.products.create({
+      name,
+      description: description || undefined,
+      images: imageUrl ? [imageUrl] : undefined,
+      active: true,
+    });
+    stripeProductId = product.id;
+  } else {
+    await stripe.products.update(stripeProductId, {
+      name,
+      description: description || undefined,
+      images: imageUrl ? [imageUrl] : undefined,
+    });
+  }
+
+  // 2. Create new Price (prices are immutable in Stripe)
+  const price = await stripe.prices.create({
+    product: stripeProductId,
+    unit_amount: priceInCents,
+    currency: 'cad',
+  });
+
+  return { stripeProductId, stripePriceId: price.id };
+}
+
+// ====================== SERVER ACTIONS ======================
+async function createProduct(formData: FormData) {
+  'use server';
+
+  const name = formData.get('name') as string;
+  let slug = (formData.get('slug') as string) || generateSlug(name);
+  const description = (formData.get('description') as string) || undefined;
+  const price = parseInt(formData.get('price') as string);
+  const category = (formData.get('category') as string) || 'general';
+  const inventory = parseInt(formData.get('inventory') as string) || 0;
+  const imageFile = formData.get('image') as File | null;
+  const featured = formData.get('featured') === 'on';
+
+  let imageUrl: string | undefined;
+  if (imageFile && imageFile.size > 0) {
+    imageUrl = await uploadProductImage(imageFile);
+  }
+
+  // Sync to Stripe
+  const { stripeProductId, stripePriceId } = await syncToStripe(
+    name,
+    description,
+    imageUrl,
+    price
+  );
+
+  await prisma.product.create({
+    data: {
+      name,
+      slug,
+      description,
+      price,
+      category,
+      inventory,
+      image: imageUrl,
+      featured,
+      active: true,
+      stripeProductId,
+      stripePriceId,
+    },
+  });
+
+  revalidatePath('/admin');
+  revalidatePath('/shop'); // optional – refresh shop page too
+}
+
+async function updateProduct(formData: FormData) {
+  'use server';
+
+  const id = parseInt(formData.get('id') as string);
+  const name = formData.get('name') as string;
+  let slug = (formData.get('slug') as string) || generateSlug(name);
+  const description = (formData.get('description') as string) || undefined;
+  const price = parseInt(formData.get('price') as string);
+  const category = (formData.get('category') as string) || 'general';
+  const inventory = parseInt(formData.get('inventory') as string) || 0;
+  const imageFile = formData.get('image') as File | null;
+  const currentImage = formData.get('currentImage') as string | null;
+  const featured = formData.get('featured') === 'on';
+  const active = formData.get('active') === 'on';
+
+  let imageUrl = currentImage || undefined;
+  if (imageFile && imageFile.size > 0) {
+    imageUrl = await uploadProductImage(imageFile);
+  }
+
+  // Get current product to know existing Stripe IDs
+  const existingProduct = await prisma.product.findUnique({
+    where: { id },
+    select: { stripeProductId: true },
+  });
+
+  // Sync to Stripe (new price is always created)
+  const { stripeProductId, stripePriceId } = await syncToStripe(
+    name,
+    description,
+    imageUrl,
+    price,
+    existingProduct?.stripeProductId || undefined
+  );
+
+  await prisma.product.update({
+    where: { id },
+    data: {
+      name,
+      slug,
+      description,
+      price,
+      category,
+      inventory,
+      image: imageUrl,
+      featured,
+      active,
+      stripeProductId,
+      stripePriceId,
+    },
+  });
+
+  revalidatePath('/admin');
+  revalidatePath('/shop');
+}
+
+async function deleteProduct(formData: FormData) {
+  'use server';
+  const id = parseInt(formData.get('id') as string);
+  await prisma.product.delete({ where: { id } });
+  revalidatePath('/admin');
+}
+
+async function toggleProductActive(formData: FormData) {
+  'use server';
+  const id = parseInt(formData.get('id') as string);
+  const currentActive = formData.get('active') === 'true';
+
+  await prisma.product.update({
+    where: { id },
+    data: { active: !currentActive },
+  });
+
+  revalidatePath('/admin');
+}
 
 export default async function AdminProductsSection() {
   const products = await prisma.product.findMany({
@@ -10,148 +204,41 @@ export default async function AdminProductsSection() {
     select: {
       id: true,
       name: true,
+      slug: true,
+      description: true,
       price: true,
-      inventory: true,        // ← Fixed: this is the correct field in your schema
-      active: true,
-      featured: true,
+      priceCurrency: true,
       image: true,
       category: true,
+      inventory: true,
+      featured: true,
+      active: true,
+      sortOrder: true,
+      stripeProductId: true,
+      stripePriceId: true,
+      createdAt: true,
+      updatedAt: true,
     },
   });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-serif text-emerald-950">Products</h1>
           <p className="text-emerald-600 text-sm mt-1">
-            {products.length} product{products.length !== 1 ? 's' : ''} • Inventory & catalog
+            {products.length} product{products.length !== 1 ? 's' : ''} • Shop catalog
           </p>
         </div>
-
-        <button
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm w-full sm:w-auto justify-center sm:justify-start"
-        >
-          <Plus size={20} />
-          <span className="font-medium">Add New Product</span>
-        </button>
       </div>
 
-      {/* TABLE CONTAINER */}
-      <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-emerald-50">
-              <tr>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Product</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Category</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Price</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Inventory</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Status</th>
-                <th className="px-6 py-5 text-right font-medium text-emerald-700 whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-emerald-100">
-              {products.map((product) => (
-                <tr
-                  key={product.id}
-                  className="hover:bg-emerald-50 transition-colors group"
-                >
-                  {/* Product Name + Image */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      {product.image && (
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="h-10 w-10 object-cover rounded-2xl border border-emerald-200"
-                        />
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-medium text-emerald-950 truncate">{product.name}</p>
-                        {product.featured && (
-                          <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-px rounded-xl inline-block mt-1">
-                            Featured
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Category */}
-                  <td className="px-6 py-5 text-emerald-600 font-medium">
-                    {product.category || '—'}
-                  </td>
-
-                  {/* Price */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-1 font-semibold text-emerald-950">
-                      <DollarSign size={16} className="text-emerald-600" />
-                      {(product.price / 100).toFixed(2)}
-                    </div>
-                  </td>
-
-                  {/* Inventory (was previously called "stock") */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-2">
-                      <Package size={16} className="text-emerald-600" />
-                      <span
-                        className={`font-medium ${
-                          product.inventory <= 5
-                            ? 'text-red-600'
-                            : 'text-emerald-700'
-                        }`}
-                      >
-                        {product.inventory} left
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-6 py-5">
-                    <span
-                      className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl ${
-                        product.active
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}
-                    >
-                      {product.active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-5 text-right">
-                    <div className="flex items-center gap-1 justify-end">
-                      <button
-                        className="p-3 hover:bg-emerald-100 rounded-2xl transition-colors text-emerald-700"
-                        title="Edit product"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button
-                        className="p-3 hover:bg-red-100 text-red-600 rounded-2xl transition-colors"
-                        title="Delete product"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Empty state */}
-        {products.length === 0 && (
-          <div className="px-6 py-12 text-center">
-            <p className="text-emerald-500">No products found in the database yet.</p>
-            <p className="text-xs text-emerald-400 mt-2">Click “Add New Product” to start building your catalog.</p>
-          </div>
-        )}
-      </div>
+      <AdminProductTable
+        products={products}
+        onCreate={createProduct}
+        onUpdate={updateProduct}
+        onDelete={deleteProduct}
+        onToggleActive={toggleProductActive}
+      />
     </div>
   );
 }
