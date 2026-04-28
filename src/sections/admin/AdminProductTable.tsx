@@ -42,17 +42,42 @@ export default function AdminProductTable({
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  const openModal = (product: Product | null = null) => {
+    setEditingProduct(product);
+    setPreviewUrl(null);
+    setModalOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
 
   const handleSubmit = async (formData: FormData) => {
     if (editingProduct) {
       formData.append('id', editingProduct.id.toString());
+      // Pass current image so server keeps it if no new file is uploaded
+      if (editingProduct.image) {
+        formData.append('currentImage', editingProduct.image);
+      }
+    }
+
+    if (editingProduct) {
       await onUpdate(formData);
     } else {
       await onCreate(formData);
     }
 
+    // Cleanup
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setModalOpen(false);
     setEditingProduct(null);
+    setPreviewUrl(null);
     router.refresh();
   };
 
@@ -77,10 +102,7 @@ export default function AdminProductTable({
     <>
       <button
         type="button"
-        onClick={() => {
-          setEditingProduct(null);
-          setModalOpen(true);
-        }}
+        onClick={() => openModal(null)}
         className="flex items-center gap-2 rounded-2xl bg-black px-6 py-3 text-sm font-medium text-white hover:bg-black/90"
       >
         <Plus className="h-4 w-4" />
@@ -100,28 +122,31 @@ export default function AdminProductTable({
               <th className="px-6 py-4 text-right text-xs font-medium">Actions</th>
             </tr>
           </thead>
-
           <tbody className="divide-y">
             {products.map((product) => (
               <tr key={product.id} className="hover:bg-black/5">
                 <td className="px-6 py-4">
-                  <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-xs text-black/50">/{product.slug}</p>
+                  <div className="flex items-center gap-3">
+                    {product.image && (
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="w-10 h-10 object-cover rounded-xl"
+                      />
+                    )}
+                    <div>
+                      <p className="font-medium">{product.name}</p>
+                      <p className="text-xs text-black/50">/{product.slug}</p>
+                    </div>
                   </div>
                 </td>
-
                 <td className="px-6 py-4 text-sm capitalize">{product.category}</td>
-
                 <td className="px-6 py-4 font-medium">
                   ${(product.price / 100).toFixed(2)} CAD
                 </td>
-
                 <td className="px-6 py-4 text-sm font-medium">{product.inventory}</td>
-
                 <td className="px-6 py-4">
                   <button
-                    type="button"
                     onClick={() => handleToggle(product)}
                     className="flex items-center gap-1 text-xs"
                   >
@@ -130,27 +155,19 @@ export default function AdminProductTable({
                     ) : (
                       <ToggleLeft className="h-5 w-5 text-gray-400" />
                     )}
-
                     <span className={product.active ? 'text-green-600' : 'text-gray-400'}>
                       {product.active ? 'Active' : 'Inactive'}
                     </span>
                   </button>
                 </td>
-
                 <td className="px-6 py-4 text-right">
                   <button
-                    type="button"
-                    onClick={() => {
-                      setEditingProduct(product);
-                      setModalOpen(true);
-                    }}
+                    onClick={() => openModal(product)}
                     className="mr-3 text-black/70 hover:text-black"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
-
                   <button
-                    type="button"
                     onClick={() => handleDelete(product.id)}
                     className="text-red-500 hover:text-red-700"
                   >
@@ -159,7 +176,6 @@ export default function AdminProductTable({
                 </td>
               </tr>
             ))}
-
             {products.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-12 text-center text-sm text-black/50">
@@ -174,7 +190,7 @@ export default function AdminProductTable({
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full mx-auto shadow-2xl">
+          <div className="bg-white rounded-3xl max-w-lg w-full mx-auto shadow-2xl max-h-[90vh] overflow-y-auto">
             <form action={handleSubmit} className="p-8 space-y-6">
               <h2 className="text-2xl font-serif">
                 {editingProduct ? 'Edit Product' : 'New Product'}
@@ -182,6 +198,50 @@ export default function AdminProductTable({
 
               {editingProduct && <input type="hidden" name="id" value={editingProduct.id} />}
 
+              {/* ==================== IMAGE UPLOAD + CAMERA ==================== */}
+              <div>
+                <label className="block text-xs font-medium mb-2">Product Image</label>
+
+                {/* Current image (edit mode) */}
+                {editingProduct?.image && !previewUrl && (
+                  <div className="mb-3">
+                    <p className="text-xs text-black/60 mb-1">Current Image:</p>
+                    <img
+                      src={editingProduct.image}
+                      alt="Current"
+                      className="w-32 h-32 object-cover rounded-2xl border border-black/10"
+                    />
+                  </div>
+                )}
+
+                {/* New image preview */}
+                {previewUrl && (
+                  <div className="mb-3">
+                    <p className="text-xs text-black/60 mb-1">New Image Preview:</p>
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded-2xl border border-black/10"
+                    />
+                  </div>
+                )}
+
+                <input
+                  type="file"
+                  name="image"
+                  accept="image/*"
+                  capture="environment"   {/* ← Camera scan on mobile */}
+                  onChange={handleFileChange}
+                  className="w-full text-sm file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:bg-black file:text-white hover:file:bg-black/90 cursor-pointer"
+                />
+                <p className="text-xs text-black/50 mt-2">
+                  {editingProduct
+                    ? 'Leave empty to keep current image • Tap to take photo or choose file'
+                    : 'Recommended: 1200×1200 px or larger'}
+                </p>
+              </div>
+
+              {/* Rest of your form fields (unchanged) */}
               <div>
                 <label className="block text-xs font-medium mb-1">Product Name</label>
                 <input
@@ -237,10 +297,11 @@ export default function AdminProductTable({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1">Image URL optional</label>
+                  <label className="block text-xs font-medium mb-1">Sort Order</label>
                   <input
-                    name="image"
-                    defaultValue={editingProduct?.image || ''}
+                    name="sortOrder"
+                    type="number"
+                    defaultValue={editingProduct?.sortOrder ?? 0}
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
                   />
                 </div>
@@ -255,7 +316,6 @@ export default function AdminProductTable({
                   />
                   Featured
                 </label>
-
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -266,28 +326,19 @@ export default function AdminProductTable({
                 </label>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium mb-1">Sort Order</label>
-                <input
-                  name="sortOrder"
-                  type="number"
-                  defaultValue={editingProduct?.sortOrder ?? 0}
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                />
-              </div>
-
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
                   onClick={() => {
+                    if (previewUrl) URL.revokeObjectURL(previewUrl);
                     setModalOpen(false);
                     setEditingProduct(null);
+                    setPreviewUrl(null);
                   }}
                   className="flex-1 py-4 rounded-2xl border border-black/10 font-medium"
                 >
                   Cancel
                 </button>
-
                 <button
                   type="submit"
                   className="flex-1 py-4 rounded-2xl bg-black text-white font-medium"
