@@ -76,22 +76,23 @@ model Product {
 }
 
 model Service {
-  id               Int      @id @default(autoincrement())
-  name             String
-  slug             String   @unique
-  description      String?
-  price            Int      // Full service price
-  depositAmount    Int      @default(0)   // ← NEW: Deposit amount charged via Stripe
-  priceCurrency    String   @default("cad")
-  durationMinutes  Int
-  image            String?
-  featured         Boolean  @default(false)
-  active           Boolean  @default(true)
-  sortOrder        Int      @default(0)
-  stripeProductId  String?
-  stripePriceId    String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                  Int      @id @default(autoincrement())
+  name                String
+  slug                String   @unique
+  description         String?
+  price               Int      // Full service price
+  depositAmount       Int      @default(0)   // Deposit charged via Stripe
+  priceCurrency       String   @default("cad")
+  durationMinutes     Int
+  slotDurationMinutes Int      @default(60)  // ← NEW: How long each booking slot is (30, 60, 90, etc.)
+  image               String?
+  featured            Boolean  @default(false)
+  active              Boolean  @default(true)
+  sortOrder           Int      @default(0)
+  stripeProductId     String?
+  stripePriceId       String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 // ====================== GALLERY & HERO ======================
@@ -150,6 +151,19 @@ model StaffTimeOff {
   endAt DateTime
   reason String?
   createdAt DateTime @default(now())
+}
+
+// ← NEW: Blocked slots for admin/staff to prevent double bookings
+model BlockedSlot {
+  id          Int      @id @default(autoincrement())
+  staffUserId Int
+  date        String   // Format: "2026-05-15"
+  startTime   String   // Format: "09:00"
+  endTime     String   // Format: "10:30"
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
 model ServiceStaffAssignment {
