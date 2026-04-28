@@ -4,8 +4,24 @@ import { revalidatePath } from 'next/cache';
 import { Trash2, Eye, Star, Upload } from 'lucide-react';
 import GalleryUploadControls from './GalleryUploadControls';
 import { deleteGalleryItem, toggleActive } from './gallery-actions';
+import { put } from '@vercel/blob';   // ← NEW: Vercel Blob support
 
 const prisma = new PrismaClient();
+
+// ====================== VERCEL BLOB UPLOAD HELPER ======================
+async function uploadGalleryMedia(file: File): Promise<string> {
+  const timestamp = Date.now();
+  const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const filename = `${timestamp}-${safeName}`;
+
+  // Upload to Vercel Blob (public, permanent URL)
+  // Works for both images AND videos
+  const blob = await put(`gallery/${filename}`, file, {
+    access: 'public',
+  });
+
+  return blob.url;   // e.g. https://your-project.vercel-storage.com/gallery/...
+}
 
 export default async function AdminGallerySection() {
   const items = await prisma.galleryItem.findMany({
