@@ -53,6 +53,11 @@ export default function AdminProductTable({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 8 * 1024 * 1024) {
+        alert('Image is too large! Maximum size is 8 MB.');
+        e.target.value = '';
+        return;
+      }
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(URL.createObjectURL(file));
     }
@@ -107,7 +112,7 @@ export default function AdminProductTable({
         New Product
       </button>
 
-      {/* MOBILE-OPTIMIZED TABLE */}
+      {/* MOBILE OPTIMIZED TABLE */}
       <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-3xl border border-black/10 bg-white">
         <table className="w-full min-w-[640px] sm:min-w-full">
           <thead className="bg-black/5">
@@ -194,11 +199,11 @@ export default function AdminProductTable({
                 {editingProduct ? 'Edit Product' : 'New Product'}
               </h2>
 
-              {/* Image Upload + Camera (fixed) */}
+              {/* IMAGE UPLOAD - BOTH CAMERA AND GALLERY */}
               <div>
                 <label className="block text-xs font-medium mb-2">Product Image</label>
 
-                {/* Current image preview */}
+                {/* Current image (when editing) */}
                 {editingProduct?.image && !previewUrl && (
                   <div className="mb-3">
                     <p className="text-xs text-black/60 mb-1">Current Image:</p>
@@ -222,23 +227,21 @@ export default function AdminProductTable({
                   </div>
                 )}
 
-                {/* FIXED INPUT - no inline comment */}
                 <input
                   type="file"
                   name="image"
                   accept="image/*"
-                  capture="environment"
                   onChange={handleFileChange}
                   className="w-full text-sm file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:bg-black file:text-white hover:file:bg-black/90 cursor-pointer"
                 />
                 <p className="text-xs text-black/50 mt-2">
                   {editingProduct
-                    ? 'Leave empty to keep current image • Tap to take photo or choose file'
-                    : 'Recommended: 1200×1200 px or larger'}
+                    ? 'Leave empty to keep current image • Max 8 MB'
+                    : 'Tap to take photo or choose from gallery • Max 8 MB'}
                 </p>
               </div>
 
-              {/* Rest of form fields (same as before) */}
+              {/* Form fields */}
               <div>
                 <label className="block text-xs font-medium mb-1">Product Name</label>
                 <input
@@ -261,7 +264,7 @@ export default function AdminProductTable({
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-xs font-medium mb-1">Price (cents)</label>
+                  <label className="block text-xs font-medium mb-1">Price (in cents)</label>
                   <input
                     name="price"
                     type="number"
@@ -311,7 +314,7 @@ export default function AdminProductTable({
                     name="featured"
                     defaultChecked={editingProduct?.featured || false}
                   />
-                  Featured
+                  <span className="text-sm">Featured</span>
                 </label>
                 <label className="flex items-center gap-2">
                   <input
@@ -319,7 +322,7 @@ export default function AdminProductTable({
                     name="active"
                     defaultChecked={editingProduct?.active !== false}
                   />
-                  Active
+                  <span className="text-sm">Active</span>
                 </label>
               </div>
 
