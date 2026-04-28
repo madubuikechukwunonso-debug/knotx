@@ -79,67 +79,71 @@ export default function AdminBookingTable({
         New Booking
       </button>
 
-      {/* Table */}
-      <div className="rounded-3xl border border-black/10 bg-white overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-black/5">
-            <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium">Customer</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Service</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Date & Time</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Price</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Status</th>
-              <th className="px-6 py-4 text-right text-xs font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {bookings.map((booking) => (
-              <tr key={booking.id} className="hover:bg-black/5">
-                <td className="px-6 py-4">
-                  <div>
-                    <p className="font-medium">{booking.customerName}</p>
-                    <p className="text-xs text-black/50">{booking.customerEmail}</p>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <p className="font-medium">{booking.serviceType}</p>
-                </td>
-                <td className="px-6 py-4 text-sm text-black/70">
-                  {booking.date} • {booking.time}
-                </td>
-                <td className="px-6 py-4 font-medium">
-                  ${(booking.price / 100).toFixed(2)} CAD
-                </td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`inline-block rounded-2xl px-3 py-1 text-xs font-medium ${
-                      statusColors[booking.status] || 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {booking.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button
-                    onClick={() => {
-                      setEditingBooking(booking);
-                      setModalOpen(true);
-                    }}
-                    className="mr-3 text-black/70 hover:text-black"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(booking.id)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </td>
+      {/* Table - Mobile friendly with horizontal scroll */}
+      <div className="rounded-3xl border border-black/10 bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[850px]">
+            <thead className="bg-black/5">
+              <tr>
+                <th className="px-4 py-4 text-left text-xs font-medium whitespace-nowrap">Customer</th>
+                <th className="px-4 py-4 text-left text-xs font-medium whitespace-nowrap">Service</th>
+                <th className="px-4 py-4 text-left text-xs font-medium whitespace-nowrap">Date & Time</th>
+                <th className="px-4 py-4 text-left text-xs font-medium whitespace-nowrap">Price</th>
+                <th className="px-4 py-4 text-left text-xs font-medium whitespace-nowrap">Status</th>
+                <th className="px-4 py-4 text-right text-xs font-medium whitespace-nowrap">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y">
+              {bookings.map((booking) => (
+                <tr key={booking.id} className="hover:bg-black/5">
+                  <td className="px-4 py-4">
+                    <div>
+                      <p className="font-medium">{booking.customerName}</p>
+                      <p className="text-xs text-black/50 truncate max-w-[180px]">
+                        {booking.customerEmail}
+                      </p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <p className="font-medium">{booking.serviceType}</p>
+                  </td>
+                  <td className="px-4 py-4 text-sm text-black/70 whitespace-nowrap">
+                    {booking.date} • {booking.time}
+                  </td>
+                  <td className="px-4 py-4 font-medium whitespace-nowrap">
+                    ${(booking.price / 100).toFixed(2)} CAD
+                  </td>
+                  <td className="px-4 py-4">
+                    <span
+                      className={`inline-block rounded-2xl px-3 py-1 text-xs font-medium ${
+                        statusColors[booking.status] || 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {booking.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    <button
+                      onClick={() => {
+                        setEditingBooking(booking);
+                        setModalOpen(true);
+                      }}
+                      className="mr-3 text-black/70 hover:text-black"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(booking.id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal */}
