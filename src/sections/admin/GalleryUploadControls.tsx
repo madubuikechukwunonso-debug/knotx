@@ -1,3 +1,4 @@
+// src/sections/admin/GalleryUploadControls.tsx
 'use client';
 
 import { useFormStatus } from 'react-dom';
@@ -60,21 +61,20 @@ function UploadFormContent({
 export default function GalleryUploadControls() {
   return (
     <div className="flex flex-col sm:flex-row gap-3">
-      {/* UPLOAD BUTTON (Images / Videos / Folder) */}
-      <form action={uploadGalleryFiles} className="flex items-center gap-3">
+      {/* UPLOAD BUTTON - Images and Videos */}
+      <form action={uploadGalleryFiles} className="flex-1 sm:flex-none">
         <UploadFormContent
           icon={Upload}
-          label="Upload Images / Videos or Folder"
-          accept="image/jpeg,image/png,image/webp,image/gif,image/heic,video/*"
+          label="Upload Images / Videos"
+          accept="image/*,video/*"
           multiple
-          webkitdirectory
           bg="bg-emerald-600 hover:bg-emerald-700"
         />
         <input type="hidden" name="category" value="general" />
       </form>
 
       {/* CAMERA CAPTURE BUTTON */}
-      <form action={uploadGalleryFiles} className="flex items-center gap-3">
+      <form action={uploadGalleryFiles} className="flex-1 sm:flex-none">
         <UploadFormContent
           icon={Camera}
           label="Take Photo"
