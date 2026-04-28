@@ -2,32 +2,19 @@
 import { PrismaClient } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import AdminAvailabilityTable from './AdminAvailabilityTable';
-import { headers } from 'next/headers';
+import { getSession } from '@/lib/session';
 
 const prisma = new PrismaClient();
 
-// Get current logged-in user from session cookie (adjust if you use different auth)
-async function getCurrentAdmin() {
-  const cookieStore = await headers();
-  const userCookie = cookieStore.get('user');
-  
-  if (!userCookie) return null;
-  
-  try {
-    return JSON.parse(userCookie);
-  } catch {
-    return null;
-  }
-}
-
 export default async function AdminAvailabilitySection() {
-  const currentUser = await getCurrentAdmin();
+  const session = await getSession();
+  const currentUser = session; // session contains userId, role, etc.
 
   // Try to find existing StaffProfile for this admin
   let myProfile = null;
-  if (currentUser?.id) {
+  if (currentUser?.userId) {
     myProfile = await prisma.staffProfile.findFirst({
-      where: { userId: currentUser.id },
+      where: { userId: currentUser.userId },
       include: {
         workingHours: true,
         timeOffs: true,
@@ -82,7 +69,7 @@ export default async function AdminAvailabilitySection() {
             <form action={async (formData: FormData) => {
               'use server';
               const displayName = formData.get('displayName') as string;
-              const userId = currentUser?.id;
+              const userId = currentUser?.userId;
               
               if (!userId || !displayName) return;
 
