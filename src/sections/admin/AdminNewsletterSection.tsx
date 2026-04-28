@@ -80,7 +80,7 @@ export default async function AdminNewsletterSection() {
       },
     }),
     prisma.localUser.findMany({
-      where: { email: { not: null } },   // ← CORRECT SYNTAX
+      // No where clause needed - email is required in schema
       select: {
         id: true,
         email: true,
@@ -104,7 +104,7 @@ export default async function AdminNewsletterSection() {
       .filter((u) => !subscribers.some((s) => s.email === u.email))
       .map((u) => ({
         id: `user-${u.id}`,
-        email: u.email!,
+        email: u.email,
         name: u.displayName || '—',
         source: 'REGISTRATION' as const,
         isActive: true,
