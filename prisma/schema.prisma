@@ -5,7 +5,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url = env("DATABASE_URL")
 }
 
 // ====================== USERS ======================
@@ -26,75 +26,75 @@ model User {
 }
 
 model LocalUser {
-  id                   Int       @id @default(autoincrement())
-  username             String    @unique
-  email                String    @unique
+  id                   Int      @id @default(autoincrement())
+  username             String   @unique
+  email                String   @unique
   displayName          String?
   passwordHash         String
-  role                 String    @default("user")
-  isActive             Boolean   @default(true)
-  isBlocked            Boolean   @default(false)
+  role                 String   @default("user")
+  isActive             Boolean  @default(true)
+  isBlocked            Boolean  @default(false)
   blockedReason        String?
   blockedAt            DateTime?
   invitedById          Int?
-  lastSignInAt         DateTime  @default(now())
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  lastSignInAt         DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   // SHIPPING ADDRESS FIELDS
-  shippingAddressLine1  String?
-  shippingAddressLine2  String?
-  shippingCity          String?
-  shippingState         String?
-  shippingPostalCode    String?
-  shippingCountry       String?   @default("Canada")
+  shippingAddressLine1 String?
+  shippingAddressLine2 String?
+  shippingCity         String?
+  shippingState        String?
+  shippingPostalCode   String?
+  shippingCountry      String?  @default("Canada")
 
   // Relations
   bookings             Booking[]
   orders               Order[]
   wishlist             Wishlist[]
-  subscribers          Subscriber[]   // ← new relation
+  subscribers          Subscriber[]
 }
 
 // ====================== PRODUCTS & SERVICES ======================
 model Product {
-  id               Int      @id @default(autoincrement())
-  name             String
-  slug             String   @unique
-  description      String?
-  price            Int
-  priceCurrency    String   @default("cad")
-  image            String?
-  category         String   @default("general")
-  inventory        Int      @default(0)
-  featured         Boolean  @default(false)
-  active           Boolean  @default(true)
-  sortOrder        Int      @default(0)
-  stripeProductId  String?
-  stripePriceId    String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  name            String
+  slug            String   @unique
+  description     String?
+  price           Int
+  priceCurrency   String   @default("cad")
+  image           String?
+  category        String   @default("general")
+  inventory       Int      @default(0)
+  featured        Boolean  @default(false)
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  stripeProductId String?
+  stripePriceId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  wishlistItems    Wishlist[]
-  orderItems       OrderItem[]
+  wishlistItems   Wishlist[]
+  orderItems      OrderItem[]
 }
 
 model Service {
-  id               Int      @id @default(autoincrement())
-  name             String
-  slug             String   @unique
-  description      String?
-  price            Int
-  priceCurrency    String   @default("cad")
-  durationMinutes  Int
-  image            String?
-  featured         Boolean  @default(false)
-  active           Boolean  @default(true)
-  sortOrder        Int      @default(0)
-  stripeProductId  String?
-  stripePriceId    String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  name            String
+  slug            String   @unique
+  description     String?
+  price           Int
+  priceCurrency   String   @default("cad")
+  durationMinutes Int
+  image           String?
+  featured        Boolean  @default(false)
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  stripeProductId String?
+  stripePriceId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 // ====================== GALLERY & HERO ======================
@@ -135,30 +135,30 @@ model StaffProfile {
 }
 
 model StaffWorkingHour {
-  id           Int      @id @default(autoincrement())
-  staffUserId  Int
-  dayOfWeek    Int
-  startTime    String
-  endTime      String
-  isWorking    Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  staffUserId Int
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  isWorking   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model StaffTimeOff {
-  id           Int      @id @default(autoincrement())
-  staffUserId  Int
-  startAt      DateTime
-  endAt        DateTime
-  reason       String?
-  createdAt    DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  staffUserId Int
+  startAt     DateTime
+  endAt       DateTime
+  reason      String?
+  createdAt   DateTime @default(now())
 }
 
 model ServiceStaffAssignment {
-  id           Int      @id @default(autoincrement())
-  serviceId    Int
-  staffUserId  Int
-  createdAt    DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  serviceId   Int
+  staffUserId Int
+  createdAt   DateTime @default(now())
 }
 
 // ====================== ORDERS ======================
@@ -180,8 +180,8 @@ model Order {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  user                LocalUser? @relation(fields: [userId], references: [id])
-  items               OrderItem[]
+  user  LocalUser? @relation(fields: [userId], references: [id])
+  items OrderItem[]
 }
 
 model OrderItem {
@@ -191,8 +191,8 @@ model OrderItem {
   quantity  Int
   price     Int
 
-  order     Order    @relation(fields: [orderId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }
 
 // ====================== BOOKINGS ======================
@@ -217,7 +217,7 @@ model Booking {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  user                   LocalUser? @relation(fields: [userId], references: [id])
+  user LocalUser? @relation(fields: [userId], references: [id])
 }
 
 // ====================== WISHLIST ======================
@@ -227,14 +227,13 @@ model Wishlist {
   productId Int
   createdAt DateTime @default(now())
 
-  user      LocalUser @relation(fields: [userId], references: [id])
-  product   Product   @relation(fields: [productId], references: [id])
+  user    LocalUser @relation(fields: [userId], references: [id])
+  product Product   @relation(fields: [productId], references: [id])
 
   @@unique([userId, productId])
 }
 
 // ====================== NEWSLETTER & CONTACT ======================
-
 enum SubscriberSource {
   REGISTRATION
   HOMEPAGE
@@ -243,34 +242,30 @@ enum SubscriberSource {
 }
 
 model Subscriber {
-  id             Int              @id @default(autoincrement())
-  email          String           @unique
-  name           String?
-  source         SubscriberSource @default(HOMEPAGE)
-
-  // Link to registered LocalUser (optional)
-  localUserId    Int?
-  localUser      LocalUser?       @relation(fields: [localUserId], references: [id], onDelete: Cascade)
-
-  isActive       Boolean          @default(true)
+  id            Int               @id @default(autoincrement())
+  email         String            @unique
+  name          String?
+  source        SubscriberSource  @default(HOMEPAGE)
+  localUserId   Int?
+  localUser     LocalUser?        @relation(fields: [localUserId], references: [id], onDelete: Cascade)
+  isActive      Boolean           @default(true)
   unsubscribedAt DateTime?
-
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   @@index([source])
   @@index([isActive])
 }
 
 model NewsletterCampaign {
-  id              Int      @id @default(autoincrement())
-  subject         String
-  htmlBody        String
-  audienceType    String   @default("selected")
-  sendToEveryone  Boolean  @default(false)
-  createdById     Int?
-  sentAt          DateTime?
-  createdAt       DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  subject       String
+  htmlBody      String
+  audienceType  String   @default("selected")
+  sendToEveryone Boolean @default(false)
+  createdById   Int?
+  sentAt        DateTime?
+  createdAt     DateTime @default(now())
 }
 
 model NewsletterRecipient {
@@ -296,6 +291,8 @@ model ContactMessage {
   followUpNotes  String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  replies        ContactReply[]   // ← ADDED
 }
 
 model ContactReply {
@@ -304,4 +301,6 @@ model ContactReply {
   sentById  Int
   body      String
   sentAt    DateTime @default(now())
+
+  message   ContactMessage @relation(fields: [messageId], references: [id])  // ← ADDED
 }
