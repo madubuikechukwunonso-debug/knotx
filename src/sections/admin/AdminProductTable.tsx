@@ -61,7 +61,6 @@ export default function AdminProductTable({
   const handleSubmit = async (formData: FormData) => {
     if (editingProduct) {
       formData.append('id', editingProduct.id.toString());
-      // Pass current image so server keeps it if no new file is uploaded
       if (editingProduct.image) {
         formData.append('currentImage', editingProduct.image);
       }
@@ -73,7 +72,6 @@ export default function AdminProductTable({
       await onCreate(formData);
     }
 
-    // Cleanup
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setModalOpen(false);
     setEditingProduct(null);
@@ -109,43 +107,43 @@ export default function AdminProductTable({
         New Product
       </button>
 
-      {/* Table */}
-      <div className="rounded-3xl border border-black/10 bg-white overflow-hidden">
-        <table className="w-full">
+      {/* MOBILE-OPTIMIZED TABLE */}
+      <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-3xl border border-black/10 bg-white">
+        <table className="w-full min-w-[640px] sm:min-w-full">
           <thead className="bg-black/5">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium">Product</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Category</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Price</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Inventory</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Status</th>
-              <th className="px-6 py-4 text-right text-xs font-medium">Actions</th>
+              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6">Product</th>
+              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6">Category</th>
+              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6">Price</th>
+              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6">Inventory</th>
+              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6">Status</th>
+              <th className="px-4 py-4 text-right text-xs font-medium sm:px-6">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {products.map((product) => (
               <tr key={product.id} className="hover:bg-black/5">
-                <td className="px-6 py-4">
+                <td className="px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-3">
                     {product.image && (
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="w-10 h-10 object-cover rounded-xl"
+                        className="w-10 h-10 object-cover rounded-xl flex-shrink-0"
                       />
                     )}
-                    <div>
-                      <p className="font-medium">{product.name}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{product.name}</p>
                       <p className="text-xs text-black/50">/{product.slug}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm capitalize">{product.category}</td>
-                <td className="px-6 py-4 font-medium">
+                <td className="px-4 py-4 text-sm capitalize sm:px-6">{product.category}</td>
+                <td className="px-4 py-4 font-medium sm:px-6">
                   ${(product.price / 100).toFixed(2)} CAD
                 </td>
-                <td className="px-6 py-4 text-sm font-medium">{product.inventory}</td>
-                <td className="px-6 py-4">
+                <td className="px-4 py-4 text-sm font-medium sm:px-6">{product.inventory}</td>
+                <td className="px-4 py-4 sm:px-6">
                   <button
                     onClick={() => handleToggle(product)}
                     className="flex items-center gap-1 text-xs"
@@ -160,7 +158,7 @@ export default function AdminProductTable({
                     </span>
                   </button>
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-4 py-4 text-right sm:px-6">
                   <button
                     onClick={() => openModal(product)}
                     className="mr-3 text-black/70 hover:text-black"
@@ -187,7 +185,7 @@ export default function AdminProductTable({
         </table>
       </div>
 
-      {/* Modal */}
+      {/* MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl max-w-lg w-full mx-auto shadow-2xl max-h-[90vh] overflow-y-auto">
@@ -196,13 +194,11 @@ export default function AdminProductTable({
                 {editingProduct ? 'Edit Product' : 'New Product'}
               </h2>
 
-              {editingProduct && <input type="hidden" name="id" value={editingProduct.id} />}
-
-              {/* ==================== IMAGE UPLOAD + CAMERA ==================== */}
+              {/* Image Upload + Camera (fixed) */}
               <div>
                 <label className="block text-xs font-medium mb-2">Product Image</label>
 
-                {/* Current image (edit mode) */}
+                {/* Current image preview */}
                 {editingProduct?.image && !previewUrl && (
                   <div className="mb-3">
                     <p className="text-xs text-black/60 mb-1">Current Image:</p>
@@ -226,11 +222,12 @@ export default function AdminProductTable({
                   </div>
                 )}
 
+                {/* FIXED INPUT - no inline comment */}
                 <input
                   type="file"
                   name="image"
                   accept="image/*"
-                  capture="environment"   {/* ← Camera scan on mobile */}
+                  capture="environment"
                   onChange={handleFileChange}
                   className="w-full text-sm file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:bg-black file:text-white hover:file:bg-black/90 cursor-pointer"
                 />
@@ -241,7 +238,7 @@ export default function AdminProductTable({
                 </p>
               </div>
 
-              {/* Rest of your form fields (unchanged) */}
+              {/* Rest of form fields (same as before) */}
               <div>
                 <label className="block text-xs font-medium mb-1">Product Name</label>
                 <input
