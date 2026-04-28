@@ -6,6 +6,7 @@ datasource db {
   provider = "postgresql"
   url = env("DATABASE_URL")
 }
+
 // ====================== USERS ======================
 model User {
   id Int @id @default(autoincrement())
@@ -22,6 +23,7 @@ model User {
   updatedAt DateTime @updatedAt
   lastSignInAt DateTime @default(now())
 }
+
 model LocalUser {
   id Int @id @default(autoincrement())
   username String @unique
@@ -50,6 +52,7 @@ model LocalUser {
   wishlist Wishlist[]
   subscribers Subscriber[]
 }
+
 // ====================== PRODUCTS & SERVICES ======================
 model Product {
   id Int @id @default(autoincrement())
@@ -71,23 +74,26 @@ model Product {
   wishlistItems Wishlist[]
   orderItems OrderItem[]
 }
+
 model Service {
-  id Int @id @default(autoincrement())
-  name String
-  slug String @unique
-  description String?
-  price Int
-  priceCurrency String @default("cad")
-  durationMinutes Int
-  image String?
-  featured Boolean @default(false)
-  active Boolean @default(true)
-  sortOrder Int @default(0)
-  stripeProductId String?
-  stripePriceId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               Int      @id @default(autoincrement())
+  name             String
+  slug             String   @unique
+  description      String?
+  price            Int      // Full service price
+  depositAmount    Int      @default(0)   // ← NEW: Deposit amount charged via Stripe
+  priceCurrency    String   @default("cad")
+  durationMinutes  Int
+  image            String?
+  featured         Boolean  @default(false)
+  active           Boolean  @default(true)
+  sortOrder        Int      @default(0)
+  stripeProductId  String?
+  stripePriceId    String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
+
 // ====================== GALLERY & HERO ======================
 model GalleryItem {
   id           Int      @id @default(autoincrement())
@@ -96,7 +102,7 @@ model GalleryItem {
   thumbnailUrl String?
   title        String?
   caption      String?
-  description  String?          // ← NEW: Description for gallery images
+  description  String?
   category     String   @default("general")
   isFeatured   Boolean  @default(false)
   isActive     Boolean  @default(true)
@@ -105,6 +111,7 @@ model GalleryItem {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
 model HeroImage {
   id Int @id @default(autoincrement())
   url String
@@ -113,6 +120,7 @@ model HeroImage {
   active Boolean @default(true)
   createdAt DateTime @default(now())
 }
+
 // ====================== STAFF ======================
 model StaffProfile {
   id Int @id @default(autoincrement())
@@ -123,6 +131,7 @@ model StaffProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 model StaffWorkingHour {
   id Int @id @default(autoincrement())
   staffUserId Int
@@ -133,6 +142,7 @@ model StaffWorkingHour {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 model StaffTimeOff {
   id Int @id @default(autoincrement())
   staffUserId Int
@@ -141,12 +151,14 @@ model StaffTimeOff {
   reason String?
   createdAt DateTime @default(now())
 }
+
 model ServiceStaffAssignment {
   id Int @id @default(autoincrement())
   serviceId Int
   staffUserId Int
   createdAt DateTime @default(now())
 }
+
 // ====================== ORDERS ======================
 model Order {
   id Int @id @default(autoincrement())
@@ -168,6 +180,7 @@ model Order {
   user LocalUser? @relation(fields: [userId], references: [id])
   items OrderItem[]
 }
+
 model OrderItem {
   id Int @id @default(autoincrement())
   orderId Int
@@ -177,6 +190,7 @@ model OrderItem {
   order Order @relation(fields: [orderId], references: [id])
   product Product @relation(fields: [productId], references: [id])
 }
+
 // ====================== BOOKINGS ======================
 model Booking {
   id Int @id @default(autoincrement())
@@ -200,6 +214,7 @@ model Booking {
   updatedAt DateTime @updatedAt
   user LocalUser? @relation(fields: [userId], references: [id])
 }
+
 // ====================== WISHLIST ======================
 model Wishlist {
   id Int @id @default(autoincrement())
@@ -210,6 +225,7 @@ model Wishlist {
   product Product @relation(fields: [productId], references: [id])
   @@unique([userId, productId])
 }
+
 // ====================== NEWSLETTER & CONTACT ======================
 enum SubscriberSource {
   REGISTRATION
@@ -217,6 +233,7 @@ enum SubscriberSource {
   CHECKOUT
   MANUAL
 }
+
 model Subscriber {
   id Int @id @default(autoincrement())
   email String @unique
@@ -231,6 +248,7 @@ model Subscriber {
   @@index([source])
   @@index([isActive])
 }
+
 model NewsletterCampaign {
   id Int @id @default(autoincrement())
   subject String
@@ -241,6 +259,7 @@ model NewsletterCampaign {
   sentAt DateTime?
   createdAt DateTime @default(now())
 }
+
 model NewsletterRecipient {
   id Int @id @default(autoincrement())
   campaignId Int
@@ -249,6 +268,7 @@ model NewsletterRecipient {
   deliveryStatus String @default("pending")
   createdAt DateTime @default(now())
 }
+
 model ContactMessage {
   id Int @id @default(autoincrement())
   name String
@@ -263,13 +283,14 @@ model ContactMessage {
   followUpNotes String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  replies ContactReply[] // ← ADDED
+  replies ContactReply[]
 }
+
 model ContactReply {
   id Int @id @default(autoincrement())
   messageId Int
   sentById Int
   body String
   sentAt DateTime @default(now())
-  message ContactMessage @relation(fields: [messageId], references: [id]) // ← ADDED
+  message ContactMessage @relation(fields: [messageId], references: [id])
 }
