@@ -267,7 +267,10 @@ export default function Dashboard() {
               <WishlistSection />
             </TabsContent>
             <TabsContent value="messages" className="mt-0">
-              <MessagesSection />
+              <MessagesSection 
+  name={user?.name || "Website Visitor"} 
+  email={user?.email || "visitor@example.com"} 
+/>
             </TabsContent>
             <TabsContent value="budget" className="mt-0">
               <BudgetSection />
