@@ -127,12 +127,12 @@ export default function MessageConversationTabs({ messages }: MessageConversatio
                 </div>
               </div>
 
-              {/* END CHAT BUTTON */}
-              <form action={endChat}>
+              {/* REDESIGNED END CHAT BUTTON – Mobile friendly */}
+              <form action={endChat} className="flex-shrink-0">
                 <input type="hidden" name="email" value={activeConversation.email} />
                 <button
                   type="submit"
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-3xl bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
+                  className="flex items-center justify-center gap-2 px-4 py-2 rounded-3xl bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-medium transition-colors sm:px-5 sm:py-2.5"
                   onClick={(e) => {
                     if (!confirm(`End chat with ${activeConversation.name} (${activeConversation.email})? This will permanently delete the entire conversation and all messages from this sender.`)) {
                       e.preventDefault();
@@ -140,7 +140,8 @@ export default function MessageConversationTabs({ messages }: MessageConversatio
                   }}
                 >
                   <Trash2 size={16} />
-                  End Chat
+                  <span className="hidden sm:inline">End Chat</span>
+                  <span className="sm:hidden">End</span>
                 </button>
               </form>
             </div>
@@ -149,7 +150,6 @@ export default function MessageConversationTabs({ messages }: MessageConversatio
             <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[radial-gradient(#e5e7eb_0.8px,transparent_1px)] bg-[length:4px_4px]">
               {[...activeConversation.allMessages].reverse().flatMap((msg) => {
                 const thread: React.ReactNode[] = [];
-
                 // Original customer message
                 thread.push(
                   <div key={`msg-${msg.id}`} className="flex justify-start">
@@ -164,7 +164,6 @@ export default function MessageConversationTabs({ messages }: MessageConversatio
                     </div>
                   </div>
                 );
-
                 // Replies
                 msg.replies.forEach((reply) => {
                   const isAdmin = reply.sentById === 1;
@@ -187,7 +186,6 @@ export default function MessageConversationTabs({ messages }: MessageConversatio
                     </div>
                   );
                 });
-
                 return thread;
               })}
             </div>
