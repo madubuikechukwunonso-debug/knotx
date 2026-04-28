@@ -1,28 +1,46 @@
+// src/lib/availability.ts
 'use server';
 
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export async function getAvailableSlots(serviceId: number, month: string) {
-  // month = "2026-05"
-  const service = await prisma.service.findUnique({ where: { id: serviceId } });
-  if (!service) return [];
+export type AvailableSlot = {
+  staffId: number;
+  staffName: string;
+  date: string;           // e.g. "2026-05-15"
+  startTime: string;      // e.g. "09:00"
+  endTime: string;        // e.g. "10:00"
+  durationMinutes: number;
+};
 
-  const assignedStaff = await prisma.serviceStaffAssignment.findMany({
-    where: { serviceId },
-    include: { staff: true },
+export async function getAvailableSlots(
+  serviceId: number,
+  month: string   // format: "2026-05"
+): Promise<AvailableSlot[]> {
+  const service = await prisma.service.findUnique({
+    where: { id: serviceId },
+    select: { slotDurationMinutes: true },
   });
 
-  const slots = [];
+  if (!service) return [];
 
-  for (const assignment of assignedStaff) {
-    const staff = assignment.staff;
-    // Get working hours, time-offs, blocked slots, existing bookings...
-    // Generate possible slots for each day in the month
-    // Filter out conflicts
-    // Push available { staffId, date, time, duration }
-  }
+  const assignments = await prisma.serviceStaffAssignment.findMany({
+    where: { serviceId },
+    include: {
+      staff: {
+        select: {
+          id: true,
+          displayName: true,
+        },
+      },
+    },
+  });
+
+  const slots: AvailableSlot[] = [];
+
+  // TODO: Expand this with real slot generation logic (working hours, blocked slots, existing bookings, etc.)
+  // For now we return empty array so the build passes and the booking page doesn't crash
 
   return slots;
 }
