@@ -29,7 +29,6 @@ export default function GalleryUploadControls() {
 
     setSelectedFiles(files);
 
-    // Create object URLs for preview
     const urls = files.map((file) => URL.createObjectURL(file));
     setPreviewUrls(urls);
   };
@@ -40,13 +39,7 @@ export default function GalleryUploadControls() {
     setUploading(true);
 
     const formData = new FormData();
-
-    // Add all selected files
-    selectedFiles.forEach((file) => {
-      formData.append('files', file);
-    });
-
-    // Add metadata
+    selectedFiles.forEach((file) => formData.append('files', file));
     if (title) formData.append('title', title);
     if (caption) formData.append('caption', caption);
     if (description) formData.append('description', description);
@@ -54,11 +47,10 @@ export default function GalleryUploadControls() {
 
     try {
       await uploadGalleryFiles(formData);
-      
-      // Cleanup previews
+
+      // Cleanup
       previewUrls.forEach((url) => URL.revokeObjectURL(url));
-      
-      // Close modal
+
       setModalOpen(false);
     } catch (error) {
       console.error('Upload failed:', error);
@@ -94,23 +86,25 @@ export default function GalleryUploadControls() {
         </button>
       </div>
 
-      {/* MODAL */}
+      {/* MODAL - NOW FULLY SCROLLABLE ON MOBILE */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-serif">Add to Gallery</h2>
-                <button
-                  onClick={closeModal}
-                  className="text-black/40 hover:text-black transition-colors"
-                >
-                  <X size={28} />
-                </button>
-              </div>
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-8 py-6 border-b">
+              <h2 className="text-2xl font-serif">Add to Gallery</h2>
+              <button
+                onClick={closeModal}
+                className="text-black/40 hover:text-black transition-colors"
+              >
+                <X size={28} />
+              </button>
+            </div>
 
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-8 space-y-8">
               {/* File selector */}
-              <label className="block border-2 border-dashed border-emerald-200 hover:border-emerald-400 rounded-3xl p-8 text-center cursor-pointer mb-6">
+              <label className="block border-2 border-dashed border-emerald-200 hover:border-emerald-400 rounded-3xl p-8 text-center cursor-pointer">
                 <input
                   type="file"
                   accept="image/*,video/*"
@@ -125,7 +119,7 @@ export default function GalleryUploadControls() {
 
               {/* Previews */}
               {previewUrls.length > 0 && (
-                <div className="grid grid-cols-3 gap-3 mb-8">
+                <div className="grid grid-cols-3 gap-3">
                   {previewUrls.map((url, i) => (
                     <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-emerald-100">
                       <img
@@ -173,26 +167,26 @@ export default function GalleryUploadControls() {
                   />
                 </div>
               </div>
+            </div>
 
-              {/* ACTION BUTTONS - NOW CLEARLY VISIBLE */}
-              <div className="flex gap-3 mt-10">
-                <button
-                  onClick={closeModal}
-                  className="flex-1 py-4 border border-black/10 rounded-3xl font-medium text-black hover:bg-black/5 transition-colors"
-                >
-                  Cancel
-                </button>
+            {/* Footer with buttons - always visible */}
+            <div className="border-t p-8 flex gap-3">
+              <button
+                onClick={closeModal}
+                className="flex-1 py-4 border border-black/10 rounded-3xl font-medium text-black hover:bg-black/5 transition-colors"
+              >
+                Cancel
+              </button>
 
-                <button
-                  onClick={handleUpload}
-                  disabled={uploading || selectedFiles.length === 0}
-                  className="flex-1 py-4 bg-black text-white rounded-3xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  {uploading
-                    ? 'Uploading...'
-                    : `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
-                </button>
-              </div>
+              <button
+                onClick={handleUpload}
+                disabled={uploading || selectedFiles.length === 0}
+                className="flex-1 py-4 bg-black text-white rounded-3xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {uploading
+                  ? 'Uploading...'
+                  : `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
+              </button>
             </div>
           </div>
         </div>
