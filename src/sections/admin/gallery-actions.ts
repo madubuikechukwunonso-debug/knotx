@@ -7,7 +7,6 @@ import { put } from '@vercel/blob';
 
 const prisma = new PrismaClient();
 
-// ====================== VERCEL BLOB UPLOAD HELPER ======================
 async function uploadGalleryMedia(file: File): Promise<string> {
   const timestamp = Date.now();
   const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -22,6 +21,9 @@ async function uploadGalleryMedia(file: File): Promise<string> {
 
 export async function uploadGalleryFiles(formData: FormData) {
   const files = formData.getAll('files') as File[];
+  const title = (formData.get('title') as string) || undefined;
+  const caption = (formData.get('caption') as string) || undefined;
+  const description = (formData.get('description') as string) || undefined;
   const category = (formData.get('category') as string) || 'general';
 
   for (const file of files) {
@@ -34,10 +36,11 @@ export async function uploadGalleryFiles(formData: FormData) {
     await prisma.galleryItem.create({
       data: {
         type,
-        title: file.name.replace(/\.\w+$/, ''),
-        caption: '',
         url,
         thumbnailUrl: url,
+        title: title || file.name.replace(/\.\w+$/, ''),
+        caption,
+        description,           // ← Now saved
         category,
         isFeatured: false,
         isActive: true,
@@ -50,6 +53,7 @@ export async function uploadGalleryFiles(formData: FormData) {
   revalidatePath('/admin');
 }
 
+// Keep your existing delete and toggle functions
 export async function deleteGalleryItem(formData: FormData) {
   const id = parseInt(formData.get('id') as string, 10);
   await prisma.galleryItem.delete({ where: { id } });
