@@ -8,7 +8,7 @@ export default function AdminGallerySection() {
   const [items, setItems] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  // Fetch all gallery items
+  // Fetch gallery items from API
   const fetchItems = async () => {
     try {
       const res = await fetch('/api/admin/gallery');
@@ -25,7 +25,7 @@ export default function AdminGallerySection() {
     fetchItems();
   }, []);
 
-  // Upload files (from picker or folder)
+  // Handle file upload (picker + folder + camera)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -35,8 +35,8 @@ export default function AdminGallerySection() {
     for (const file of files) {
       try {
         const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const base64 = buffer.toString('base64');
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const base64 = btoa(String.fromCharCode(...uint8Array)); // Browser-safe base64
         const dataUrl = `data:${file.type};base64,${base64}`;
 
         const isVideo = file.type.startsWith('video/');
@@ -60,9 +60,8 @@ export default function AdminGallerySection() {
     }
 
     setUploading(false);
-    fetchItems(); // refresh list
-    // Clear input
-    e.target.value = '';
+    fetchItems(); // Refresh list
+    e.target.value = ''; // Clear input
   };
 
   // Toggle active status
@@ -85,7 +84,7 @@ export default function AdminGallerySection() {
 
   // Delete item
   const deleteItem = async (id: number) => {
-    if (!confirm('Delete this gallery item?')) return;
+    if (!confirm('Delete this gallery item permanently?')) return;
 
     try {
       await fetch(`/api/admin/gallery?id=${id}`, { method: 'DELETE' });
@@ -146,18 +145,9 @@ export default function AdminGallerySection() {
           >
             <div className="relative aspect-square">
               {item.type === 'video' ? (
-                <video
-                  src={item.url}
-                  className="w-full h-full object-cover"
-                  muted
-                  loop
-                />
+                <video src={item.url} className="w-full h-full object-cover" muted loop />
               ) : (
-                <img
-                  src={item.url}
-                  alt={item.title || 'Gallery item'}
-                  className="w-full h-full object-cover"
-                />
+                <img src={item.url} alt={item.title || 'Gallery item'} className="w-full h-full object-cover" />
               )}
 
               {/* Badges */}
@@ -168,13 +158,9 @@ export default function AdminGallerySection() {
                   </span>
                 )}
                 {item.isActive ? (
-                  <span className="bg-emerald-500 text-white text-[10px] font-medium px-2 py-px rounded-2xl">
-                    Active
-                  </span>
+                  <span className="bg-emerald-500 text-white text-[10px] font-medium px-2 py-px rounded-2xl">Active</span>
                 ) : (
-                  <span className="bg-red-400 text-white text-[10px] font-medium px-2 py-px rounded-2xl">
-                    Hidden
-                  </span>
+                  <span className="bg-red-400 text-white text-[10px] font-medium px-2 py-px rounded-2xl">Hidden</span>
                 )}
               </div>
             </div>
@@ -215,9 +201,7 @@ export default function AdminGallerySection() {
         </div>
       )}
 
-      {uploading && (
-        <p className="text-center text-emerald-600 text-sm">Uploading files...</p>
-      )}
+      {uploading && <p className="text-center text-emerald-600 text-sm">Uploading files...</p>}
     </div>
   );
 }
