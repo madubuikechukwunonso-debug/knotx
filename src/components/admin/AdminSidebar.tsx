@@ -2,11 +2,20 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { X, DollarSign } from "lucide-react";
+import { X, DollarSign, Calendar } from "lucide-react";   // ← added Calendar icon
 
 export type AdminTabId =
-  | "overview" | "services" | "products" | "gallery" | "orders"
-  | "newsletter" | "users" | "staff" | "messages" | "bookings";
+  | "overview"
+  | "services"
+  | "products"
+  | "gallery"
+  | "orders"
+  | "newsletter"
+  | "users"
+  | "staff"
+  | "messages"
+  | "bookings"
+  | "availability";   // ← NEW: Added availability tab
 
 export type AdminTab = {
   id: AdminTabId;
@@ -21,7 +30,7 @@ type AdminSidebarProps = {
   onChange: (tab: AdminTabId) => void;
   mobileOpen: boolean;
   onClose: () => void;
-  role: string;                    // ← new prop
+  role: string;
 };
 
 function SidebarContent({
@@ -35,7 +44,7 @@ function SidebarContent({
 
   return (
     <div className="flex h-full flex-col bg-emerald-950 text-white">
-      {/* HEADER BAR – now role-aware */}
+      {/* HEADER BAR */}
       <div className="flex items-center justify-between border-b border-emerald-800 px-5 py-5 lg:px-6">
         <div className="flex items-center gap-2">
           <DollarSign className="h-7 w-7 text-emerald-400" />
@@ -57,7 +66,7 @@ function SidebarContent({
         </button>
       </div>
 
-      {/* NAV – uses the filtered tabs passed from AdminUI */}
+      {/* NAV */}
       <div className="flex-1 overflow-y-auto px-3 py-4">
         <nav className="flex flex-col gap-1">
           {tabs.map((tab) => {
@@ -76,9 +85,11 @@ function SidebarContent({
                     : "hover:bg-emerald-900/50 text-emerald-100"
                 }`}
               >
-                <div className={`h-10 w-10 flex items-center justify-center rounded-2xl transition-colors ${
-                  active ? "bg-emerald-600 text-white" : "bg-emerald-900/70 text-emerald-300"
-                }`}>
+                <div
+                  className={`h-10 w-10 flex items-center justify-center rounded-2xl transition-colors ${
+                    active ? "bg-emerald-600 text-white" : "bg-emerald-900/70 text-emerald-300"
+                  }`}
+                >
                   <Icon size={20} />
                 </div>
                 <div className="min-w-0 flex-1 pt-0.5">
