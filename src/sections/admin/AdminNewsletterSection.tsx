@@ -14,24 +14,21 @@ async function createCampaign(formData: FormData) {
 
   if (!subject || !htmlBody) return;
 
-  // Create campaign
   const campaign = await prisma.newsletterCampaign.create({
     data: {
       subject,
       htmlBody,
       audienceType: 'all',
       sendToEveryone: true,
-      createdById: 1, // TODO: replace with real admin ID from session
+      createdById: 1,
     },
   });
 
-  // Get all active subscribers
   const activeSubscribers = await prisma.subscriber.findMany({
     where: { isActive: true },
     select: { email: true, name: true },
   });
 
-  // Create recipient records
   await prisma.newsletterRecipient.createMany({
     data: activeSubscribers.map((sub) => ({
       campaignId: campaign.id,
@@ -68,7 +65,6 @@ async function addSubscriber(formData: FormData) {
 }
 
 export default async function AdminNewsletterSection() {
-  // Fetch from both sources
   const [subscribers, localUsers] = await Promise.all([
     prisma.subscriber.findMany({
       orderBy: { createdAt: 'desc' },
@@ -84,7 +80,7 @@ export default async function AdminNewsletterSection() {
       },
     }),
     prisma.localUser.findMany({
-      where: { email: { not: { equals: null } } },   // ← FIXED: correct Prisma syntax
+      where: { email: { not: null } },   // ← CORRECT SYNTAX
       select: {
         id: true,
         email: true,
@@ -94,7 +90,6 @@ export default async function AdminNewsletterSection() {
     }),
   ]);
 
-  // Merge into unified list (remove duplicates)
   const contacts = [
     ...subscribers.map((s) => ({
       id: `sub-${s.id}`,
@@ -109,7 +104,7 @@ export default async function AdminNewsletterSection() {
       .filter((u) => !subscribers.some((s) => s.email === u.email))
       .map((u) => ({
         id: `user-${u.id}`,
-        email: u.email!, // safe because of the where filter above
+        email: u.email!,
         name: u.displayName || '—',
         source: 'REGISTRATION' as const,
         isActive: true,
@@ -148,7 +143,6 @@ export default async function AdminNewsletterSection() {
               <span className="font-medium">Send New Campaign</span>
             </button>
 
-            {/* Campaign Modal */}
             <dialog id="campaign-modal" className="rounded-3xl p-0 shadow-2xl max-w-lg w-full">
               <div className="p-8">
                 <div className="flex justify-between items-center mb-6">
@@ -191,7 +185,6 @@ export default async function AdminNewsletterSection() {
               <span className="font-medium">Add Subscriber</span>
             </button>
 
-            {/* Add Subscriber Modal */}
             <dialog id="add-subscriber-modal" className="rounded-3xl p-0 shadow-2xl max-w-md w-full">
               <div className="p-8">
                 <div className="flex justify-between items-center mb-6">
@@ -262,7 +255,7 @@ export default async function AdminNewsletterSection() {
         </div>
       </div>
 
-      {/* CONTACTS TABLE (merged from both sources) */}
+      {/* CONTACTS TABLE */}
       <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
