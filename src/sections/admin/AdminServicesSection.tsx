@@ -1,8 +1,174 @@
 // src/sections/admin/AdminServicesSection.tsx
 import { PrismaClient } from '@prisma/client';
-import { Plus, Edit, Trash2, DollarSign } from 'lucide-react';
+import { revalidatePath } from 'next/cache';
+import AdminServiceTable from './AdminServiceTable'; // we'll create this next
+import { put } from '@vercel/blob';
+import { getStripe } from '@/lib/stripe';
 
 const prisma = new PrismaClient();
+
+// ====================== IMAGE UPLOAD ======================
+async function uploadServiceImage(file: File): Promise<string> {
+  const timestamp = Date.now();
+  const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const filename = `${timestamp}-${safeName}`;
+
+  const blob = await put(`services/${filename}`, file, { access: 'public' });
+  return blob.url;
+}
+
+// ====================== STRIPE SYNC (uses deposit as chargeable price) ======================
+async function syncServiceToStripe(
+  name: string,
+  description: string | undefined,
+  imageUrl: string | undefined,
+  depositAmountInCents: number,
+  existingStripeProductId?: string | null
+) {
+  const stripe = getStripe();
+
+  let stripeProductId = existingStripeProductId;
+
+  if (!stripeProductId) {
+    const product = await stripe.products.create({
+      name,
+      description: description || undefined,
+      images: imageUrl ? [imageUrl] : undefined,
+      active: true,
+    });
+    stripeProductId = product.id;
+  } else {
+    await stripe.products.update(stripeProductId, {
+      name,
+      description: description || undefined,
+      images: imageUrl ? [imageUrl] : undefined,
+    });
+  }
+
+  const price = await stripe.prices.create({
+    product: stripeProductId,
+    unit_amount: depositAmountInCents,
+    currency: 'cad',
+  });
+
+  return { stripeProductId, stripePriceId: price.id };
+}
+
+// ====================== SERVER ACTIONS ======================
+async function createService(formData: FormData) {
+  'use server';
+
+  const name = formData.get('name') as string;
+  let slug = (formData.get('slug') as string) || name.toLowerCase().replace(/\s+/g, '-');
+  const description = (formData.get('description') as string) || undefined;
+  const price = parseInt(formData.get('price') as string);           // full price
+  const depositAmount = parseInt(formData.get('depositAmount') as string) || 0;
+  const durationMinutes = parseInt(formData.get('durationMinutes') as string);
+  const imageFile = formData.get('image') as File | null;
+  const featured = formData.get('featured') === 'on';
+
+  let imageUrl: string | undefined;
+  if (imageFile && imageFile.size > 0) {
+    imageUrl = await uploadServiceImage(imageFile);
+  }
+
+  const { stripeProductId, stripePriceId } = await syncServiceToStripe(
+    name,
+    description,
+    imageUrl,
+    depositAmount
+  );
+
+  await prisma.service.create({
+    data: {
+      name,
+      slug,
+      description,
+      price,
+      depositAmount,
+      durationMinutes,
+      image: imageUrl,
+      featured,
+      active: true,
+      stripeProductId,
+      stripePriceId,
+    },
+  });
+
+  revalidatePath('/admin');
+  revalidatePath('/services'); // or whatever your booking page is
+}
+
+async function updateService(formData: FormData) {
+  'use server';
+
+  const id = parseInt(formData.get('id') as string);
+  const name = formData.get('name') as string;
+  let slug = (formData.get('slug') as string) || name.toLowerCase().replace(/\s+/g, '-');
+  const description = (formData.get('description') as string) || undefined;
+  const price = parseInt(formData.get('price') as string);
+  const depositAmount = parseInt(formData.get('depositAmount') as string) || 0;
+  const durationMinutes = parseInt(formData.get('durationMinutes') as string);
+  const imageFile = formData.get('image') as File | null;
+  const currentImage = formData.get('currentImage') as string | null;
+  const featured = formData.get('featured') === 'on';
+  const active = formData.get('active') === 'on';
+
+  let imageUrl = currentImage || undefined;
+  if (imageFile && imageFile.size > 0) {
+    imageUrl = await uploadServiceImage(imageFile);
+  }
+
+  const existing = await prisma.service.findUnique({
+    where: { id },
+    select: { stripeProductId: true },
+  });
+
+  const { stripeProductId, stripePriceId } = await syncServiceToStripe(
+    name,
+    description,
+    imageUrl,
+    depositAmount,
+    existing?.stripeProductId
+  );
+
+  await prisma.service.update({
+    where: { id },
+    data: {
+      name,
+      slug,
+      description,
+      price,
+      depositAmount,
+      durationMinutes,
+      image: imageUrl,
+      featured,
+      active,
+      stripeProductId,
+      stripePriceId,
+    },
+  });
+
+  revalidatePath('/admin');
+}
+
+async function deleteService(formData: FormData) {
+  'use server';
+  const id = parseInt(formData.get('id') as string);
+  await prisma.service.delete({ where: { id } });
+  revalidatePath('/admin');
+}
+
+async function toggleServiceActive(formData: FormData) {
+  'use server';
+  const id = parseInt(formData.get('id') as string);
+  const current = await prisma.service.findUnique({ where: { id }, select: { active: true } });
+  await prisma.service.update({
+    where: { id },
+    data: { active: !current?.active },
+  });
+  revalidatePath('/admin');
+}
 
 export default async function AdminServicesSection() {
   const services = await prisma.service.findMany({
@@ -10,130 +176,37 @@ export default async function AdminServicesSection() {
     select: {
       id: true,
       name: true,
+      slug: true,
+      description: true,
       price: true,
+      depositAmount: true,
       durationMinutes: true,
-      active: true,
-      featured: true,
       image: true,
+      featured: true,
+      active: true,
+      stripeProductId: true,
+      stripePriceId: true,
     },
   });
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-serif text-emerald-950">Services</h1>
           <p className="text-emerald-600 text-sm mt-1">
-            {services.length} service{services.length !== 1 ? 's' : ''} • Manage offerings
+            {services.length} service{services.length !== 1 ? 's' : ''} • Deposit + full price
           </p>
         </div>
-
-        <button
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm w-full sm:w-auto justify-center sm:justify-start"
-        >
-          <Plus size={20} />
-          <span className="font-medium">Add New Service</span>
-        </button>
       </div>
 
-      {/* TABLE CONTAINER */}
-      <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
-            <thead className="bg-emerald-50">
-              <tr>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Service</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Price</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Duration</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Status</th>
-                <th className="px-6 py-5 text-right font-medium text-emerald-700 whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-emerald-100">
-              {services.map((service) => (
-                <tr
-                  key={service.id}
-                  className="hover:bg-emerald-50 transition-colors group"
-                >
-                  {/* Service Name + Image */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-3">
-                      {service.image && (
-                        <img
-                          src={service.image}
-                          alt={service.name}
-                          className="h-10 w-10 object-cover rounded-2xl border border-emerald-200"
-                        />
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-medium text-emerald-950 truncate">{service.name}</p>
-                        {service.featured && (
-                          <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-px rounded-xl inline-block mt-1">
-                            Featured
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Price */}
-                  <td className="px-6 py-5">
-                    <div className="flex items-center gap-1 font-semibold text-emerald-950">
-                      <DollarSign size={16} className="text-emerald-600" />
-                      {(service.price / 100).toFixed(2)}
-                    </div>
-                  </td>
-
-                  {/* Duration */}
-                  <td className="px-6 py-5 text-emerald-600 font-medium">
-                    {service.durationMinutes} min
-                  </td>
-
-                  {/* Status */}
-                  <td className="px-6 py-5">
-                    <span
-                      className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl ${
-                        service.active
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}
-                    >
-                      {service.active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-
-                  {/* Actions */}
-                  <td className="px-6 py-5 text-right">
-                    <div className="flex items-center gap-1 justify-end">
-                      <button
-                        className="p-3 hover:bg-emerald-100 rounded-2xl transition-colors text-emerald-700"
-                        title="Edit service"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button
-                        className="p-3 hover:bg-red-100 text-red-600 rounded-2xl transition-colors"
-                        title="Delete service"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Empty state */}
-        {services.length === 0 && (
-          <div className="px-6 py-12 text-center">
-            <p className="text-emerald-500">No services found in the database yet.</p>
-            <p className="text-xs text-emerald-400 mt-2">Click “Add New Service” to get started.</p>
-          </div>
-        )}
-      </div>
+      <AdminServiceTable
+        services={services}
+        onCreate={createService}
+        onUpdate={updateService}
+        onDelete={deleteService}
+        onToggleActive={toggleServiceActive}
+      />
     </div>
   );
 }
