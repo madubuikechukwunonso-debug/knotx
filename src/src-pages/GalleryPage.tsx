@@ -1,7 +1,7 @@
 // src/src-pages/GalleryPage.tsx
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 
@@ -29,6 +29,16 @@ type Props = {
 
 export default function GalleryPage({ initialItems }: Props) {
   const [activeFilter, setActiveFilter] = useState<typeof FILTERS[number]['value']>('all');
+  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
+
+  // Close modal with ESC key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedItem(null);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
 
   const filtered = useMemo(() => {
     if (activeFilter === 'all') return initialItems;
@@ -78,6 +88,7 @@ export default function GalleryPage({ initialItems }: Props) {
           </div>
         </section>
 
+        {/* GALLERY GRID */}
         <section className="px-6 pb-20 md:px-10 lg:px-16">
           <div className="mx-auto max-w-7xl">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -93,7 +104,8 @@ export default function GalleryPage({ initialItems }: Props) {
                 filtered.map((item, index) => (
                   <article
                     key={item.id}
-                    className={`group overflow-hidden bg-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] ${
+                    onClick={() => setSelectedItem(item)}
+                    className={`group cursor-pointer overflow-hidden bg-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] ${
                       index % 5 === 0 ? 'sm:col-span-2 lg:col-span-2' : ''
                     }`}
                   >
@@ -105,7 +117,6 @@ export default function GalleryPage({ initialItems }: Props) {
                           muted
                           loop
                           playsInline
-                          autoPlay
                         />
                       ) : (
                         <img
@@ -136,6 +147,58 @@ export default function GalleryPage({ initialItems }: Props) {
       </main>
 
       <Footer />
+
+      {/* FULL-SCREEN VIEWER / LIGHTBOX */}
+      {selectedItem && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+          onClick={() => setSelectedItem(null)}
+        >
+          <div
+            className="relative max-w-5xl w-full max-h-[90vh] flex flex-col bg-white rounded-3xl overflow-hidden"
+            onClick={(e) => e.stopImmediatePropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setSelectedItem(null)}
+              className="absolute top-6 right-6 z-10 text-white bg-black/60 hover:bg-black/80 rounded-full p-3 transition-colors"
+            >
+              ✕
+            </button>
+
+            {/* Media */}
+            <div className="flex-1 flex items-center justify-center bg-black p-4">
+              {selectedItem.type === 'video' ? (
+                <video
+                  src={selectedItem.url}
+                  controls
+                  autoPlay
+                  className="max-h-[70vh] w-auto max-w-full rounded-2xl"
+                />
+              ) : (
+                <img
+                  src={selectedItem.url}
+                  alt={selectedItem.title || ''}
+                  className="max-h-[70vh] w-auto max-w-full rounded-2xl object-contain"
+                />
+              )}
+            </div>
+
+            {/* Info */}
+            <div className="p-8 bg-white">
+              {selectedItem.title && (
+                <h2 className="text-3xl font-serif text-black mb-2">{selectedItem.title}</h2>
+              )}
+              {selectedItem.caption && (
+                <p className="text-lg text-black/70 mb-3">{selectedItem.caption}</p>
+              )}
+              {selectedItem.description && (
+                <p className="text-black/60 leading-relaxed">{selectedItem.description}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
