@@ -13,29 +13,42 @@ export async function GET(req: NextRequest) {
         },
       },
     });
-
     return NextResponse.json({ messages });
   } catch (error) {
+    console.error("Error fetching messages:", error);
     return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const { message, name, email, subject } = await req.json();
+
+    // Validation
+    if (!message || typeof message !== "string" || !message.trim()) {
+      return NextResponse.json({ error: "Message content is required" }, { status: 400 });
+    }
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
 
     const newMessage = await prisma.contactMessage.create({
       data: {
-        name: body.name || "Website Visitor",
-        email: body.email || "visitor@example.com",
-        subject: body.subject || "Support Request",
-        message: body.message,
+        name: name && typeof name === "string" ? name.trim() : "Website Visitor",
+        email: email.trim().toLowerCase(),
+        subject: subject && typeof subject === "string" ? subject.trim() : null,
+        message: message.trim(),
         status: "new",
+        read: false,
       },
     });
 
-    return NextResponse.json({ success: true, message: newMessage });
+    return NextResponse.json({ 
+      success: true, 
+      message: newMessage 
+    });
   } catch (error) {
+    console.error("Error creating message:", error);
     return NextResponse.json({ error: "Failed to send message" }, { status: 500 });
   }
 }
