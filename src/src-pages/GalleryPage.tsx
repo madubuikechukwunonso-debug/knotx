@@ -148,7 +148,7 @@ export default function GalleryPage({ initialItems }: Props) {
 
       <Footer />
 
-      {/* FULL-SCREEN VIEWER / LIGHTBOX */}
+      {/* FULL-SCREEN VIEWER */}
       {selectedItem && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
@@ -156,7 +156,7 @@ export default function GalleryPage({ initialItems }: Props) {
         >
           <div
             className="relative max-w-5xl w-full max-h-[90vh] flex flex-col bg-white rounded-3xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}   {/* ← Fixed here */}
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Close button */}
             <button
