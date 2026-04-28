@@ -2,28 +2,23 @@
 import { PrismaClient } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import AdminProductTable from './AdminProductTable';
-import fs from 'fs/promises';
-import path from 'path';
-import { getStripe } from '@/lib/stripe';   // ← Stripe client
+import { put } from '@vercel/blob';           // ← NEW: Vercel Blob
+import { getStripe } from '@/lib/stripe';
 
 const prisma = new PrismaClient();
 
-// ====================== IMAGE UPLOAD HELPER ======================
+// ====================== IMAGE UPLOAD (Vercel Blob) ======================
 async function uploadProductImage(file: File): Promise<string> {
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-
   const timestamp = Date.now();
   const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const filename = `${timestamp}-${safeName}`;
 
-  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'products');
-  await fs.mkdir(uploadDir, { recursive: true });
+  // Upload to Vercel Blob (public, permanent URL)
+  const blob = await put(`products/${filename}`, file, {
+    access: 'public',
+  });
 
-  const filepath = path.join(uploadDir, filename);
-  await fs.writeFile(filepath, buffer);
-
-  return `/uploads/products/${filename}`;
+  return blob.url;   // e.g. https://your-project.vercel-storage.com/...
 }
 
 // ====================== SLUG GENERATOR ======================
@@ -47,7 +42,6 @@ async function syncToStripe(
 ) {
   const stripe = getStripe();
 
-  // 1. Create or update Stripe Product
   let stripeProductId = existingStripeProductId;
 
   if (!stripeProductId) {
@@ -66,7 +60,6 @@ async function syncToStripe(
     });
   }
 
-  // 2. Create new Price (prices are immutable in Stripe)
   const price = await stripe.prices.create({
     product: stripeProductId,
     unit_amount: priceInCents,
@@ -94,7 +87,6 @@ async function createProduct(formData: FormData) {
     imageUrl = await uploadProductImage(imageFile);
   }
 
-  // Sync to Stripe
   const { stripeProductId, stripePriceId } = await syncToStripe(
     name,
     description,
@@ -119,7 +111,7 @@ async function createProduct(formData: FormData) {
   });
 
   revalidatePath('/admin');
-  revalidatePath('/shop'); // optional – refresh shop page too
+  revalidatePath('/shop');
 }
 
 async function updateProduct(formData: FormData) {
@@ -142,13 +134,11 @@ async function updateProduct(formData: FormData) {
     imageUrl = await uploadProductImage(imageFile);
   }
 
-  // Get current product to know existing Stripe IDs
   const existingProduct = await prisma.product.findUnique({
     where: { id },
     select: { stripeProductId: true },
   });
 
-  // Sync to Stripe (new price is always created)
   const { stripeProductId, stripePriceId } = await syncToStripe(
     name,
     description,
