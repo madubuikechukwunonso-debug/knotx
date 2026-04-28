@@ -5,21 +5,16 @@ import { useMemo, useState } from 'react';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 
-// ====================== TYPE DEFINITION (matches your Prisma GalleryItem) ======================
 type GalleryItem = {
   id: number;
-  type: string;           // 'image' or 'video'
+  type: string;
   url: string;
-  thumbnailUrl?: string | null;
   title?: string | null;
   caption?: string | null;
   description?: string | null;
   category?: string | null;
-  isActive: boolean;
-  sortOrder: number;
 };
 
-// ====================== FILTERS (kept exactly as you had) ======================
 const FILTERS = [
   { label: 'All', value: 'all' },
   { label: 'Knotless', value: 'knotless' },
@@ -28,27 +23,25 @@ const FILTERS = [
   { label: 'Luxury', value: 'luxury' },
 ] as const;
 
-export default function GalleryPage() {
+type Props = {
+  initialItems: GalleryItem[];
+};
+
+export default function GalleryPage({ initialItems }: Props) {
   const [activeFilter, setActiveFilter] = useState<typeof FILTERS[number]['value']>('all');
 
-  // TODO: This will be replaced with real data fetched from Prisma (see note below)
-  // For now it's typed so the build passes
-  const galleryItems: GalleryItem[] = [];
-
-  // Filter logic (exactly like your original)
   const filtered = useMemo(() => {
-    if (activeFilter === 'all') return galleryItems;
-    return galleryItems.filter(
+    if (activeFilter === 'all') return initialItems;
+    return initialItems.filter(
       (item) => item.category?.toLowerCase() === activeFilter
     );
-  }, [activeFilter, galleryItems]);
+  }, [activeFilter, initialItems]);
 
   return (
     <>
       <Navigation />
 
       <main className="min-h-screen bg-[#f8f5f0] pt-28 text-black">
-        {/* HEADER SECTION */}
         <section className="px-6 pb-10 pt-8 md:px-10 lg:px-16">
           <div className="mx-auto max-w-7xl">
             <p className="mb-3 text-[11px] uppercase tracking-[0.35em] text-black/45">KNOTXANDKRAFTS</p>
@@ -63,7 +56,6 @@ export default function GalleryPage() {
               </div>
             </div>
 
-            {/* FILTER BUTTONS */}
             <div className="mt-10 flex flex-wrap gap-3">
               {FILTERS.map((filter) => {
                 const isActive = filter.value === activeFilter;
@@ -86,14 +78,13 @@ export default function GalleryPage() {
           </div>
         </section>
 
-        {/* GALLERY GRID - REAL DATA READY */}
         <section className="px-6 pb-20 md:px-10 lg:px-16">
           <div className="mx-auto max-w-7xl">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filtered.length === 0 ? (
                 <div className="col-span-full py-20 text-center">
                   <p className="text-black/40 text-lg">
-                    {galleryItems.length === 0
+                    {initialItems.length === 0
                       ? 'No gallery items yet. Upload some in the admin panel!'
                       : 'No items match this filter.'}
                   </p>
