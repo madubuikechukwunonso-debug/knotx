@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 // Get current logged-in user from session cookie (adjust if you use different auth)
 async function getCurrentAdmin() {
   const cookieStore = await headers();
-  const userCookie = cookieStore.get('user')?.value;
+  const userCookie = cookieStore.get('user');
   
   if (!userCookie) return null;
   
