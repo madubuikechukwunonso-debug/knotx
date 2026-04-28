@@ -1,6 +1,6 @@
 // src/app/gallery/page.tsx
-import GalleryPage from '@/src-pages/GalleryPage';
 import { PrismaClient } from '@prisma/client';
+import GalleryPage from '@/src-pages/GalleryPage';
 
 const prisma = new PrismaClient();
 
