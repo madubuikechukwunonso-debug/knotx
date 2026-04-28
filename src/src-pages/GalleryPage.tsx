@@ -156,7 +156,7 @@ export default function GalleryPage({ initialItems }: Props) {
         >
           <div
             className="relative max-w-5xl w-full max-h-[90vh] flex flex-col bg-white rounded-3xl overflow-hidden"
-            onClick={(e) => e.stopImmediatePropagation()}
+            onClick={(e) => e.stopPropagation()}   {/* ← Fixed here */}
           >
             {/* Close button */}
             <button
