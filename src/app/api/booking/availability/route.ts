@@ -34,7 +34,6 @@ export async function GET(request: Request) {
   const serviceId = searchParams.get('serviceId');
 
   if (serviceId) {
-    // Return braiders assigned to this service, or ALL enabled braiders if none assigned yet
     let assignments = await prisma.serviceStaffAssignment.findMany({
       where: { serviceId: Number(serviceId) },
       include: {
@@ -129,7 +128,7 @@ export async function POST(request: Request) {
       if (!profile.bookingEnabled) continue;
 
       // Get working hours for this day
-      const working = await prisma.staffWorkingHour.findFirst({
+      let working = await prisma.staffWorkingHour.findFirst({
         where: {
           staffUserId: profile.id,
           dayOfWeek,
@@ -137,8 +136,22 @@ export async function POST(request: Request) {
         },
       });
 
-      // Fallback: if no explicit working hours for this day, use default 9am-5pm
-      // (so all dates are available by default unless explicitly set to isWorking=false or blocked)
+      // If no hours for this specific day, fall back to the first available working hours record for this staff
+      // (respects the admin's customized schedule instead of always defaulting to 9-5)
+      if (!working) {
+        const firstAvailable = await prisma.staffWorkingHour.findFirst({
+          where: {
+            staffUserId: profile.id,
+            isWorking: true,
+          },
+          orderBy: { dayOfWeek: 'asc' },
+        });
+        if (firstAvailable) {
+          working = firstAvailable;
+        }
+      }
+
+      // Final fallback only if the staff has no working hours at all
       const workingHours = working || {
         startTime: '09:00',
         endTime: '17:00',
