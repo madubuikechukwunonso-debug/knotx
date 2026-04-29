@@ -32,8 +32,9 @@ export async function GET(request: Request) {
   const serviceId = searchParams.get('serviceId');
 
   if (serviceId) {
-    // Return braiders/staff assigned to this service (for BookingPage braider selection)
-    const assignments = await prisma.serviceStaffAssignment.findMany({
+    // Return braiders assigned to this service, or ALL enabled braiders if none assigned yet
+    // (this ensures newly created admin braiders with working hours appear immediately)
+    let assignments = await prisma.serviceStaffAssignment.findMany({
       where: { serviceId: Number(serviceId) },
       include: {
         staff: {
@@ -47,9 +48,17 @@ export async function GET(request: Request) {
       },
     });
 
+    if (assignments.length === 0) {
+      const allEnabledStaff = await prisma.staffProfile.findMany({
+        where: { bookingEnabled: true },
+        select: { id: true, displayName: true, bio: true, bookingEnabled: true },
+      });
+      assignments = allEnabledStaff.map((staff: any) => ({ staff })) as any;
+    }
+
     const braiders = assignments
-      .filter(a => a.staff.bookingEnabled)
-      .map(a => ({
+      .filter((a: any) => a.staff.bookingEnabled)
+      .map((a: any) => ({
         staffUserId: a.staff.id,
         name: a.staff.displayName,
         bio: a.staff.bio,
