@@ -53,6 +53,7 @@ export default function BookingPage() {
         .then(r => r.json())
         .then(d => setBraiders(d.braiders || []))
         .catch(() => setBraiders([]));
+      // reset downstream
       setSelectedBraiderId(undefined);
       setSelectedBraiderName('');
       setSelectedDate('');
@@ -107,7 +108,7 @@ export default function BookingPage() {
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
     if (!user) {
-      setShowGuestWarning(false);
+      setShowGuestWarning(false); // show the guest warning prompt first
     }
   };
 
@@ -118,7 +119,7 @@ export default function BookingPage() {
     setCheckoutLoading(true);
     try {
       const selectedServiceData = services.find(s => s.id === selectedService);
-      const depositAmount = selectedServiceData?.depositAmount || Math.round((selectedServiceData?.price || 0) * 0.3);
+      const depositAmount = selectedServiceData?.depositAmount || Math.round((selectedServiceData?.price || 0) * 0.3); // fallback 30%
 
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -142,7 +143,7 @@ export default function BookingPage() {
 
       const data = await response.json();
       if (data.url) {
-        window.location.href = data.url;
+        window.location.href = data.url; // Redirect to Stripe Checkout
       } else {
         throw new Error(data.message || 'Failed to create checkout session');
       }
@@ -207,13 +208,12 @@ export default function BookingPage() {
                     className={`border overflow-hidden text-left transition-all ${selectedService === service.id ? 'border-black bg-black text-white' : 'border-black/10 hover:border-black/30'}`}
                   >
                     {service.image && (
-                      <div className="relative h-32 w-full overflow-hidden">
+                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
                         <img 
                           src={service.image} 
                           alt={service.name}
-                          className="absolute inset-0 w-full h-full object-cover"
+                          className="absolute inset-0 w-full h-full object-contain"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                       </div>
                     )}
                     <div className="p-4">
