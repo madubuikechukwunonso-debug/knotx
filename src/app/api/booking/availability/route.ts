@@ -128,7 +128,8 @@ export async function POST(request: Request) {
       const profile = assignment.staff;
       if (!profile.bookingEnabled) continue;
 
-      const working = await prisma.staffWorkingHour.findFirst({
+      // Get working hours for this day
+      let working = await prisma.staffWorkingHour.findFirst({
         where: {
           staffUserId: profile.id,
           dayOfWeek,
@@ -136,8 +137,16 @@ export async function POST(request: Request) {
         },
       });
 
-      if (!working) continue;
+      // Fallback: if no explicit working hours for this day, use default 9am-5pm
+      // (so all dates are available by default unless explicitly set to isWorking=false or blocked)
+      if (!working) {
+        working = {
+          startTime: '09:00',
+          endTime: '17:00',
+        } as any;
+      }
 
+      // Check if the entire day is blocked (StaffTimeOff or BlockedSlot)
       const hasFullDayBlock = await prisma.staffTimeOff.findFirst({
         where: {
           staffUserId: profile.id,
@@ -155,6 +164,7 @@ export async function POST(request: Request) {
 
       if (hasFullDayBlock || hasBlockedSlot) continue;
 
+      // Get existing bookings for this staff on this date
       const existingBookings = await prisma.booking.findMany({
         where: {
           staffUserId: profile.id,
@@ -166,9 +176,11 @@ export async function POST(request: Request) {
 
       const bookedTimes = new Set(existingBookings.map(b => b.time));
 
+      // Generate slots using slotDurationMinutes (or fallback to durationMinutes)
       const stepMinutes = service.slotDurationMinutes || service.durationMinutes;
       const allSlots = buildSlots(working.startTime, working.endTime, stepMinutes);
 
+      // Filter out booked times
       const freeSlots = allSlots
         .filter(slot => !bookedTimes.has(slot))
         .map(slot => ({
