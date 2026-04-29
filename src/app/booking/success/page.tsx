@@ -39,7 +39,6 @@ function SuccessContent() {
             <ul className="space-y-2 text-sm text-emerald-800">
               <li>• You&apos;ll receive a confirmation email shortly</li>
               <li>• The braider will contact you to confirm the exact time</li>
-              <li>• Sign up with the same email to track this booking anytime</li>
             </ul>
           </div>
 
