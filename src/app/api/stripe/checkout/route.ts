@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         customerPhone: customerPhone || '',
         notes: notes || '',
         userId: userId?.toString() || '',
-        userType: userType || 'guest',
+        userType: userType && (userType === 'local' || userType === 'oauth') ? userType : '',
         serviceName: serviceName || service.name,
         fullPrice: service.price.toString(),
       },
