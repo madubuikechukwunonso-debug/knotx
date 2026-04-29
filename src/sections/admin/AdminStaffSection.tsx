@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Calendar, User, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -12,7 +12,7 @@ type Staff = {
   createdAt: Date;
 };
 
-export default function AdminStaffSection({ initialStaff }: { initialStaff: Staff[] }) {
+export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?: Staff[] }) {
   const router = useRouter();
   const [staff, setStaff] = useState<Staff[]>(initialStaff);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -24,6 +24,27 @@ export default function AdminStaffSection({ initialStaff }: { initialStaff: Staf
     bookingEnabled: true,
   });
   const [loading, setLoading] = useState(false);
+
+  // Load initial staff data from API if no initialStaff was provided (e.g. when used in AdminSubPage)
+  useEffect(() => {
+    const loadStaff = async () => {
+      try {
+        const response = await fetch('/api/admin/staff');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ok && Array.isArray(data.staff)) {
+            setStaff(data.staff);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load staff:', error);
+      }
+    };
+
+    if (initialStaff.length === 0) {
+      loadStaff();
+    }
+  }, [initialStaff]);
 
   const openCreateModal = () => {
     setFormData({ displayName: '', bio: '', bookingEnabled: true });
@@ -58,7 +79,8 @@ export default function AdminStaffSection({ initialStaff }: { initialStaff: Staf
       });
 
       if (response.ok) {
-        const newStaff = await response.json();
+        const data = await response.json();
+        const newStaff = data.staff || data; // handle both {ok, staff} or direct object
         setStaff([newStaff, ...staff]);
         closeModals();
         router.refresh();
@@ -86,7 +108,8 @@ export default function AdminStaffSection({ initialStaff }: { initialStaff: Staf
       });
 
       if (response.ok) {
-        const updatedStaff = await response.json();
+        const data = await response.json();
+        const updatedStaff = data.staff || data;
         setStaff(staff.map(s => s.id === selectedStaff.id ? updatedStaff : s));
         closeModals();
         router.refresh();
