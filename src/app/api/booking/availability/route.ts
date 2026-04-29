@@ -34,6 +34,8 @@ export async function GET(request: Request) {
   const serviceId = searchParams.get('serviceId');
 
   if (serviceId) {
+    // Return braiders assigned to this service, or ALL enabled braiders if none assigned yet
+    // (this ensures newly created admin braiders with working hours appear immediately)
     let assignments = await prisma.serviceStaffAssignment.findMany({
       where: { serviceId: Number(serviceId) },
       include: {
@@ -89,7 +91,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { date, serviceId, staffUserId } = body;
+    const { date, serviceId, staffUserId } = body; // staffUserId is now optional for filtering to a specific braider
 
     if (!date || !serviceId) {
       return NextResponse.json({ ok: false, message: 'date and serviceId are required' }, { status: 400 });
@@ -105,6 +107,7 @@ export async function POST(request: Request) {
 
     const dayOfWeek = dayOfWeekFromDate(date);
 
+    // Get staff assigned to this service (filter by staffUserId if provided)
     const assignments = await prisma.serviceStaffAssignment.findMany({
       where: { 
         serviceId: Number(serviceId),
@@ -127,7 +130,7 @@ export async function POST(request: Request) {
       const profile = assignment.staff;
       if (!profile.bookingEnabled) continue;
 
-      // Get working hours for this day
+      // Get working hours for this day (exact match first)
       let working = await prisma.staffWorkingHour.findFirst({
         where: {
           staffUserId: profile.id,
@@ -136,25 +139,22 @@ export async function POST(request: Request) {
         },
       });
 
-      // If no hours for this specific day, fall back to the first available working hours record for this staff
-      // (respects the admin's customized schedule instead of always defaulting to 9-5)
+      // Fallback 1: If no exact day match, use ANY available working hours for this staff
+      // (this guarantees custom hours from Availability section are always respected)
       if (!working) {
-        const firstAvailable = await prisma.staffWorkingHour.findFirst({
+        working = await prisma.staffWorkingHour.findFirst({
           where: {
             staffUserId: profile.id,
             isWorking: true,
           },
           orderBy: { dayOfWeek: 'asc' },
         });
-        if (firstAvailable) {
-          working = firstAvailable;
-        }
       }
 
-      // Final fallback only if the staff has no working hours at all
+      // Fallback 2: Only use generic 8am-10pm if the braider has ZERO working hours saved
       const workingHours = working || {
-        startTime: '09:00',
-        endTime: '17:00',
+        startTime: '08:00',
+        endTime: '22:00',
       };
 
       // Check if the entire day is blocked (StaffTimeOff or BlockedSlot)
