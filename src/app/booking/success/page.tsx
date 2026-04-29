@@ -5,11 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
+import { useAuth } from '@/hooks/useAuth';
 import { CheckCircle } from 'lucide-react';
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-white">
@@ -47,20 +49,22 @@ function SuccessContent() {
             </p>
           )}
 
-          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-left">
-            <p className="mb-3 text-sm font-medium text-amber-800">
-              Guest booking confirmed
-            </p>
-            <p className="text-sm text-amber-700">
-              You booked as a guest. Create a free account with the same email you used to track this booking, reschedule, or view updates in real time.
-            </p>
-            <Link 
-              href="/register" 
-              className="mt-4 inline-flex w-full items-center justify-center rounded-2xl border border-amber-600 bg-white px-6 py-2.5 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-100"
-            >
-              Create Free Account
-            </Link>
-          </div>
+          {!user && (
+            <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-left">
+              <p className="mb-3 text-sm font-medium text-amber-800">
+                Guest booking confirmed
+              </p>
+              <p className="text-sm text-amber-700">
+                You booked as a guest. Create a free account with the same email you used to track this booking, reschedule, or view updates in real time.
+              </p>
+              <Link 
+                href="/register" 
+                className="mt-4 inline-flex w-full items-center justify-center rounded-2xl border border-amber-600 bg-white px-6 py-2.5 text-sm font-medium text-amber-700 transition-colors hover:bg-amber-100"
+              >
+                Create Free Account
+              </Link>
+            </div>
+          )}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link 
