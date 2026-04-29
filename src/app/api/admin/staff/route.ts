@@ -47,11 +47,13 @@ export async function POST(request: NextRequest) {
     
     if (!userId) {
       // Create a new user for this staff member
+      const username = displayName.toLowerCase().replace(/\s+/g, '');
       const newUser = await prisma.localUser.create({
         data: {
-          email: `${displayName.toLowerCase().replace(/\s+/g, '')}@staff.local`,
-          name: displayName,
-          password: 'staff-default-password', // Should be changed by user
+          username,
+          email: `${username}@staff.local`,
+          displayName,
+          passwordHash: 'staff-default-password', // Should be changed by user
         },
       });
       userId = newUser.id;
