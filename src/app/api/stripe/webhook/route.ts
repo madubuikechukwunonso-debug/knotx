@@ -51,20 +51,27 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true });
       }
 
-      // Create the booking now that payment is successful
-      const booking = await createBooking({
-        customerName: metadata.customerName || 'Guest',
-        customerEmail: metadata.customerEmail || '',
-        customerPhone: metadata.customerPhone || undefined,
-        serviceId,
-        staffUserId,
-        date: metadata.date,
-        time: metadata.time,
-        notes: metadata.notes || undefined,
-        userId: metadata.userId ? parseInt(metadata.userId) : undefined,
-        userType: metadata.userType && (metadata.userType === 'local' || metadata.userType === 'oauth') 
-          ? (metadata.userType as 'local' | 'oauth') 
-          : undefined,
+      // Create the booking directly (skip availability check since payment was already made)
+      const booking = await prisma.booking.create({
+        data: {
+          customerName: metadata.customerName || 'Guest',
+          customerEmail: metadata.customerEmail || '',
+          customerPhone: metadata.customerPhone || undefined,
+          serviceId,
+          staffUserId,
+          serviceType: metadata.serviceName || 'Service',
+          durationMinutes: 60,
+          price: parseInt(metadata.fullPrice || '0'),
+          date: metadata.date,
+          time: metadata.time,
+          status: 'pending',
+          paymentStatus: 'unpaid',
+          notes: metadata.notes || undefined,
+          userId: metadata.userId ? parseInt(metadata.userId) : undefined,
+          userType: metadata.userType && (metadata.userType === 'local' || metadata.userType === 'oauth') 
+            ? (metadata.userType as 'local' | 'oauth') 
+            : undefined,
+        },
       });
 
       // Update booking with payment info
