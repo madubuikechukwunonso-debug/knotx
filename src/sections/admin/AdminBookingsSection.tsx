@@ -8,21 +8,22 @@ const prisma = new PrismaClient();
 async function getBookings() {
   return prisma.booking.findMany({
     orderBy: { createdAt: 'desc' },
-    include: {
-      service: {
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          durationMinutes: true,
-        },
-      },
-      staff: {
-        select: {
-          id: true,
-          displayName: true,
-        },
-      },
+    select: {
+      id: true,
+      customerName: true,
+      customerEmail: true,
+      customerPhone: true,
+      serviceType: true,
+      durationMinutes: true,
+      price: true,
+      date: true,
+      time: true,
+      status: true,
+      paymentStatus: true,
+      notes: true,
+      createdAt: true,
+      serviceId: true,
+      staffUserId: true,
     },
   });
 }
