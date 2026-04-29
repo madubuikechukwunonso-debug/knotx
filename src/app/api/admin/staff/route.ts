@@ -42,8 +42,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create or link to a user
+    let userId = body.userId;
+    
+    if (!userId) {
+      // Create a new user for this staff member
+      const newUser = await prisma.localUser.create({
+        data: {
+          email: `${displayName.toLowerCase().replace(/\s+/g, '')}@staff.local`,
+          name: displayName,
+          password: 'staff-default-password', // Should be changed by user
+        },
+      });
+      userId = newUser.id;
+    }
+
     const newStaff = await prisma.staffProfile.create({
       data: {
+        userId,
         displayName,
         bio: bio || null,
         bookingEnabled: bookingEnabled ?? true,
