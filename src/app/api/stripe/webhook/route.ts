@@ -26,16 +26,40 @@ export async function POST(request: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = session.metadata || {};
 
+    // Check if booking already exists (idempotency for webhook retries)
+    const existingBooking = await prisma.booking.findFirst({
+      where: { stripeCheckoutSessionId: session.id },
+    });
+
+    if (existingBooking) {
+      console.log(`Booking already exists for session ${session.id}`);
+      return NextResponse.json({ received: true });
+    }
+
     try {
+      // Validate required metadata
+      if (!metadata.serviceId || !metadata.staffUserId || !metadata.date || !metadata.time) {
+        console.error('Missing required metadata for booking creation', metadata);
+        return NextResponse.json({ received: true });
+      }
+
+      const serviceId = parseInt(metadata.serviceId);
+      const staffUserId = parseInt(metadata.staffUserId);
+
+      if (isNaN(serviceId) || isNaN(staffUserId)) {
+        console.error('Invalid serviceId or staffUserId in metadata', metadata);
+        return NextResponse.json({ received: true });
+      }
+
       // Create the booking now that payment is successful
       const booking = await createBooking({
         customerName: metadata.customerName || 'Guest',
         customerEmail: metadata.customerEmail || '',
         customerPhone: metadata.customerPhone || undefined,
-        serviceId: parseInt(metadata.serviceId || '0'),
-        staffUserId: parseInt(metadata.staffUserId || '0'),
-        date: metadata.date || '',
-        time: metadata.time || '',
+        serviceId,
+        staffUserId,
+        date: metadata.date,
+        time: metadata.time,
         notes: metadata.notes || undefined,
         userId: metadata.userId ? parseInt(metadata.userId) : undefined,
         userType: metadata.userType && (metadata.userType === 'local' || metadata.userType === 'oauth') 
