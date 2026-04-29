@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Calendar, Clock, Check, ArrowLeft, User } from 'lucide-react';
 
 type Slot = { staffUserId: number; staffName: string; time: string };
-type Service = { id: number; name: string; durationMinutes: number; price: number; depositAmount?: number };
+type Service = { id: number; name: string; durationMinutes: number; price: number; depositAmount?: number; image?: string | null };
 type Braider = { staffUserId: number; name: string; bio?: string | null };
 
 export default function BookingPage() {
@@ -53,7 +53,6 @@ export default function BookingPage() {
         .then(r => r.json())
         .then(d => setBraiders(d.braiders || []))
         .catch(() => setBraiders([]));
-      // reset downstream
       setSelectedBraiderId(undefined);
       setSelectedBraiderName('');
       setSelectedDate('');
@@ -108,7 +107,7 @@ export default function BookingPage() {
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
     if (!user) {
-      setShowGuestWarning(false); // show the guest warning prompt first
+      setShowGuestWarning(false);
     }
   };
 
@@ -119,7 +118,7 @@ export default function BookingPage() {
     setCheckoutLoading(true);
     try {
       const selectedServiceData = services.find(s => s.id === selectedService);
-      const depositAmount = selectedServiceData?.depositAmount || Math.round((selectedServiceData?.price || 0) * 0.3); // fallback 30%
+      const depositAmount = selectedServiceData?.depositAmount || Math.round((selectedServiceData?.price || 0) * 0.3);
 
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -143,7 +142,7 @@ export default function BookingPage() {
 
       const data = await response.json();
       if (data.url) {
-        window.location.href = data.url; // Redirect to Stripe Checkout
+        window.location.href = data.url;
       } else {
         throw new Error(data.message || 'Failed to create checkout session');
       }
@@ -205,13 +204,25 @@ export default function BookingPage() {
                     key={service.id}
                     type="button"
                     onClick={() => handleServiceSelect(service.id)}
-                    className={`border p-4 text-left transition-all ${selectedService === service.id ? 'border-black bg-black text-white' : 'border-black/10 hover:border-black/30'}`}
+                    className={`border overflow-hidden text-left transition-all ${selectedService === service.id ? 'border-black bg-black text-white' : 'border-black/10 hover:border-black/30'}`}
                   >
-                    <p className="text-sm font-medium">{service.name}</p>
-                    <p className={`mt-1 text-xs ${selectedService === service.id ? 'text-white/60' : 'text-black/40'}`}>
-                      {Math.round(service.durationMinutes / 60)} hrs · ${(service.price / 100).toFixed(0)} 
-                      {service.depositAmount ? ` (Deposit $${(service.depositAmount / 100).toFixed(0)})` : ''}
-                    </p>
+                    {service.image && (
+                      <div className="relative h-32 w-full overflow-hidden">
+                        <img 
+                          src={service.image} 
+                          alt={service.name}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      </div>
+                    )}
+                    <div className="p-4">
+                      <p className="text-sm font-medium">{service.name}</p>
+                      <p className={`mt-1 text-xs ${selectedService === service.id ? 'text-white/60' : 'text-black/40'}`}>
+                        {Math.round(service.durationMinutes / 60)} hrs · ${(service.price / 100).toFixed(0)} 
+                        {service.depositAmount ? ` (Deposit $${(service.depositAmount / 100).toFixed(0)})` : ''}
+                      </p>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -303,7 +314,7 @@ export default function BookingPage() {
                   <h3 className="text-xl font-serif text-amber-900">Sign in to track your booking</h3>
                 </div>
                 <p className="text-amber-800 text-sm leading-relaxed">
-                  You're not currently signed in. Signing in allows you to track your service in real-time, receive instant updates, manage appointments, and view your booking history.
+                  You&apos;re not currently signed in. Signing in allows you to track your service in real-time, receive instant updates, manage appointments, and view your booking history.
                 </p>
                 <div className="bg-white/80 border border-amber-200 rounded-2xl p-4 text-sm text-amber-700">
                   <strong>Warning:</strong> If you continue as a guest, you won&apos;t be able to keep track of your service in real time. We&apos;ll still email you confirmation and updates, but you won&apos;t have a live dashboard.
