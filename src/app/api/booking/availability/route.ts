@@ -108,7 +108,7 @@ export async function POST(request: Request) {
     const dayOfWeek = dayOfWeekFromDate(date);
 
     // Get staff assigned to this service (filter by staffUserId if provided)
-    const assignments = await prisma.serviceStaffAssignment.findMany({
+    let assignments = await prisma.serviceStaffAssignment.findMany({
       where: { 
         serviceId: Number(serviceId),
         ...(staffUserId ? { staffUserId: Number(staffUserId) } : {})
@@ -123,6 +123,16 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    // Fallback: If no ServiceStaffAssignment records exist for this service,
+    // treat ALL enabled braiders as available (so custom hours always work)
+    if (assignments.length === 0) {
+      const allEnabled = await prisma.staffProfile.findMany({
+        where: { bookingEnabled: true },
+        select: { id: true, displayName: true, bookingEnabled: true },
+      });
+      assignments = allEnabled.map(staff => ({ staff })) as any;
+    }
 
     const availableByStaff: any[] = [];
 
