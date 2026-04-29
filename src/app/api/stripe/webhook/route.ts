@@ -38,7 +38,9 @@ export async function POST(request: NextRequest) {
         time: metadata.time || '',
         notes: metadata.notes || undefined,
         userId: metadata.userId ? parseInt(metadata.userId) : undefined,
-        userType: metadata.userType || 'guest',
+        userType: metadata.userType && (metadata.userType === 'local' || metadata.userType === 'oauth') 
+          ? (metadata.userType as 'local' | 'oauth') 
+          : undefined,
       });
 
       // Update booking with payment info
