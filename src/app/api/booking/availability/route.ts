@@ -19,11 +19,13 @@ function minutesToTime(value: number): string {
   return `${hours}:${minutes}`;
 }
 
-function buildSlots(startTime: string, endTime: string, stepMinutes: number): string[] {
+function buildSlots(startTime: string, endTime: string, stepMinutes: number, serviceDurationMinutes: number): string[] {
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
   const slots: string[] = [];
-  for (let current = start; current + stepMinutes <= end; current += stepMinutes) {
+  // Last possible start time = endTime - serviceDurationMinutes
+  const latestStart = end - serviceDurationMinutes;
+  for (let current = start; current <= latestStart; current += stepMinutes) {
     slots.push(minutesToTime(current));
   }
   return slots;
@@ -140,8 +142,8 @@ export async function POST(request: Request) {
       const profile = assignment.staff;
       if (!profile.bookingEnabled) continue;
 
-      // Get working hours for this day (exact match first)
-      let working = await prisma.staffWorkingHour.findFirst({
+      // Only use exact working hours for this day (no fallbacks at all)
+      const working = await prisma.staffWorkingHour.findFirst({
         where: {
           staffUserId: profile.id,
           dayOfWeek,
@@ -149,23 +151,10 @@ export async function POST(request: Request) {
         },
       });
 
-      // Fallback 1: If no exact day match, use ANY available working hours for this staff
-      // (this guarantees custom hours from Availability section are always respected)
-      if (!working) {
-        working = await prisma.staffWorkingHour.findFirst({
-          where: {
-            staffUserId: profile.id,
-            isWorking: true,
-          },
-          orderBy: { dayOfWeek: 'asc' },
-        });
-      }
+      // If no exact match for this day (e.g. Sunday is closed), skip this braider completely
+      if (!working) continue;
 
-      // Fallback 2: Only use generic 8am-10pm if the braider has ZERO working hours saved
-      const workingHours = working || {
-        startTime: '08:00',
-        endTime: '22:00',
-      };
+      const workingHours = working;
 
       // Check if the entire day is blocked (StaffTimeOff or BlockedSlot)
       const hasFullDayBlock = await prisma.staffTimeOff.findFirst({
@@ -199,7 +188,7 @@ export async function POST(request: Request) {
 
       // Generate slots using slotDurationMinutes (or fallback to durationMinutes)
       const stepMinutes = service.slotDurationMinutes || service.durationMinutes;
-      const allSlots = buildSlots(workingHours.startTime, workingHours.endTime, stepMinutes);
+      const allSlots = buildSlots(workingHours.startTime, workingHours.endTime, stepMinutes, service.durationMinutes);
 
       // Filter out booked times
       const freeSlots = allSlots
