@@ -27,7 +27,37 @@ function buildSlots(startTime: string, endTime: string, stepMinutes: number): st
   return slots;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const serviceId = searchParams.get('serviceId');
+
+  if (serviceId) {
+    // Return braiders/staff assigned to this service (for BookingPage braider selection)
+    const assignments = await prisma.serviceStaffAssignment.findMany({
+      where: { serviceId: Number(serviceId) },
+      include: {
+        staff: {
+          select: {
+            id: true,
+            displayName: true,
+            bookingEnabled: true,
+            bio: true,
+          },
+        },
+      },
+    });
+
+    const braiders = assignments
+      .filter(a => a.staff.bookingEnabled)
+      .map(a => ({
+        staffUserId: a.staff.id,
+        name: a.staff.displayName,
+        bio: a.staff.bio,
+      }));
+
+    return NextResponse.json({ ok: true, braiders });
+  }
+
   const services = await prisma.service.findMany({
     where: { active: true },
     orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -50,7 +80,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { date, serviceId } = body;
+    const { date, serviceId, staffUserId } = body; // staffUserId is now optional for filtering to a specific braider
 
     if (!date || !serviceId) {
       return NextResponse.json({ ok: false, message: 'date and serviceId are required' }, { status: 400 });
@@ -66,9 +96,12 @@ export async function POST(request: Request) {
 
     const dayOfWeek = dayOfWeekFromDate(date);
 
-    // Get all staff assigned to this service
+    // Get staff assigned to this service (filter by staffUserId if provided)
     const assignments = await prisma.serviceStaffAssignment.findMany({
-      where: { serviceId: Number(serviceId) },
+      where: { 
+        serviceId: Number(serviceId),
+        ...(staffUserId ? { staffUserId: Number(staffUserId) } : {})
+      },
       include: {
         staff: {
           select: {
