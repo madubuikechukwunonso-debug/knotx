@@ -1,4 +1,3 @@
-// src/sections/admin/AdminBookingsSection.tsx
 import { PrismaClient } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import AdminBookingTable from './AdminBookingTable';
@@ -9,20 +8,21 @@ const prisma = new PrismaClient();
 async function getBookings() {
   return prisma.booking.findMany({
     orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      customerName: true,
-      customerEmail: true,
-      customerPhone: true,
-      serviceType: true,
-      durationMinutes: true,
-      price: true,
-      date: true,
-      time: true,
-      status: true,
-      paymentStatus: true,
-      notes: true,
-      createdAt: true,
+    include: {
+      service: {
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          durationMinutes: true,
+        },
+      },
+      staff: {
+        select: {
+          id: true,
+          displayName: true,
+        },
+      },
     },
   });
 }
@@ -30,7 +30,6 @@ async function getBookings() {
 // ====================== SERVER ACTIONS ======================
 async function createBooking(formData: FormData) {
   'use server';
-
   await prisma.booking.create({
     data: {
       customerName: formData.get('customerName') as string,
@@ -46,15 +45,12 @@ async function createBooking(formData: FormData) {
       notes: (formData.get('notes') as string) || undefined,
     },
   });
-
   revalidatePath('/admin/bookings');
 }
 
 async function updateBooking(formData: FormData) {
   'use server';
-
   const id = parseInt(formData.get('id') as string);
-
   await prisma.booking.update({
     where: { id },
     data: {
@@ -71,7 +67,6 @@ async function updateBooking(formData: FormData) {
       notes: (formData.get('notes') as string) || undefined,
     },
   });
-
   revalidatePath('/admin/bookings');
 }
 
@@ -84,7 +79,6 @@ async function deleteBooking(formData: FormData) {
 
 export default async function AdminBookingsSection() {
   const bookings = await getBookings();
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* HEADER */}
@@ -95,7 +89,6 @@ export default async function AdminBookingsSection() {
             {bookings.length} booking{bookings.length !== 1 ? 's' : ''} • Appointments & reservations
           </p>
         </div>
-
         {/* The button is now inside AdminBookingTable — but we keep a visual header button for consistency */}
         <div className="flex items-center gap-3">
           <span className="text-xs text-emerald-500 hidden sm:inline">Click “New Booking” below</span>
