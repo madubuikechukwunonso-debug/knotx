@@ -37,9 +37,6 @@ export async function POST(request: Request) {
       braiderName,
     } = body;
 
-    // ============================================
-    // FIX: Calculate totals correctly
-    // ============================================
     const addonsTotal = selectedAddons?.reduce((sum, addon) =>
       sum + (addon.price * addon.quantity), 0) || 0;
    
@@ -49,9 +46,6 @@ export async function POST(request: Request) {
 
     const formatCurrency = (amount: number) => `$${(amount / 100).toFixed(2)} CAD`;
 
-    // ============================================
-    // MAILTRAP CONFIGURATION
-    // ============================================
     const TOKEN = process.env.MAILTRAP_TOKEN;
 
     if (!TOKEN) {
@@ -73,7 +67,6 @@ export async function POST(request: Request) {
       name: process.env.MAILTRAP_FROM_NAME || "KnotXandKrafts",
     };
 
-    // Build addons HTML
     let addonsHtml = '';
     if (selectedAddons && selectedAddons.length > 0) {
       addonsHtml = selectedAddons.map(addon => `
@@ -95,9 +88,7 @@ export async function POST(request: Request) {
           <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
             
             <!-- Header -->
-            <div style="background: linear-gradient(135deg, #111 0%, #1a1a1a 100%); color: white; padding: 32px 40px; text-align: center; position: relative;">
-              <div style="position: absolute; top: 10px; left: 20px; font-size: 20px; opacity: 0.3;">🌸</div>
-              <div style="position: absolute; top: 15px; right: 25px; font-size: 18px; opacity: 0.3;">🌺</div>
+            <div style="background: linear-gradient(135deg, #111 0%, #1a1a1a 100%); color: white; padding: 32px 40px; text-align: center;">
               <h1 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: 1px;">KnotXandKrafts</h1>
               <p style="margin: 8px 0 0; opacity: 0.8; font-size: 14px;">Booking Invoice</p>
             </div>
@@ -109,54 +100,86 @@ export async function POST(request: Request) {
                 Thank you for booking with KnotXandKrafts! Here's your invoice for the appointment.
               </p>
 
-              <!-- BOOKING DETAILS - BEAUTIFUL GREEN CARD WITH FLOWERS -->
-              <div style="
-                background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
-                border-radius: 20px;
-                padding: 32px 28px;
-                margin-bottom: 32px;
-                position: relative;
-                overflow: hidden;
-                box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
-              ">
-                <!-- Decorative Flowers -->
-                <div style="position: absolute; top: -10px; left: -10px; font-size: 60px; opacity: 0.15; transform: rotate(-15deg);">🌸</div>
-                <div style="position: absolute; top: 20px; right: -15px; font-size: 50px; opacity: 0.15; transform: rotate(20deg);">🌺</div>
-                <div style="position: absolute; bottom: -15px; left: 30px; font-size: 45px; opacity: 0.12; transform: rotate(10deg);">🌼</div>
-                <div style="position: absolute; bottom: 10px; right: 20px; font-size: 55px; opacity: 0.15; transform: rotate(-25deg);">🌷</div>
-                
-                <!-- Content -->
-                <div style="position: relative; z-index: 2;">
-                  <div style="display: flex; align-items: center; margin-bottom: 20px;">
-                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                      <span style="font-size: 20px;">📅</span>
-                    </div>
-                    <h3 style="margin: 0; color: white; font-size: 20px; font-weight: 700; letter-spacing: 0.5px;">Appointment Details</h3>
-                  </div>
-                  
-                  <div style="background: rgba(255,255,255,0.15); border-radius: 14px; padding: 20px; backdrop-filter: blur(10px);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2);">
-                      <span style="color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500;">Service</span>
-                      <span style="color: white; font-weight: 700; font-size: 15px;">${serviceName}</span>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2);">
-                      <span style="color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500;">Braider</span>
-                      <span style="color: white; font-weight: 700; font-size: 15px;">${braiderName}</span>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2);">
-                      <span style="color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500;">Date</span>
-                      <span style="color: white; font-weight: 700; font-size: 15px;">${bookingDate}</span>
-                    </div>
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                      <span style="color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500;">Time</span>
-                      <span style="color: white; font-weight: 700; font-size: 15px;">${bookingTime}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <!-- BEAUTIFUL GREEN APPOINTMENT DETAILS CARD -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 32px;">
+                <tr>
+                  <td style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 20px; padding: 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 28px 24px 24px 24px;">
+                          
+                          <!-- Header with icon -->
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 20px;">
+                            <tr>
+                              <td>
+                                <table cellpadding="0" cellspacing="0">
+                                  <tr>
+                                    <td style="width: 44px; height: 44px; background: rgba(255,255,255,0.25); border-radius: 50%; text-align: center; vertical-align: middle;">
+                                      <span style="font-size: 22px; color: white;">🌿</span>
+                                    </td>
+                                    <td style="padding-left: 14px;">
+                                      <span style="color: white; font-size: 20px; font-weight: 700; letter-spacing: 0.3px;">Appointment Details</span>
+                                    </td>
+                                  </tr>
+                                </table>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <!-- Service Row -->
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                            <tr>
+                              <td style="width: 50%;">
+                                <span style="color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500;">Service</span>
+                              </td>
+                              <td style="width: 50%; text-align: right;">
+                                <span style="color: white; font-weight: 700; font-size: 15px;">${serviceName}</span>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <!-- Braider Row -->
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                            <tr>
+                              <td style="width: 50%;">
+                                <span style="color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500;">Braider</span>
+                              </td>
+                              <td style="width: 50%; text-align: right;">
+                                <span style="color: white; font-weight: 700; font-size: 15px;">${braiderName}</span>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <!-- Date Row -->
+                          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 14px;">
+                            <tr>
+                              <td style="width: 50%;">
+                                <span style="color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500;">Date</span>
+                              </td>
+                              <td style="width: 50%; text-align: right;">
+                                <span style="color: white; font-weight: 700; font-size: 15px;">${bookingDate}</span>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <!-- Time Row -->
+                          <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="width: 50%;">
+                                <span style="color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 500;">Time</span>
+                              </td>
+                              <td style="width: 50%; text-align: right;">
+                                <span style="color: white; font-weight: 700; font-size: 15px;">${bookingTime}</span>
+                              </td>
+                            </tr>
+                          </table>
+
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
 
               <!-- Payment Summary -->
               <div style="margin-bottom: 32px;">
@@ -215,7 +238,6 @@ export async function POST(request: Request) {
       </html>
     `;
 
-    // Send email via Mailtrap
     await transport.sendMail({
       from: sender,
       to: customerEmail,
