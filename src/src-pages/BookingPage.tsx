@@ -496,24 +496,31 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* DATE & TIME STEP - NARROW DATE PICKER */}
+              {/* DATE & TIME STEP - IMPROVED RESPONSIVE DATE PICKER */}
               {modalStep === 'datetime' && (
                 <div>
                   <h3 className="text-xl font-medium mb-4">Choose Date & Time</h3>
                   
                   <div className="mb-6">
                     <label className="block text-sm font-medium mb-2">Date</label>
-                    <div className="inline-block">
+                    <div 
+                      className="inline-block cursor-pointer"
+                      onClick={() => {
+                        const dateInput = document.getElementById('date-picker') as HTMLInputElement;
+                        if (dateInput) dateInput.showPicker?.();
+                      }}
+                    >
                       <div className="relative">
                         <input
+                          id="date-picker"
                           type="date"
                           value={selectedDate}
                           onChange={handleDateChange}
                           min={today}
                           max={maxDate}
-                          className="border border-gray-300 rounded-2xl px-5 py-3.5 text-base focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                          className="border border-gray-300 rounded-2xl px-5 py-3.5 pr-12 text-base focus:outline-none focus:border-emerald-500 bg-white cursor-pointer w-64"
                         />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                        <div className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                           <Calendar className="h-5 w-5" />
                         </div>
                       </div>
