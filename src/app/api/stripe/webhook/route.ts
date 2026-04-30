@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = session.metadata || {};
 
-    // Check if booking already exists (idempotency)
     const existingBooking = await prisma.booking.findFirst({
       where: { stripeCheckoutSessionId: session.id },
     });
@@ -49,9 +48,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true });
       }
 
-      // ============================================
-      // FIX: Properly set userType for guest bookings
-      // ============================================
       const isRegisteredUser = metadata.userId && metadata.userType && 
         (metadata.userType === 'local' || metadata.userType === 'oauth');
 
@@ -67,10 +63,9 @@ export async function POST(request: NextRequest) {
         userId: metadata.userId ? parseInt(metadata.userId) : undefined,
         userType: isRegisteredUser 
           ? (metadata.userType as 'local' | 'oauth')
-          : 'guest',  // ← FIX: Always 'guest' for non-registered users
+          : 'guest',
       });
 
-      // Update booking with payment info
       await prisma.booking.update({
         where: { id: booking.id },
         data: {
@@ -80,11 +75,9 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log(`Booking created and paid: ${booking.id} (userType: ${isRegisteredUser ? metadata.userType : 'guest'})`);
+      console.log(`Booking created: ${booking.id} (userType: ${isRegisteredUser ? metadata.userType : 'guest'})`);
 
-      // ============================================
-      // SEND INVOICE EMAIL
-      // ============================================
+      // Send invoice email...
       try {
         const service = await prisma.service.findUnique({
           where: { id: serviceId },
@@ -97,25 +90,17 @@ export async function POST(request: NextRequest) {
         });
 
         if (service && staff) {
-          // Parse selected addons from metadata
           let selectedAddons: Array<{ name: string; price: number; quantity: number }> = [];
-         
           if (metadata.selectedAddons) {
-            try {
-              selectedAddons = JSON.parse(metadata.selectedAddons);
-            } catch (e) {
-              console.error('Failed to parse selectedAddons');
-            }
+            try { selectedAddons = JSON.parse(metadata.selectedAddons); } catch {}
           }
 
           const totalAmount = session.amount_total || 
             (service.price + selectedAddons.reduce((sum, a) => sum + (a.price * a.quantity), 0));
           
           const depositAmount = session.amount_subtotal || 
-            service.depositAmount || 
-            Math.round(totalAmount * 0.3);
+            service.depositAmount || Math.round(totalAmount * 0.3);
 
-          // Call send-invoice API
           await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-invoice`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -132,15 +117,13 @@ export async function POST(request: NextRequest) {
               braiderName: staff.displayName,
             }),
           });
-
-          console.log(`Invoice email sent for booking ${booking.id}`);
         }
       } catch (invoiceError: any) {
         console.error('Failed to send invoice:', invoiceError);
       }
 
     } catch (error: any) {
-      console.error('Error creating booking from webhook:', error);
+      console.error('Error creating booking:', error);
     }
   }
 
