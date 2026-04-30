@@ -225,12 +225,14 @@ export default function BookingPage() {
           depositAmount: calculateDeposit(),
           serviceName: selectedServiceData?.name,
           userId: user?.id,
-          selectedAddons: selectedAddons.map(item => ({
-            id: item.addon.id,
-            name: item.addon.name,
-            price: item.addon.price,
-            quantity: item.quantity
-          })),
+          selectedAddons: JSON.stringify(
+            selectedAddons.map(item => ({
+              id: item.addon.id,
+              name: item.addon.name,
+              price: item.addon.price,
+              quantity: item.quantity
+            }))
+          ),
           totalAmount: calculateTotal(),
         }),
       });
