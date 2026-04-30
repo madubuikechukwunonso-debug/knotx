@@ -45,6 +45,7 @@ export default function BookingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [showAddonStep, setShowAddonStep] = useState(false);
+  const [showGuestWarning, setShowGuestWarning] = useState(false);
 
   // Fetch data
   useEffect(() => {
@@ -84,6 +85,7 @@ export default function BookingPage() {
     if (user) {
       setCustomerName(user.name || '');
       setCustomerEmail(user.email || '');
+      setShowGuestWarning(false);
     }
   }, [user]);
 
@@ -105,6 +107,7 @@ export default function BookingPage() {
       setAvailableSlots([]);
       setSelectedAddons([]);
       setShowAddonStep(false);
+      setShowGuestWarning(false);
     }
   }, [selectedService, allServices]);
 
@@ -131,27 +134,35 @@ export default function BookingPage() {
     setBraiders([]);
     setSelectedAddons([]);
     setShowAddonStep(false);
+    setShowGuestWarning(false);
   };
 
   const handleServiceSelect = (serviceId: number) => {
     setSelectedService(serviceId);
+    setShowGuestWarning(false);
   };
 
   const handleBraiderSelect = (braider: Braider) => {
     setSelectedBraiderId(braider.staffUserId);
     setSelectedBraiderName(braider.name);
+    setShowGuestWarning(false);
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(e.target.value);
+    setShowGuestWarning(false);
   };
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
+    if (!user) {
+      setShowGuestWarning(true);
+    }
   };
 
   const proceedToBraider = () => {
     setShowAddonStep(true);
+    setShowGuestWarning(false);
   };
 
   const updateAddonQuantity = (addon: Addon, newQuantity: number) => {
@@ -508,6 +519,13 @@ export default function BookingPage() {
                     <label className="block text-sm font-medium mb-1">Notes</label>
                     <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" rows={3} />
                   </div>
+
+                  {/* GUEST WARNING */}
+                  {showGuestWarning && !user && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
+                      <strong>Note:</strong> You are booking as a guest. We recommend creating an account for easier management of future bookings.
+                    </div>
+                  )}
 
                   <div className="bg-emerald-50 rounded-2xl p-6">
                     <div className="flex justify-between text-sm mb-2">
