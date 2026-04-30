@@ -182,13 +182,14 @@ export default function BookingPage() {
 
   const calculateTotal = () => {
     if (!selectedServiceData) return 0;
-    const base = selectedServiceData.price;
+    const base = selectedServiceData.price || 0;
     const addonTotal = selectedAddons.reduce((sum, item) => sum + (item.addon.price * item.quantity), 0);
     return base + addonTotal;
   };
 
   const calculateDeposit = () => {
-    return Math.round(calculateTotal() * 0.3);
+    if (!selectedServiceData) return 0;
+    return selectedServiceData.depositAmount || Math.round((selectedServiceData.price || 0) * 0.3);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -299,57 +300,65 @@ export default function BookingPage() {
             <h2 className="text-xl font-medium mb-4">2. Select Service</h2>
             {filteredServices.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredServices.map((service) => (
-                  <div
-                    key={service.id}
-                    onClick={() => handleServiceSelect(service.id)}
-                    className={`group cursor-pointer rounded-3xl border overflow-hidden transition-all hover:shadow-xl ${selectedService === service.id ? 'border-emerald-600 ring-2 ring-emerald-600' : 'border-gray-200 hover:border-emerald-300'}`}
-                  >
-                    {/* FULL IMAGE */}
-                    {service.image && (
-                      <div className="h-56 overflow-hidden">
-                        <img 
-                          src={service.image} 
-                          alt={service.name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                        />
-                      </div>
-                    )}
-                    
-                    <div className="p-6">
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-semibold text-xl pr-4">{service.name}</h3>
-                        <div className="text-right">
-                          <div className="font-medium text-emerald-600">${(service.price / 100).toFixed(2)}</div>
-                          <div className="text-xs text-gray-500">Full Price</div>
-                        </div>
-                      </div>
+                {filteredServices.map((service) => {
+                  const fullPrice = service.price || 0;
+                  const deposit = service.depositAmount || Math.round(fullPrice * 0.3);
 
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                        <Clock className="h-4 w-4" />
-                        <span>{service.durationMinutes} min</span>
-                      </div>
-
-                      {/* DEPOSIT & HAIR REQUIREMENT - BLUE DESIGN */}
-                      <div className="mb-3 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Deposit (30%)</span>
-                          <span className="font-medium text-emerald-600">${((service.depositAmount || Math.round(service.price * 0.3)) / 100).toFixed(2)}</span>
-                        </div>
-                        
-                        {service.hairRequirement && (
-                          <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-xl text-sm">
-                            <span className="font-semibold">Hair Required:</span> {service.hairRequirement}
+                  return (
+                    <div
+                      key={service.id}
+                      onClick={() => handleServiceSelect(service.id)}
+                      className={`group cursor-pointer rounded-3xl border overflow-hidden transition-all hover:shadow-xl ${selectedService === service.id ? 'border-emerald-600 ring-2 ring-emerald-600' : 'border-gray-200 hover:border-emerald-300'}`}
+                    >
+                      {/* FULL IMAGE WITH DARK EDGES FALLBACK */}
+                      <div className="h-56 bg-black relative overflow-hidden">
+                        {service.image ? (
+                          <img 
+                            src={service.image} 
+                            alt={service.name} 
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+                            No image
                           </div>
                         )}
                       </div>
+                      
+                      <div className="p-6">
+                        <div className="flex justify-between items-start mb-3">
+                          <h3 className="font-semibold text-xl pr-4">{service.name}</h3>
+                          <div className="text-right">
+                            <div className="font-medium text-emerald-600">${(fullPrice / 100).toFixed(2)}</div>
+                            <div className="text-xs text-gray-500">Full Price</div>
+                          </div>
+                        </div>
 
-                      <button className="mt-2 text-sm font-medium text-emerald-600 flex items-center gap-1 group-hover:gap-2 transition-all">
-                        Select this service <span className="text-lg">→</span>
-                      </button>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                          <Clock className="h-4 w-4" />
+                          <span>{service.durationMinutes} min</span>
+                        </div>
+
+                        <div className="mb-3 space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Deposit</span>
+                            <span className="font-medium text-emerald-600">${(deposit / 100).toFixed(2)}</span>
+                          </div>
+                          
+                          {service.hairRequirement && (
+                            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded-xl text-sm">
+                              <span className="font-semibold">Hair Required:</span> {service.hairRequirement}
+                            </div>
+                          )}
+                        </div>
+
+                        <button className="mt-2 text-sm font-medium text-emerald-600 flex items-center gap-1 group-hover:gap-2 transition-all">
+                          Select this service <span className="text-lg">→</span>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12 text-gray-500">
@@ -421,10 +430,9 @@ export default function BookingPage() {
             </div>
           )}
 
-          {/* BRAIDER + DATE + TIME (Only show after addon step) */}
+          {/* BRAIDER + DATE + TIME */}
           {showAddonStep && selectedService && (
             <div className="space-y-10">
-              {/* Braider Selection */}
               <div>
                 <h2 className="text-xl font-medium mb-4">4. Choose Braider</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -443,7 +451,6 @@ export default function BookingPage() {
                 </div>
               </div>
 
-              {/* Date & Time */}
               {selectedBraiderId && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -477,7 +484,6 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* CUSTOMER FORM + TOTAL */}
               {selectedTime && (
                 <form onSubmit={handleSubmit} className="space-y-6 pt-6 border-t">
                   <h2 className="text-xl font-medium">7. Your Details</h2>
@@ -503,11 +509,10 @@ export default function BookingPage() {
                     <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" rows={3} />
                   </div>
 
-                  {/* TOTAL SUMMARY */}
                   <div className="bg-emerald-50 rounded-2xl p-6">
                     <div className="flex justify-between text-sm mb-2">
                       <span>Service</span>
-                      <span>${(selectedServiceData?.price || 0) / 100}</span>
+                      <span>${((selectedServiceData?.price || 0) / 100).toFixed(2)}</span>
                     </div>
                     {selectedAddons.length > 0 && (
                       <div className="flex justify-between text-sm mb-2 text-emerald-700">
@@ -520,7 +525,7 @@ export default function BookingPage() {
                       <span>${(calculateTotal() / 100).toFixed(2)} CAD</span>
                     </div>
                     <div className="text-xs text-emerald-600 mt-1">
-                      Deposit due now: ${(calculateDeposit() / 100).toFixed(2)} (30%)
+                      Deposit due now: ${(calculateDeposit() / 100).toFixed(2)}
                     </div>
                   </div>
 
