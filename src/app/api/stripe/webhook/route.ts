@@ -49,7 +49,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true });
       }
 
-      // Create booking
+      // ============================================
+      // FIX: Properly set userType for guest bookings
+      // ============================================
+      const isRegisteredUser = metadata.userId && metadata.userType && 
+        (metadata.userType === 'local' || metadata.userType === 'oauth');
+
       const booking = await createBooking({
         customerName: metadata.customerName || 'Guest',
         customerEmail: metadata.customerEmail || '',
@@ -60,9 +65,9 @@ export async function POST(request: NextRequest) {
         time: metadata.time,
         notes: metadata.notes || undefined,
         userId: metadata.userId ? parseInt(metadata.userId) : undefined,
-        userType: metadata.userType === 'local' || metadata.userType === 'oauth' 
-          ? (metadata.userType as 'local' | 'oauth') 
-          : undefined,
+        userType: isRegisteredUser 
+          ? (metadata.userType as 'local' | 'oauth')
+          : 'guest',  // ← FIX: Always 'guest' for non-registered users
       });
 
       // Update booking with payment info
@@ -75,7 +80,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log(`Booking created and paid: ${booking.id}`);
+      console.log(`Booking created and paid: ${booking.id} (userType: ${isRegisteredUser ? metadata.userType : 'guest'})`);
 
       // ============================================
       // SEND INVOICE EMAIL
@@ -94,7 +99,7 @@ export async function POST(request: NextRequest) {
         if (service && staff) {
           // Parse selected addons from metadata
           let selectedAddons: Array<{ name: string; price: number; quantity: number }> = [];
-          
+         
           if (metadata.selectedAddons) {
             try {
               selectedAddons = JSON.parse(metadata.selectedAddons);
@@ -103,8 +108,12 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          const totalAmount = session.amount_total || (service.price + selectedAddons.reduce((sum, a) => sum + (a.price * a.quantity), 0));
-          const depositAmount = session.amount_subtotal || service.depositAmount || Math.round(totalAmount * 0.3);
+          const totalAmount = session.amount_total || 
+            (service.price + selectedAddons.reduce((sum, a) => sum + (a.price * a.quantity), 0));
+          
+          const depositAmount = session.amount_subtotal || 
+            service.depositAmount || 
+            Math.round(totalAmount * 0.3);
 
           // Call send-invoice API
           await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-invoice`, {
@@ -129,7 +138,6 @@ export async function POST(request: NextRequest) {
       } catch (invoiceError: any) {
         console.error('Failed to send invoice:', invoiceError);
       }
-      // ============================================
 
     } catch (error: any) {
       console.error('Error creating booking from webhook:', error);
