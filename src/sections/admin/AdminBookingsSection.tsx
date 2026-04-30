@@ -91,7 +91,6 @@ async function updateBooking(formData: FormData) {
       });
     }
 
-    // ✅ FIXED: Changed 'canceled' to 'cancelled' (double L)
     if (newStatus === 'cancelled') {
       await fetch(`${baseUrl}/api/send-booking-canceled`, {
         method: 'POST',
