@@ -4,22 +4,40 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
-import { Calendar, Clock, Check, ArrowLeft, User } from 'lucide-react';
+import { Calendar, Clock, Check, ArrowLeft, User, Plus, Minus } from 'lucide-react';
 
 type Slot = { staffUserId: number; staffName: string; time: string };
-type Service = { id: number; name: string; durationMinutes: number; price: number; depositAmount?: number; image?: string | null };
+type Service = {
+  id: number;
+  name: string;
+  durationMinutes: number;
+  price: number;
+  depositAmount?: number;
+  image?: string | null;
+  hairRequirement?: string | null;
+  categoryId?: number | null;
+};
 type Braider = { staffUserId: number; name: string; bio?: string | null };
+type Category = { id: number; name: string; slug: string };
+type Addon = { id: number; name: string; price: number; description?: string | null };
 
 export default function BookingPage() {
   const { user } = useAuth();
-  const [services, setServices] = useState<Service[]>([]);
+  const [allServices, setAllServices] = useState<Service[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [addons, setAddons] = useState<Addon[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
+  const [filteredServices, setFilteredServices] = useState<Service[]>([]);
+
   const [braiders, setBraiders] = useState<Braider[]>([]);
   const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedService, setSelectedService] = useState<number | ''>('');
+  const [selectedServiceData, setSelectedServiceData] = useState<Service | null>(null);
   const [selectedBraiderId, setSelectedBraiderId] = useState<number | undefined>(undefined);
   const [selectedBraiderName, setSelectedBraiderName] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [selectedAddons, setSelectedAddons] = useState<Addon[]>([]);
   const [customerName, setCustomerName] = useState(user?.name || '');
   const [customerEmail, setCustomerEmail] = useState(user?.email || '');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -29,15 +47,41 @@ export default function BookingPage() {
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [showGuestWarning, setShowGuestWarning] = useState(false);
 
-  // Fetch services
+  // Fetch categories, services and addons
   useEffect(() => {
-    fetch('/api/booking/availability')
-      .then(r => r.json())
-      .then(d => setServices(d.services || []))
-      .catch(() => setServices([]));
+    const fetchData = async () => {
+      try {
+        const [catRes, svcRes, addRes] = await Promise.all([
+          fetch('/api/categories'),
+          fetch('/api/booking/availability'),
+          fetch('/api/addons'),
+        ]);
+
+        const cats = await catRes.json();
+        const svcs = await svcRes.json();
+        const ads = await addRes.json();
+
+        setCategories(cats || []);
+        setAllServices(svcs.services || []);
+        setAddons(ads || []);
+      } catch (e) {
+        console.error('Failed to load booking data');
+      }
+    };
+    fetchData();
   }, []);
 
-  // Sync customer info when user logs in
+  // Filter services when category changes
+  useEffect(() => {
+    if (selectedCategoryId === null) {
+      setFilteredServices(allServices);
+    } else {
+      const filtered = allServices.filter(s => s.categoryId === selectedCategoryId);
+      setFilteredServices(filtered);
+    }
+  }, [selectedCategoryId, allServices]);
+
+  // Sync customer info
   useEffect(() => {
     if (user) {
       setCustomerName(user.name || '');
@@ -49,21 +93,25 @@ export default function BookingPage() {
   // Fetch braiders when service selected
   useEffect(() => {
     if (selectedService) {
+      const svc = allServices.find(s => s.id === selectedService);
+      setSelectedServiceData(svc || null);
+
       fetch(`/api/booking/availability?serviceId=${selectedService}`)
         .then(r => r.json())
         .then(d => setBraiders(d.braiders || []))
         .catch(() => setBraiders([]));
-      // reset downstream
+
       setSelectedBraiderId(undefined);
       setSelectedBraiderName('');
       setSelectedDate('');
       setSelectedTime('');
       setAvailableSlots([]);
+      setSelectedAddons([]);
       setShowGuestWarning(false);
     }
-  }, [selectedService]);
+  }, [selectedService, allServices]);
 
-  // Fetch slots when date + service + braider selected
+  // Fetch slots
   useEffect(() => {
     if (selectedDate && selectedService && selectedBraiderId) {
       fetch('/api/booking/availability', {
@@ -82,6 +130,13 @@ export default function BookingPage() {
       setAvailableSlots([]);
     }
   }, [selectedDate, selectedService, selectedBraiderId]);
+
+  const handleCategorySelect = (categoryId: number | null) => {
+    setSelectedCategoryId(categoryId);
+    setSelectedService('');
+    setSelectedServiceData(null);
+    setBraiders([]);
+  };
 
   const handleServiceSelect = (serviceId: number) => {
     setSelectedService(serviceId);
@@ -107,9 +162,30 @@ export default function BookingPage() {
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
-    if (!user) {
-      setShowGuestWarning(false); // show the guest warning prompt first
-    }
+    if (!user) setShowGuestWarning(false);
+  };
+
+  const toggleAddon = (addon: Addon) => {
+    setSelectedAddons(prev => {
+      const exists = prev.find(a => a.id === addon.id);
+      if (exists) {
+        return prev.filter(a => a.id !== addon.id);
+      } else {
+        return [...prev, addon];
+      }
+    });
+  };
+
+  const calculateTotal = () => {
+    if (!selectedServiceData) return 0;
+    const base = selectedServiceData.price;
+    const addonTotal = selectedAddons.reduce((sum, a) => sum + a.price, 0);
+    return base + addonTotal;
+  };
+
+  const calculateDeposit = () => {
+    const total = calculateTotal();
+    return Math.round(total * 0.3); // 30% deposit
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -118,8 +194,8 @@ export default function BookingPage() {
 
     setCheckoutLoading(true);
     try {
-      const selectedServiceData = services.find(s => s.id === selectedService);
-      const depositAmount = selectedServiceData?.depositAmount || Math.round((selectedServiceData?.price || 0) * 0.3); // fallback 30%
+      const depositAmount = calculateDeposit();
+      const totalAmount = calculateTotal();
 
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -138,12 +214,14 @@ export default function BookingPage() {
           serviceName: selectedServiceData?.name,
           userId: user?.id,
           userType: user?.userType,
+          selectedAddons: selectedAddons.map(a => ({ id: a.id, name: a.name, price: a.price })),
+          totalAmount,
         }),
       });
 
       const data = await response.json();
       if (data.url) {
-        window.location.href = data.url; // Redirect to Stripe Checkout
+        window.location.href = data.url;
       } else {
         throw new Error(data.message || 'Failed to create checkout session');
       }
@@ -185,214 +263,306 @@ export default function BookingPage() {
     <div className="min-h-screen bg-white">
       <Navigation />
       <div className="px-6 pb-20 pt-24 lg:pt-32">
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-5xl">
           <Link href="/" className="mb-8 inline-flex items-center gap-2 text-sm text-black/50 transition-colors hover:text-black">
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>
 
           <h1 className="mb-4 font-serif text-4xl font-light sm:text-5xl lg:text-6xl">Book Appointment</h1>
           <p className="mb-12 max-w-lg text-sm text-black/50">
-            Select your preferred braider, service, date, and time. Pay a deposit to secure your booking.
+            Choose a category, then select your service. Add optional extras and pick your preferred time.
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-12">
-            {/* 1. Select Service */}
-            <div>
-              <h3 className="mb-4 text-xs font-medium uppercase tracking-widest">1. Select Service</h3>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {services.map(service => (
-                  <button
+          {/* CATEGORY SELECTION */}
+          <div className="mb-10">
+            <h2 className="text-xl font-medium mb-4">1. Choose a Category</h2>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => handleCategorySelect(null)}
+                className={`px-6 py-3 rounded-2xl border text-sm font-medium transition-all ${
+                  selectedCategoryId === null 
+                    ? 'bg-emerald-600 text-white border-emerald-600' 
+                    : 'border-gray-300 hover:border-emerald-400'
+                }`}
+              >
+                All Services
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleCategorySelect(cat.id)}
+                  className={`px-6 py-3 rounded-2xl border text-sm font-medium transition-all ${
+                    selectedCategoryId === cat.id 
+                      ? 'bg-emerald-600 text-white border-emerald-600' 
+                      : 'border-gray-300 hover:border-emerald-400'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* SERVICE SELECTION */}
+          <div className="mb-10">
+            <h2 className="text-xl font-medium mb-4">
+              2. Select Service {selectedCategoryId && `in ${categories.find(c => c.id === selectedCategoryId)?.name}`}
+            </h2>
+
+            {filteredServices.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredServices.map((service) => (
+                  <div
                     key={service.id}
-                    type="button"
                     onClick={() => handleServiceSelect(service.id)}
-                    className={`border overflow-hidden text-left transition-all ${selectedService === service.id ? 'border-black bg-black text-white' : 'border-black/10 hover:border-black/30'}`}
+                    className={`group cursor-pointer rounded-3xl border overflow-hidden transition-all hover:shadow-xl ${
+                      selectedService === service.id 
+                        ? 'border-emerald-600 ring-2 ring-emerald-600' 
+                        : 'border-gray-200 hover:border-emerald-300'
+                    }`}
                   >
                     {service.image && (
-                      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gray-100">
+                      <div className="h-48 overflow-hidden">
                         <img 
                           src={service.image} 
-                          alt={service.name}
-                          className="absolute inset-0 w-full h-full object-contain"
+                          alt={service.name} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                         />
                       </div>
                     )}
-                    <div className="p-4">
-                      <p className="text-sm font-medium">{service.name}</p>
-                      <p className={`mt-1 text-xs ${selectedService === service.id ? 'text-white/60' : 'text-black/40'}`}>
-                        {Math.round(service.durationMinutes / 60)} hrs · ${(service.price / 100).toFixed(0)} 
-                        {service.depositAmount ? ` (Deposit $${(service.depositAmount / 100).toFixed(0)})` : ''}
-                      </p>
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-3">
+                        <h3 className="font-semibold text-xl pr-4">{service.name}</h3>
+                        <div className="text-right">
+                          <div className="font-medium text-emerald-600">
+                            ${(service.price / 100).toFixed(2)}
+                          </div>
+                          <div className="text-xs text-gray-500">+ deposit</div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                        <Clock className="h-4 w-4" />
+                        <span>{service.durationMinutes} minutes</span>
+                      </div>
+
+                      {service.hairRequirement && (
+                        <div className="text-xs bg-amber-50 text-amber-700 px-3 py-2 rounded-xl mb-3">
+                          <strong>Hair Required:</strong> {service.hairRequirement}
+                        </div>
+                      )}
+
+                      <button 
+                        className="mt-2 text-sm font-medium text-emerald-600 flex items-center gap-1 group-hover:gap-2 transition-all"
+                      >
+                        Select this service <span className="text-lg">→</span>
+                      </button>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
-            </div>
-
-            {/* 2. Select Braider (after service) */}
-            {selectedService && (
-              <div className="animate-fade-in-up">
-                <h3 className="mb-4 text-xs font-medium uppercase tracking-widest">2. Select Braider</h3>
-                {braiders.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {braiders.map(braider => (
-                      <button
-                        key={braider.staffUserId}
-                        type="button"
-                        onClick={() => handleBraiderSelect(braider)}
-                        className={`border p-4 text-left transition-all flex items-start gap-3 ${selectedBraiderId === braider.staffUserId ? 'border-black bg-black text-white' : 'border-black/10 hover:border-black/30'}`}
-                      >
-                        <div className="mt-0.5">
-                          <User className="h-5 w-5" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{braider.name}</p>
-                          {braider.bio && (
-                            <p className={`mt-1 text-xs line-clamp-2 ${selectedBraiderId === braider.staffUserId ? 'text-white/60' : 'text-black/40'}`}>
-                              {braider.bio}
-                            </p>
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-black/40">No braiders available for this service.</p>
-                )}
+            ) : (
+              <div className="text-center py-12 text-gray-500">
+                No services available in this category yet.
               </div>
             )}
+          </div>
 
-            {/* 3. Select Date (after braider) */}
-            {selectedBraiderId && (
-              <div className="animate-fade-in-up">
-                <h3 className="mb-4 text-xs font-medium uppercase tracking-widest">3. Select Date</h3>
-                <div className="relative max-w-xs">
-                  <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/30" />
+          {/* BRAIDER + DATE + TIME + ADDONS (only show after service selected) */}
+          {selectedService && (
+            <div className="space-y-10">
+              {/* Braider Selection */}
+              <div>
+                <h2 className="text-xl font-medium mb-4">3. Choose Your Braider</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {braiders.length > 0 ? (
+                    braiders.map((braider) => (
+                      <button
+                        key={braider.staffUserId}
+                        onClick={() => handleBraiderSelect(braider)}
+                        className={`p-5 rounded-2xl border text-left transition-all ${
+                          selectedBraiderId === braider.staffUserId 
+                            ? 'border-emerald-600 bg-emerald-50' 
+                            : 'border-gray-200 hover:border-emerald-300'
+                        }`}
+                      >
+                        <div className="font-medium flex items-center gap-2">
+                          <User className="h-5 w-5" /> {braider.name}
+                        </div>
+                        {braider.bio && <p className="text-sm text-gray-600 mt-1 line-clamp-2">{braider.bio}</p>}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">No braiders available for this service.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Date Selection */}
+              {selectedBraiderId && (
+                <div>
+                  <h2 className="text-xl font-medium mb-4">4. Choose Date</h2>
                   <input
                     type="date"
                     value={selectedDate}
                     onChange={handleDateChange}
                     min={today}
                     max={maxDate}
-                    className="w-full border border-black/10 pl-10 pr-4 py-3 text-sm outline-none transition-colors focus:border-black"
-                    required
+                    className="w-full max-w-xs border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* 4. Select Time (after date) */}
-            {selectedDate && selectedBraiderId && (
-              <div className="animate-fade-in-up">
-                <h3 className="mb-4 text-xs font-medium uppercase tracking-widest">4. Select Time with {selectedBraiderName}</h3>
-                {availableSlots.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {availableSlots.map((slot) => (
+              {/* Time Slots */}
+              {selectedDate && availableSlots.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-medium mb-4">5. Choose Time</h2>
+                  <div className="flex flex-wrap gap-3">
+                    {availableSlots.map((slot, index) => (
                       <button
-                        key={slot.time}
-                        type="button"
+                        key={index}
                         onClick={() => handleTimeSelect(slot.time)}
-                        className={`border px-4 py-2 text-sm transition-all ${selectedTime === slot.time ? 'border-black bg-black text-white' : 'border-black/10 hover:border-black/30'}`}
+                        className={`px-5 py-3 rounded-2xl border text-sm font-medium transition-all ${
+                          selectedTime === slot.time 
+                            ? 'bg-emerald-600 text-white border-emerald-600' 
+                            : 'border-gray-300 hover:border-emerald-400'
+                        }`}
                       >
-                        <Clock className="mr-1 inline h-3 w-3" />
                         {slot.time}
                       </button>
                     ))}
                   </div>
-                ) : (
-                  <p className="text-sm text-black/40">No available slots for this date with the selected braider. Please choose another date.</p>
-                )}
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* Guest Sign-in Prompt / Warning */}
-            {selectedTime && !user && !showGuestWarning && (
-              <div className="animate-fade-in-up border border-amber-400 bg-amber-50 rounded-3xl p-8 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-amber-200 flex items-center justify-center">
-                    <User className="h-5 w-5 text-amber-700" />
+              {/* ADD-ONS */}
+              {selectedTime && addons.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-medium mb-4">6. Add Extras (Optional)</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {addons.map((addon) => {
+                      const isSelected = selectedAddons.some(a => a.id === addon.id);
+                      return (
+                        <div
+                          key={addon.id}
+                          onClick={() => toggleAddon(addon)}
+                          className={`p-5 rounded-2xl border cursor-pointer transition-all flex justify-between items-center ${
+                            isSelected 
+                              ? 'border-emerald-600 bg-emerald-50' 
+                              : 'border-gray-200 hover:border-emerald-300'
+                          }`}
+                        >
+                          <div>
+                            <div className="font-medium">{addon.name}</div>
+                            {addon.description && (
+                              <div className="text-xs text-gray-600">{addon.description}</div>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold text-emerald-600">
+                              +${(addon.price / 100).toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray-500">per service</div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <h3 className="text-xl font-serif text-amber-900">Sign in to track your booking</h3>
+                  {selectedAddons.length > 0 && (
+                    <div className="mt-4 text-sm text-emerald-700 font-medium">
+                      Selected extras: {selectedAddons.map(a => a.name).join(', ')} 
+                      (+${(selectedAddons.reduce((sum, a) => sum + a.price, 0) / 100).toFixed(2)})
+                    </div>
+                  )}
                 </div>
-                <p className="text-amber-800 text-sm leading-relaxed">
-                  You&apos;re not currently signed in. Signing in allows you to track your service in real-time, receive instant updates, manage appointments, and view your booking history.
-                </p>
-                <div className="bg-white/80 border border-amber-200 rounded-2xl p-4 text-sm text-amber-700">
-                  <strong>Warning:</strong> If you continue as a guest, you won&apos;t be able to keep track of your service in real time. We&apos;ll still email you confirmation and updates, but you won&apos;t have a live dashboard.
-                </div>
-                <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                  <Link 
-                    href="/login?redirect=/book" 
-                    className="flex-1 text-center border border-amber-600 hover:bg-amber-100 text-amber-800 px-6 py-3.5 rounded-2xl text-sm font-medium transition-colors"
-                  >
-                    Sign In
-                  </Link>
-                  <button 
-                    type="button"
-                    onClick={() => setShowGuestWarning(true)}
-                    className="flex-1 bg-amber-600 hover:bg-amber-700 text-white px-6 py-3.5 rounded-2xl text-sm font-medium transition-colors"
-                  >
-                    Continue as Guest
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* 5. Your Details */}
-            {selectedTime && (user || showGuestWarning) && (
-              <div className="animate-fade-in-up space-y-4">
-                <h3 className="mb-4 text-xs font-medium uppercase tracking-widest">5. Your Details</h3>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1 block text-xs text-black/50">Name</label>
-                    <input
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full border border-black/10 px-4 py-3 text-sm outline-none focus:border-black"
-                      required
-                    />
+              {/* CUSTOMER INFO FORM */}
+              {selectedTime && (
+                <form onSubmit={handleSubmit} className="space-y-6 pt-6 border-t">
+                  <h2 className="text-xl font-medium">7. Your Details</h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Full Name</label>
+                      <input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                        required
+                      />
+                    </div>
                   </div>
+
                   <div>
-                    <label className="mb-1 block text-xs text-black/50">Email</label>
+                    <label className="block text-sm font-medium mb-1">Phone Number</label>
                     <input
-                      type="email"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      className="w-full border border-black/10 px-4 py-3 text-sm outline-none focus:border-black"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-xs text-black/50">Phone (optional)</label>
-                    <input
+                      type="tel"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="w-full border border-black/10 px-4 py-3 text-sm outline-none focus:border-black"
+                      placeholder="(555) 123-4567"
+                      className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
+
                   <div>
-                    <label className="mb-1 block text-xs text-black/50">Notes (optional)</label>
-                    <input
+                    <label className="block text-sm font-medium mb-1">Special Requests / Notes</label>
+                    <textarea
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      className="w-full border border-black/10 px-4 py-3 text-sm outline-none focus:border-black"
-                      placeholder="Any special requests?"
+                      placeholder="Any allergies, preferred style, etc."
+                      className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                      rows={3}
                     />
                   </div>
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={checkoutLoading || pending}
-                  className="mt-4 w-full bg-black px-12 py-4 text-sm font-medium uppercase tracking-widest text-white transition-colors hover:bg-black/80 disabled:opacity-50 sm:w-auto"
-                >
-                  {checkoutLoading ? 'Processing Payment...' : 'Pay Deposit & Book Appointment'}
-                </button>
-                <p className="text-xs text-black/40 text-center sm:text-left">
-                  A deposit is required to secure your appointment. The remaining balance is due at the time of service.
-                </p>
-              </div>
-            )}
-          </form>
+                  {/* TOTAL SUMMARY */}
+                  <div className="bg-emerald-50 rounded-2xl p-6">
+                    <div className="flex justify-between text-sm mb-2">
+                      <span>Service</span>
+                      <span>${(selectedServiceData?.price || 0) / 100}</span>
+                    </div>
+                    {selectedAddons.length > 0 && (
+                      <div className="flex justify-between text-sm mb-2 text-emerald-700">
+                        <span>Add-ons ({selectedAddons.length})</span>
+                        <span>+${(selectedAddons.reduce((s, a) => s + a.price, 0) / 100).toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="border-t border-emerald-200 pt-3 mt-3 flex justify-between font-semibold text-lg">
+                      <span>Total</span>
+                      <span>${(calculateTotal() / 100).toFixed(2)} CAD</span>
+                    </div>
+                    <div className="text-xs text-emerald-600 mt-1">
+                      Deposit due now: ${(calculateDeposit() / 100).toFixed(2)} (30%)
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={checkoutLoading}
+                    className="w-full bg-black hover:bg-black/90 disabled:bg-gray-400 text-white py-4 rounded-2xl font-medium text-lg flex items-center justify-center gap-2 transition-colors"
+                  >
+                    {checkoutLoading ? 'Processing...' : `Pay Deposit & Book →`}
+                  </button>
+
+                  <p className="text-center text-xs text-gray-500">
+                    You will be redirected to Stripe to complete payment.
+                  </p>
+                </form>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <Footer />
