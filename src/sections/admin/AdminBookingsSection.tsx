@@ -1,6 +1,9 @@
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import AdminBookingTable from './AdminBookingTable';
+import { Plus } from 'lucide-react';
+
+const prisma = new PrismaClient();
 
 async function getBookings() {
   return prisma.booking.findMany({
