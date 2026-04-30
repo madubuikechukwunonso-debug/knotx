@@ -11,7 +11,6 @@ export async function POST(request: Request) {
 
     const transport = nodemailer.createTransport(MailtrapTransport({ token: TOKEN }));
 
-    // ✅ FIXED: Added sender definition
     const sender = {
       address: process.env.MAILTRAP_FROM_EMAIL || "admin@KnotXandKrafts.com",
       name: process.env.MAILTRAP_FROM_NAME || "KnotXandKrafts",
@@ -24,9 +23,10 @@ export async function POST(request: Request) {
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafb; padding: 40px 20px; margin: 0;">
           <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.08);">
             
+            <!-- FIXED: Properly Centered X Emoji -->
             <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); padding: 40px 40px 36px; text-align: center;">
-              <div style="width: 64px; height: 64px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-                <span style="font-size: 32px;">❌</span>
+              <div style="width: 72px; height: 72px; background: rgba(255,255,255,0.2); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin: 0 auto 18px; vertical-align: middle;">
+                <span style="font-size: 38px; line-height: 1; display: block; margin-top: -2px;">❌</span>
               </div>
               <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700;">Booking Canceled</h1>
               <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0; font-size: 15px;">We're sorry to see you go</p>
@@ -56,8 +56,8 @@ export async function POST(request: Request) {
 
               ${cancellationReason ? `
                 <div style="background: #f8fafc; border-radius: 12px; padding: 18px 20px; margin-bottom: 28px;">
-                  <span style="color: #666; font-size: 13px; font-weight: 500;">REASON</span><br>
-                  <span style="color: #444; font-size: 15px;">${cancellationReason}</span>
+                  <span style="color: #666; font-size: 13px; font-weight: 500;">REASON FOR CANCELLATION</span><br>
+                  <span style="color: #444; font-size: 15px; margin-top: 4px; display: block;">${cancellationReason}</span>
                 </div>
               ` : ''}
 
