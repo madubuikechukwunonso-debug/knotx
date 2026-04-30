@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
-import { Clock, Check, ArrowLeft, User, Plus, Minus } from 'lucide-react';
+import { Clock, Check, ArrowLeft, User, Plus, Minus, X } from 'lucide-react';
 
 type Slot = { staffUserId: number; staffName: string; time: string };
 type Service = {
@@ -29,10 +29,10 @@ export default function BookingPage() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [filteredServices, setFilteredServices] = useState<Service[]>([]);
 
-  const [braiders, setBraiders] = useState<Braider[]>([]);
-  const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedService, setSelectedService] = useState<number | ''>('');
   const [selectedServiceData, setSelectedServiceData] = useState<Service | null>(null);
+  const [braiders, setBraiders] = useState<Braider[]>([]);
+  const [availableSlots, setAvailableSlots] = useState<Slot[]>([]);
   const [selectedBraiderId, setSelectedBraiderId] = useState<number | undefined>(undefined);
   const [selectedBraiderName, setSelectedBraiderName] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
@@ -44,8 +44,11 @@ export default function BookingPage() {
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [showAddonStep, setShowAddonStep] = useState(false);
   const [showGuestWarning, setShowGuestWarning] = useState(false);
+
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [modalStep, setModalStep] = useState<'addons' | 'braider' | 'datetime' | 'details'>('addons');
 
   // Fetch data
   useEffect(() => {
@@ -99,15 +102,6 @@ export default function BookingPage() {
         .then(r => r.json())
         .then(d => setBraiders(d.braiders || []))
         .catch(() => setBraiders([]));
-
-      setSelectedBraiderId(undefined);
-      setSelectedBraiderName('');
-      setSelectedDate('');
-      setSelectedTime('');
-      setAvailableSlots([]);
-      setSelectedAddons([]);
-      setShowAddonStep(false);
-      setShowGuestWarning(false);
     }
   }, [selectedService, allServices]);
 
@@ -127,30 +121,36 @@ export default function BookingPage() {
     }
   }, [selectedDate, selectedService, selectedBraiderId]);
 
-  const handleCategorySelect = (categoryId: number | null) => {
-    setSelectedCategoryId(categoryId);
-    setSelectedService('');
-    setSelectedServiceData(null);
-    setBraiders([]);
+  const openServiceModal = (serviceId: number) => {
+    setSelectedService(serviceId);
     setSelectedAddons([]);
-    setShowAddonStep(false);
+    setSelectedBraiderId(undefined);
+    setSelectedBraiderName('');
+    setSelectedDate('');
+    setSelectedTime('');
+    setAvailableSlots([]);
     setShowGuestWarning(false);
+    setModalStep('addons');
+    setShowModal(true);
   };
 
-  const handleServiceSelect = (serviceId: number) => {
-    setSelectedService(serviceId);
-    setShowGuestWarning(false);
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedService('');
+    setSelectedServiceData(null);
+  };
+
+  const handleCategorySelect = (categoryId: number | null) => {
+    setSelectedCategoryId(categoryId);
   };
 
   const handleBraiderSelect = (braider: Braider) => {
     setSelectedBraiderId(braider.staffUserId);
     setSelectedBraiderName(braider.name);
-    setShowGuestWarning(false);
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(e.target.value);
-    setShowGuestWarning(false);
   };
 
   const handleTimeSelect = (time: string) => {
@@ -158,11 +158,6 @@ export default function BookingPage() {
     if (!user) {
       setShowGuestWarning(true);
     }
-  };
-
-  const proceedToBraider = () => {
-    setShowAddonStep(true);
-    setShowGuestWarning(false);
   };
 
   const updateAddonQuantity = (addon: Addon, newQuantity: number) => {
@@ -320,10 +315,9 @@ export default function BookingPage() {
                   return (
                     <div
                       key={service.id}
-                      onClick={() => handleServiceSelect(service.id)}
-                      className={`group cursor-pointer rounded-3xl border overflow-hidden transition-all hover:shadow-xl ${selectedService === service.id ? 'border-emerald-600 ring-2 ring-emerald-600' : 'border-gray-200 hover:border-emerald-300'}`}
+                      onClick={() => openServiceModal(service.id)}
+                      className="group cursor-pointer rounded-3xl border overflow-hidden transition-all hover:shadow-xl border-gray-200 hover:border-emerald-300"
                     >
-                      {/* FULL IMAGE - NO CROPPING */}
                       <div className="h-56 bg-black relative overflow-hidden">
                         {service.image ? (
                           <img 
@@ -379,95 +373,136 @@ export default function BookingPage() {
               </div>
             )}
           </div>
+        </div>
+      </div>
 
-          {/* ADDON SELECTION - FORCED BEFORE BRAIDER */}
-          {selectedService && !showAddonStep && (
-            <div className="mb-10">
-              <h2 className="text-xl font-medium mb-4">3. Add Extras (Optional)</h2>
-              <p className="text-sm text-gray-600 mb-4">You can select multiple quantities of each addon.</p>
-              
-              {addons.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  {addons
-                    .filter(addon => !addon.categoryId || addon.categoryId === selectedCategoryId)
-                    .map((addon) => {
-                      const quantity = getAddonQuantity(addon.id);
-                      return (
-                        <div key={addon.id} className="border border-gray-200 rounded-2xl p-5">
-                          <div className="flex justify-between items-start mb-3">
-                            <div>
-                              <div className="font-medium">{addon.name}</div>
-                              {addon.description && <div className="text-xs text-gray-600">{addon.description}</div>}
-                            </div>
-                            <div className="text-right">
-                              <div className="font-semibold text-emerald-600">+${(addon.price / 100).toFixed(2)}</div>
-                              <div className="text-xs text-gray-500">each</div>
-                            </div>
-                          </div>
+      {/* SERVICE MODAL */}
+      {showModal && selectedServiceData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-y-auto relative">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
+              <h2 className="text-2xl font-serif">{selectedServiceData.name}</h2>
+              <button onClick={closeModal} className="text-gray-500 hover:text-black">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
 
-                          <div className="flex items-center justify-between mt-4">
-                            <div className="flex items-center gap-3">
-                              <button
-                                onClick={() => updateAddonQuantity(addon, quantity - 1)}
-                                className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 active:bg-gray-200"
-                              >
-                                <Minus className="h-4 w-4" />
-                              </button>
-                              <div className="w-10 text-center font-semibold text-lg">{quantity}</div>
-                              <button
-                                onClick={() => updateAddonQuantity(addon, quantity + 1)}
-                                className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 active:bg-gray-200"
-                              >
-                                <Plus className="h-4 w-4" />
-                              </button>
+            <div className="p-6">
+              {/* ADDONS STEP */}
+              {modalStep === 'addons' && (
+                <div>
+                  <h3 className="text-xl font-medium mb-4">Add Extras (Optional)</h3>
+                  <p className="text-sm text-gray-600 mb-6">You can select multiple quantities of each addon.</p>
+                  
+                  {addons.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      {addons
+                        .filter(addon => !addon.categoryId || addon.categoryId === selectedCategoryId)
+                        .map((addon) => {
+                          const quantity = getAddonQuantity(addon.id);
+                          return (
+                            <div key={addon.id} className="border border-gray-200 rounded-2xl p-5">
+                              <div className="flex justify-between items-start mb-3">
+                                <div>
+                                  <div className="font-medium">{addon.name}</div>
+                                  {addon.description && <div className="text-xs text-gray-600">{addon.description}</div>}
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-semibold text-emerald-600">+${(addon.price / 100).toFixed(2)}</div>
+                                  <div className="text-xs text-gray-500">each</div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between mt-4">
+                                <div className="flex items-center gap-3">
+                                  <button
+                                    onClick={() => updateAddonQuantity(addon, quantity - 1)}
+                                    className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 active:bg-gray-200"
+                                  >
+                                    <Minus className="h-4 w-4" />
+                                  </button>
+                                  <div className="w-10 text-center font-semibold text-lg">{quantity}</div>
+                                  <button
+                                    onClick={() => updateAddonQuantity(addon, quantity + 1)}
+                                    className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 active:bg-gray-200"
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </button>
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                  = ${(addon.price * quantity / 100).toFixed(2)}
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-600">
-                              = ${(addon.price * quantity / 100).toFixed(2)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 mb-6">No add-ons available for this category.</p>
+                  )}
+
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setModalStep('braider')}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
+                    >
+                      Continue to Select Braider
+                    </button>
+                    <button
+                      onClick={closeModal}
+                      className="flex-1 border border-gray-300 hover:bg-gray-100 py-3.5 rounded-2xl font-medium text-base transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-gray-500 mb-4">No add-ons available for this category.</p>
               )}
 
-              <button
-                onClick={proceedToBraider}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-medium text-lg flex items-center justify-center gap-2 transition-colors"
-              >
-                Continue to Select Braider →
-              </button>
-              <p className="text-center text-xs text-gray-500 mt-2">You can skip add-ons by clicking continue</p>
-            </div>
-          )}
+              {/* BRAIDER STEP */}
+              {modalStep === 'braider' && (
+                <div>
+                  <h3 className="text-xl font-medium mb-4">Choose Braider</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {braiders.length > 0 ? braiders.map((braider) => (
+                      <button
+                        key={braider.staffUserId}
+                        onClick={() => handleBraiderSelect(braider)}
+                        className={`p-5 rounded-2xl border text-left transition-all ${selectedBraiderId === braider.staffUserId ? 'border-emerald-600 bg-emerald-50' : 'border-gray-200 hover:border-emerald-300'}`}
+                      >
+                        <div className="font-medium flex items-center gap-2">
+                          <User className="h-5 w-5" /> {braider.name}
+                        </div>
+                        {braider.bio && <p className="text-sm text-gray-600 mt-1 line-clamp-2">{braider.bio}</p>}
+                      </button>
+                    )) : <p className="text-gray-500">No braiders available for this service.</p>}
+                  </div>
 
-          {/* BRAIDER + DATE + TIME */}
-          {showAddonStep && selectedService && (
-            <div className="space-y-10">
-              <div>
-                <h2 className="text-xl font-medium mb-4">4. Choose Braider</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {braiders.length > 0 ? braiders.map((braider) => (
+                  <div className="flex gap-4">
                     <button
-                      key={braider.staffUserId}
-                      onClick={() => handleBraiderSelect(braider)}
-                      className={`p-5 rounded-2xl border text-left transition-all ${selectedBraiderId === braider.staffUserId ? 'border-emerald-600 bg-emerald-50' : 'border-gray-200 hover:border-emerald-300'}`}
+                      onClick={() => setModalStep('addons')}
+                      className="flex-1 border border-gray-300 hover:bg-gray-100 py-3.5 rounded-2xl font-medium text-base transition-colors"
                     >
-                      <div className="font-medium flex items-center gap-2">
-                        <User className="h-5 w-5" /> {braider.name}
-                      </div>
-                      {braider.bio && <p className="text-sm text-gray-600 mt-1 line-clamp-2">{braider.bio}</p>}
+                      Back
                     </button>
-                  )) : <p className="text-gray-500">No braiders available for this service.</p>}
+                    <button
+                      onClick={() => setModalStep('datetime')}
+                      disabled={!selectedBraiderId}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
+                    >
+                      Continue to Date & Time
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {selectedBraiderId && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h2 className="text-xl font-medium mb-4">5. Choose Date</h2>
+              {/* DATE & TIME STEP */}
+              {modalStep === 'datetime' && (
+                <div>
+                  <h3 className="text-xl font-medium mb-4">Choose Date & Time</h3>
+                  
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium mb-1">Date</label>
                     <input
                       type="date"
                       value={selectedDate}
@@ -478,28 +513,49 @@ export default function BookingPage() {
                     />
                   </div>
 
-                  {selectedDate && availableSlots.length > 0 && (
-                    <div>
-                      <h2 className="text-xl font-medium mb-4">6. Choose Time</h2>
-                      <div className="flex flex-wrap gap-3">
-                        {availableSlots.map((slot, index) => (
-                          <button
-                            key={index}
-                            onClick={() => handleTimeSelect(slot.time)}
-                            className={`px-5 py-3 rounded-2xl border text-sm font-medium transition-all ${selectedTime === slot.time ? 'bg-emerald-600 text-white border-emerald-600' : 'border-gray-300 hover:border-emerald-400'}`}
-                          >
-                            {slot.time}
-                          </button>
-                        ))}
-                      </div>
+                  {selectedDate && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium mb-2">Available Times</label>
+                      {availableSlots.length > 0 ? (
+                        <div className="flex flex-wrap gap-3">
+                          {availableSlots.map((slot, index) => (
+                            <button
+                              key={index}
+                              onClick={() => handleTimeSelect(slot.time)}
+                              className={`px-5 py-3 rounded-2xl border text-sm font-medium transition-all ${selectedTime === slot.time ? 'bg-emerald-600 text-white border-emerald-600' : 'border-gray-300 hover:border-emerald-400'}`}
+                            >
+                              {slot.time}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-500">No available times for this date.</p>
+                      )}
                     </div>
                   )}
+
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setModalStep('braider')}
+                      className="flex-1 border border-gray-300 hover:bg-gray-100 py-3.5 rounded-2xl font-medium text-base transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={() => setModalStep('details')}
+                      disabled={!selectedTime}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
+                    >
+                      Continue to Details
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {selectedTime && (
-                <form onSubmit={handleSubmit} className="space-y-6 pt-6 border-t">
-                  <h2 className="text-xl font-medium">7. Your Details</h2>
+              {/* DETAILS STEP */}
+              {modalStep === 'details' && (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <h3 className="text-xl font-medium mb-4">Your Details</h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -522,13 +578,31 @@ export default function BookingPage() {
                     <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" rows={3} />
                   </div>
 
-                  {/* GUEST WARNING */}
+                  {/* GUEST WARNING WITH LOGIN / REGISTER / CONTINUE AS GUEST */}
                   {showGuestWarning && !user && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
-                      <strong>Note:</strong> You are booking as a guest. We recommend creating an account for easier management of future bookings.
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+                      <p className="text-sm text-amber-800 mb-4">
+                        <strong>Note:</strong> You are booking as a guest. We recommend creating an account for easier management of future bookings.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Link href="/login" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2.5 rounded-xl font-medium text-sm transition-colors">
+                          Login
+                        </Link>
+                        <Link href="/register" className="flex-1 border border-emerald-600 text-emerald-600 hover:bg-emerald-50 text-center py-2.5 rounded-xl font-medium text-sm transition-colors">
+                          Create Account
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setShowGuestWarning(false)}
+                          className="flex-1 text-gray-600 hover:text-gray-900 py-2.5 rounded-xl font-medium text-sm transition-colors"
+                        >
+                          Continue as Guest
+                        </button>
+                      </div>
                     </div>
                   )}
 
+                  {/* TOTAL SUMMARY */}
                   <div className="bg-emerald-50 rounded-2xl p-6">
                     <div className="flex justify-between text-sm mb-2">
                       <span>Service</span>
@@ -549,19 +623,29 @@ export default function BookingPage() {
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={checkoutLoading}
-                    className="w-full bg-black hover:bg-black/90 disabled:bg-gray-400 text-white py-4 rounded-2xl font-medium text-lg flex items-center justify-center gap-2"
-                  >
-                    {checkoutLoading ? 'Processing...' : `Pay Deposit & Book →`}
-                  </button>
+                  <div className="flex gap-4 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setModalStep('datetime')}
+                      className="flex-1 border border-gray-300 hover:bg-gray-100 py-3.5 rounded-2xl font-medium text-base transition-colors"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={checkoutLoading || !selectedTime}
+                      className="flex-1 bg-black hover:bg-black/90 disabled:bg-gray-400 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
+                    >
+                      {checkoutLoading ? 'Processing...' : `Pay Deposit & Book →`}
+                    </button>
+                  </div>
                 </form>
               )}
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
+
       <Footer />
     </div>
   );
