@@ -31,20 +31,29 @@ export async function POST(request: Request) {
       servicePrice,
       depositAmount,
       selectedAddons,
-      totalAmount,
+      totalAmount: passedTotalAmount,
       bookingDate,
       bookingTime,
       braiderName,
     } = body;
 
-    const outstandingBalance = totalAmount - depositAmount;
+    // ============================================
+    // FIX: Calculate totals correctly
+    // ============================================
+    const addonsTotal = selectedAddons?.reduce((sum, addon) => 
+      sum + (addon.price * addon.quantity), 0) || 0;
+    
+    const calculatedTotalAmount = servicePrice + addonsTotal;
+    const actualDepositPaid = depositAmount || 0;
+    const outstandingBalance = calculatedTotalAmount - actualDepositPaid;
+
     const formatCurrency = (amount: number) => `$${(amount / 100).toFixed(2)} CAD`;
 
     // ============================================
     // MAILTRAP CONFIGURATION
     // ============================================
     const TOKEN = process.env.MAILTRAP_TOKEN;
-    
+
     if (!TOKEN) {
       console.error('MAILTRAP_TOKEN is not configured');
       return NextResponse.json(
@@ -60,8 +69,8 @@ export async function POST(request: Request) {
     );
 
     const sender = {
-      address: process.env.MAILTRAP_FROM_EMAIL || "admin@KnotXandKraftS.com",
-      name: process.env.MAILTRAP_FROM_NAME || "KnotXandKraftS",
+      address: process.env.MAILTRAP_FROM_EMAIL || "admin@KnotXandKrafts.com",
+      name: process.env.MAILTRAP_FROM_NAME || "KnotXandKrafts",
     };
 
     // Build addons HTML
@@ -80,14 +89,14 @@ export async function POST(request: Request) {
       <html>
         <head>
           <meta charset="utf-8">
-          <title>Booking Invoice - KnotXandKraftS</title>
+          <title>Booking Invoice - KnotXandKrafts</title>
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafb; padding: 40px 20px; margin: 0;">
           <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
             
             <!-- Header -->
             <div style="background: #111; color: white; padding: 32px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 28px; font-weight: 600;">KnotX</h1>
+              <h1 style="margin: 0; font-size: 28px; font-weight: 600;">KnotXandKrafts</h1>
               <p style="margin: 8px 0 0; opacity: 0.8; font-size: 14px;">Booking Invoice</p>
             </div>
 
@@ -95,7 +104,7 @@ export async function POST(request: Request) {
               <p style="font-size: 18px; margin: 0 0 24px;">Hi ${customerName || 'there'},</p>
               
               <p style="color: #444; line-height: 1.6; margin-bottom: 32px;">
-                Thank you for booking with KnotX! Here's your invoice for the appointment.
+                Thank you for booking with KnotXandKrafts! Here's your invoice for the appointment.
               </p>
 
               <!-- Booking Details -->
@@ -144,12 +153,12 @@ export async function POST(request: Request) {
                   
                   <div style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; background: #f8fafc;">
                     <span style="font-weight: 600;">Total</span>
-                    <span style="font-weight: 700; color: #111;">${formatCurrency(totalAmount)}</span>
+                    <span style="font-weight: 700; color: #111;">${formatCurrency(calculatedTotalAmount)}</span>
                   </div>
                   
                   <div style="padding: 16px 20px; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between; background: #ecfdf5;">
                     <span style="color: #10b981; font-weight: 600;">Deposit Paid</span>
-                    <span style="font-weight: 700; color: #10b981;">${formatCurrency(depositAmount)}</span>
+                    <span style="font-weight: 700; color: #10b981;">${formatCurrency(actualDepositPaid)}</span>
                   </div>
                   
                   <div style="padding: 16px 20px; display: flex; justify-content: space-between; background: #fef3c7;">
@@ -160,20 +169,20 @@ export async function POST(request: Request) {
               </div>
 
               <p style="color: #666; font-size: 14px; line-height: 1.6;">
-                Your appointment is confirmed. Please arrive 10 minutes early. 
+                Your appointment is confirmed. Please arrive 10 minutes early.
                 The outstanding balance will be due on the day of your appointment.
               </p>
 
               <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center;">
                 <p style="color: #888; font-size: 13px; margin: 0;">
-                  Questions? Reply to this email or contact us at <a href="mailto:hello@knotx.ca" style="color: #111;">hello@knotx.ca</a>
+                  Questions? Reply to this email or contact us at <a href="mailto:hello@knotxandkrafts.ca" style="color: #111;">hello@knotxandkrafts.ca</a>
                 </p>
               </div>
             </div>
 
             <!-- Footer -->
             <div style="background: #111; color: #888; text-align: center; padding: 20px; font-size: 12px;">
-              © ${new Date().getFullYear()} KnotX. All rights reserved.
+              © ${new Date().getFullYear()} KnotXandKrafts. All rights reserved.
             </div>
           </div>
         </body>
@@ -184,15 +193,15 @@ export async function POST(request: Request) {
     await transport.sendMail({
       from: sender,
       to: customerEmail,
-      subject: `Your KnotXandKrats Booking Invoice - ${serviceName}`,
+      subject: `Your KnotXandKrafts Booking Invoice - ${serviceName}`,
       html,
       category: "Booking Invoice",
     });
 
     console.log(`Invoice email sent to ${customerEmail}`);
-    return NextResponse.json({ 
-      success: true, 
-      message: 'Invoice sent successfully via Mailtrap' 
+    return NextResponse.json({
+      success: true,
+      message: 'Invoice sent successfully via Mailtrap'
     });
 
   } catch (error: any) {
