@@ -140,7 +140,7 @@ export async function POST(request: Request) {
 
               <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #e5e7eb; text-align: center;">
                 <p style="color: #888; font-size: 13px; margin: 0;">
-                  Questions? Reply to this email or contact us at <a href="mailto:hello@knotx.ca" style="color: #111;">hello@knotx.ca</a>
+                  Questions? Reply to this email or contact us at <a href="mailto:admin@knotxandkrafts.com" style="color: #111;">admin@knotxandkrafts.com</a>
                 </p>
               </div>
             </div>
