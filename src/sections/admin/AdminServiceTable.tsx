@@ -11,7 +11,7 @@ type Service = {
   slug: string;
   description: string | null;
   price: number;
-  depositAmount: number;           // ← NEW
+  depositAmount: number;
   durationMinutes: number;
   image: string | null;
   featured: boolean;
@@ -21,10 +21,20 @@ type Service = {
   stripePriceId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
+  hairRequirement?: string | null;
+  categoryId?: number | null;
+  category?: { id: number; name: string } | null;
+};
+
+type Category = {
+  id: number;
+  name: string;
+  slug: string;
 };
 
 type Props = {
   services: Service[];
+  categories?: Category[];
   onCreate: (formData: FormData) => Promise<void>;
   onUpdate: (formData: FormData) => Promise<void>;
   onDelete: (formData: FormData) => Promise<void>;
@@ -33,6 +43,7 @@ type Props = {
 
 export default function AdminServiceTable({
   services,
+  categories = [],
   onCreate,
   onUpdate,
   onDelete,
@@ -247,10 +258,22 @@ export default function AdminServiceTable({
               <div>
                 <label className="block text-xs font-medium mb-1">Service Name</label>
                 <input
+                  type="text"
                   name="name"
                   defaultValue={editingService?.name || ''}
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
                   required
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1">Slug (URL)</label>
+                <input
+                  type="text"
+                  name="slug"
+                  defaultValue={editingService?.slug || ''}
+                  placeholder="auto-generated-from-name"
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
@@ -259,31 +282,29 @@ export default function AdminServiceTable({
                 <textarea
                   name="description"
                   defaultValue={editingService?.description || ''}
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
                   rows={3}
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium mb-1">Full Price (cents)</label>
                   <input
-                    name="price"
                     type="number"
-                    defaultValue={editingService?.price ?? 0}
+                    name="price"
+                    defaultValue={editingService?.price || 0}
+                    className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
                     required
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-medium mb-1">Deposit Amount (cents) – charged via Stripe</label>
+                  <label className="block text-xs font-medium mb-1">Deposit (cents)</label>
                   <input
-                    name="depositAmount"
                     type="number"
-                    defaultValue={editingService?.depositAmount ?? 0}
-                    required
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                    name="depositAmount"
+                    defaultValue={editingService?.depositAmount || 0}
+                    className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
@@ -291,51 +312,81 @@ export default function AdminServiceTable({
               <div>
                 <label className="block text-xs font-medium mb-1">Duration (minutes)</label>
                 <input
-                  name="durationMinutes"
                   type="number"
-                  defaultValue={editingService?.durationMinutes ?? 60}
+                  name="durationMinutes"
+                  defaultValue={editingService?.durationMinutes || 60}
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
                   required
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
                 />
               </div>
 
-              <div className="flex gap-6">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    name="featured"
-                    defaultChecked={editingService?.featured || false}
-                  />
-                  Featured
-                </label>
-                <label className="flex items-center gap-2">
+              {/* NEW: Hair Requirement */}
+              <div>
+                <label className="block text-xs font-medium mb-1">Hair Requirement (optional)</label>
+                <textarea
+                  name="hairRequirement"
+                  defaultValue={editingService?.hairRequirement || ''}
+                  placeholder="e.g. 3 packs of attachment + 2 packs of beads"
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  rows={2}
+                />
+                <p className="text-xs text-gray-500 mt-1">Shown to customers on booking page</p>
+              </div>
+
+              {/* NEW: Category Dropdown */}
+              <div>
+                <label className="block text-xs font-medium mb-1">Category</label>
+                <select
+                  name="categoryId"
+                  defaultValue={editingService?.categoryId?.toString() || ''}
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="">Uncategorized</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  name="featured"
+                  id="featured"
+                  defaultChecked={editingService?.featured}
+                  className="w-4 h-4 text-emerald-600"
+                />
+                <label htmlFor="featured" className="text-sm">Featured on homepage</label>
+              </div>
+
+              {editingService && (
+                <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
                     name="active"
-                    defaultChecked={editingService?.active !== false}
+                    id="active"
+                    defaultChecked={editingService.active}
+                    className="w-4 h-4 text-emerald-600"
                   />
-                  Active
-                </label>
-              </div>
+                  <label htmlFor="active" className="text-sm">Active (visible to customers)</label>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (previewUrl) URL.revokeObjectURL(previewUrl);
-                    setModalOpen(false);
-                    setEditingService(null);
-                    setPreviewUrl(null);
-                  }}
-                  className="flex-1 py-4 rounded-2xl border border-black/10 font-medium"
+                  onClick={() => setModalOpen(false)}
+                  className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-2xl hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-4 rounded-2xl bg-black text-white font-medium"
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-medium"
                 >
-                  {editingService ? 'Save Changes' : 'Create Service'}
+                  {editingService ? 'Update Service' : 'Create Service'}
                 </button>
               </div>
             </form>
