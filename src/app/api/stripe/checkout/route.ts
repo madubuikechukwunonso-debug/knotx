@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { prisma } from '@/lib/prisma';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-04-22.dahlia',
@@ -9,6 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    
     const {
       serviceId,
       staffUserId,
@@ -22,32 +22,36 @@ export async function POST(request: NextRequest) {
       depositAmount,
       serviceName,
       userId,
-      userType,
+      selectedAddons,
+      totalAmount,
     } = body;
 
-    if (!serviceId || !staffUserId || !date || !time || !customerEmail || !depositAmount) {
+    // Validate required fields
+    if (!serviceId || !staffUserId || !date || !time || !customerEmail) {
       return NextResponse.json(
-        { ok: false, message: 'Missing required fields for checkout' },
+        { message: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Verify service and get details
-    const service = await prisma.service.findFirst({
-      where: { id: Number(serviceId), active: true },
-    });
+    // Get base URL with proper scheme
+    const getBaseUrl = () => {
+      // Use environment variable if set (recommended for production)
+      if (process.env.NEXT_PUBLIC_BASE_URL) {
+        return process.env.NEXT_PUBLIC_BASE_URL.replace(/\/$/, '');
+      }
+      
+      // Fallback: construct from request headers
+      const host = request.headers.get('host') || 'localhost:3000';
+      const protocol = request.headers.get('x-forwarded-proto') || 
+                      (host.includes('localhost') ? 'http' : 'https');
+      
+      return `${protocol}://${host}`;
+    };
 
-    if (!service) {
-      return NextResponse.json({ ok: false, message: 'Service not found' }, { status: 404 });
-    }
+    const baseUrl = getBaseUrl();
 
-    const amount = depositAmount || service.depositAmount || Math.round(service.price * 0.3);
-
-    if (amount <= 0) {
-      return NextResponse.json({ ok: false, message: 'Invalid deposit amount' }, { status: 400 });
-    }
-
-    // Create Stripe Checkout Session
+    // Create Stripe checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',
@@ -55,51 +59,41 @@ export async function POST(request: NextRequest) {
       line_items: [
         {
           price_data: {
-            currency: service.priceCurrency || 'cad',
+            currency: 'cad',
             product_data: {
-              name: `Deposit: ${serviceName || service.name}`,
-              description: `Appointment with ${staffName} on ${date} at ${time}`,
-              metadata: {
-                serviceId: service.id.toString(),
-                staffUserId: staffUserId.toString(),
-              },
+              name: serviceName || 'Hair Service',
+              description: `${date} at ${time} with ${staffName}`,
             },
-            unit_amount: amount,
+            unit_amount: depositAmount || 5000,
           },
           quantity: 1,
         },
       ],
+      success_url: `${baseUrl}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/booking?canceled=true`,
       metadata: {
         serviceId: serviceId.toString(),
         staffUserId: staffUserId.toString(),
-        staffName: staffName || '',
         date,
         time,
-        customerName,
+        customerName: customerName || '',
         customerEmail,
         customerPhone: customerPhone || '',
         notes: notes || '',
-        userId: userId?.toString() || '',
-        userType: userType && (userType === 'local' || userType === 'oauth') ? userType : '',
-        serviceName: serviceName || service.name,
-        fullPrice: service.price.toString(),
+        userId: userId ? userId.toString() : '',
+        selectedAddons: selectedAddons || '',
+        totalAmount: totalAmount ? totalAmount.toString() : '',
       },
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/book`,
-      expires_at: Math.floor(Date.now() / 1000) + 60 * 30, // 30 min expiry
     });
 
-    return NextResponse.json({
-      ok: true,
-      sessionId: session.id,
-      url: session.url,
-    });
+    return NextResponse.json({ url: session.url });
+
   } catch (error: any) {
     console.error('Stripe checkout error:', error);
     return NextResponse.json(
-      {
-        ok: false,
-        message: error?.message || 'Failed to create checkout session',
+      { 
+        message: error.message || 'Failed to create checkout session',
+        error: error.type || 'unknown_error'
       },
       { status: 500 }
     );
