@@ -150,12 +150,10 @@ export default function BookingPage() {
     setSelectedTime(time);
   };
 
-  // Force user to complete addon step before braider
   const proceedToBraider = () => {
     setShowAddonStep(true);
   };
 
-  // Addon quantity handlers
   const updateAddonQuantity = (addon: Addon, newQuantity: number) => {
     if (newQuantity < 0) return;
 
@@ -307,6 +305,7 @@ export default function BookingPage() {
                     onClick={() => handleServiceSelect(service.id)}
                     className={`group cursor-pointer rounded-3xl border overflow-hidden transition-all hover:shadow-xl ${selectedService === service.id ? 'border-emerald-600 ring-2 ring-emerald-600' : 'border-gray-200 hover:border-emerald-300'}`}
                   >
+                    {/* FULL IMAGE */}
                     {service.image && (
                       <div className="h-56 overflow-hidden">
                         <img 
@@ -331,6 +330,7 @@ export default function BookingPage() {
                         <span>{service.durationMinutes} min</span>
                       </div>
 
+                      {/* DEPOSIT & HAIR REQUIREMENT - BLUE DESIGN */}
                       <div className="mb-3 space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Deposit (30%)</span>
