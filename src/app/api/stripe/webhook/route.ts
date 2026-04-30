@@ -12,7 +12,6 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const signature = request.headers.get('stripe-signature')!;
-
   let event: Stripe.Event;
 
   try {
@@ -26,7 +25,7 @@ export async function POST(request: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = session.metadata || {};
 
-    // Check if booking already exists (idempotency for webhook retries)
+    // Check if booking already exists (idempotency)
     const existingBooking = await prisma.booking.findFirst({
       where: { stripeCheckoutSessionId: session.id },
     });
@@ -37,9 +36,8 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Validate required metadata
       if (!metadata.serviceId || !metadata.staffUserId || !metadata.date || !metadata.time) {
-        console.error('Missing required metadata for booking creation', metadata);
+        console.error('Missing required metadata', metadata);
         return NextResponse.json({ received: true });
       }
 
@@ -47,11 +45,11 @@ export async function POST(request: NextRequest) {
       const staffUserId = parseInt(metadata.staffUserId);
 
       if (isNaN(serviceId) || isNaN(staffUserId)) {
-        console.error('Invalid serviceId or staffUserId in metadata', metadata);
+        console.error('Invalid serviceId or staffUserId', metadata);
         return NextResponse.json({ received: true });
       }
 
-      // Create the booking using the proper service (includes availability check + proper relations)
+      // Create booking
       const booking = await createBooking({
         customerName: metadata.customerName || 'Guest',
         customerEmail: metadata.customerEmail || '',
@@ -62,7 +60,7 @@ export async function POST(request: NextRequest) {
         time: metadata.time,
         notes: metadata.notes || undefined,
         userId: metadata.userId ? parseInt(metadata.userId) : undefined,
-        userType: metadata.userType && (metadata.userType === 'local' || metadata.userType === 'oauth') 
+        userType: metadata.userType === 'local' || metadata.userType === 'oauth' 
           ? (metadata.userType as 'local' | 'oauth') 
           : undefined,
       });
@@ -73,14 +71,68 @@ export async function POST(request: NextRequest) {
         data: {
           paymentStatus: 'paid',
           stripeCheckoutSessionId: session.id,
-          status: 'pending', // Still pending confirmation from admin
+          status: 'pending',
         },
       });
 
-      console.log(`Booking created and paid: ${booking.id} for session ${session.id}`);
+      console.log(`Booking created and paid: ${booking.id}`);
+
+      // ============================================
+      // SEND INVOICE EMAIL
+      // ============================================
+      try {
+        const service = await prisma.service.findUnique({
+          where: { id: serviceId },
+          select: { name: true, price: true, depositAmount: true },
+        });
+
+        const staff = await prisma.staffProfile.findUnique({
+          where: { id: staffUserId },
+          select: { displayName: true },
+        });
+
+        if (service && staff) {
+          // Parse selected addons from metadata
+          let selectedAddons: Array<{ name: string; price: number; quantity: number }> = [];
+          
+          if (metadata.selectedAddons) {
+            try {
+              selectedAddons = JSON.parse(metadata.selectedAddons);
+            } catch (e) {
+              console.error('Failed to parse selectedAddons');
+            }
+          }
+
+          const totalAmount = session.amount_total || (service.price + selectedAddons.reduce((sum, a) => sum + (a.price * a.quantity), 0));
+          const depositAmount = session.amount_subtotal || service.depositAmount || Math.round(totalAmount * 0.3);
+
+          // Call send-invoice API
+          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-invoice`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customerName: metadata.customerName || 'Guest',
+              customerEmail: metadata.customerEmail || '',
+              serviceName: service.name,
+              servicePrice: service.price,
+              depositAmount: depositAmount,
+              selectedAddons: selectedAddons,
+              totalAmount: totalAmount,
+              bookingDate: metadata.date,
+              bookingTime: metadata.time,
+              braiderName: staff.displayName,
+            }),
+          });
+
+          console.log(`Invoice email sent for booking ${booking.id}`);
+        }
+      } catch (invoiceError: any) {
+        console.error('Failed to send invoice:', invoiceError);
+      }
+      // ============================================
+
     } catch (error: any) {
       console.error('Error creating booking from webhook:', error);
-      // Don't fail the webhook, log for manual review
     }
   }
 
