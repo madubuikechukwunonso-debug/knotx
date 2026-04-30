@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createBooking } from '@/modules/booking/booking.service';
 import { prisma } from '@/lib/prisma';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -25,6 +24,7 @@ export async function POST(request: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = session.metadata || {};
 
+    // Check if booking already exists (idempotency)
     const existingBooking = await prisma.booking.findFirst({
       where: { stripeCheckoutSessionId: session.id },
     });
@@ -48,48 +48,57 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true });
       }
 
+      // Get service details
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId },
+      });
+
+      if (!service) {
+        console.error('Service not found:', serviceId);
+        return NextResponse.json({ received: true });
+      }
+
+      // ============================================
+      // CREATE BOOKING DIRECTLY (skip availability check)
+      // ============================================
       const isRegisteredUser = metadata.userId && metadata.userType && 
         (metadata.userType === 'local' || metadata.userType === 'oauth');
 
-      const booking = await createBooking({
-        customerName: metadata.customerName || 'Guest',
-        customerEmail: metadata.customerEmail || '',
-        customerPhone: metadata.customerPhone || undefined,
-        serviceId,
-        staffUserId,
-        date: metadata.date,
-        time: metadata.time,
-        notes: metadata.notes || undefined,
-        userId: metadata.userId ? parseInt(metadata.userId) : undefined,
-        userType: isRegisteredUser 
-          ? (metadata.userType as 'local' | 'oauth')
-          : 'guest',
-      });
-
-      await prisma.booking.update({
-        where: { id: booking.id },
+      const booking = await prisma.booking.create({
         data: {
+          customerName: metadata.customerName || 'Guest',
+          customerEmail: metadata.customerEmail || '',
+          customerPhone: metadata.customerPhone || undefined,
+          serviceId: service.id,
+          staffUserId: staffUserId,
+          serviceType: service.name,
+          durationMinutes: service.durationMinutes,
+          price: service.price,
           paymentStatus: 'paid',
           stripeCheckoutSessionId: session.id,
+          date: metadata.date,
+          time: metadata.time,
+          notes: metadata.notes || undefined,
+          userId: metadata.userId ? parseInt(metadata.userId) : undefined,
+          userType: isRegisteredUser 
+            ? (metadata.userType as 'local' | 'oauth')
+            : 'guest',
           status: 'pending',
         },
       });
 
       console.log(`Booking created: ${booking.id} (userType: ${isRegisteredUser ? metadata.userType : 'guest'})`);
 
-      // Send invoice email...
+      // ============================================
+      // SEND INVOICE EMAIL
+      // ============================================
       try {
-        const service = await prisma.service.findUnique({
-          where: { id: serviceId },
-          select: { name: true, price: true, depositAmount: true },
-        });
-
         const staff = await prisma.staffProfile.findUnique({
           where: { id: staffUserId },
           select: { displayName: true },
         });
 
-        if (service && staff) {
+        if (staff) {
           let selectedAddons: Array<{ name: string; price: number; quantity: number }> = [];
           if (metadata.selectedAddons) {
             try { selectedAddons = JSON.parse(metadata.selectedAddons); } catch {}
@@ -117,13 +126,15 @@ export async function POST(request: NextRequest) {
               braiderName: staff.displayName,
             }),
           });
+
+          console.log(`Invoice email sent for booking ${booking.id}`);
         }
       } catch (invoiceError: any) {
         console.error('Failed to send invoice:', invoiceError);
       }
 
     } catch (error: any) {
-      console.error('Error creating booking:', error);
+      console.error('Error creating booking from webhook:', error);
     }
   }
 
