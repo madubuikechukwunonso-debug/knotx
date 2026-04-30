@@ -161,7 +161,7 @@ export async function createBooking(input: CreateBookingInput) {
 }
 
 // ============================================
-// FIX: Robust listMyBookings function
+// FIX: listMyBookings without invalid include
 // ============================================
 export async function listMyBookings(user?: BookingSessionUser) {
   if (!user) return [];
@@ -175,9 +175,6 @@ export async function listMyBookings(user?: BookingSessionUser) {
           status: { not: "cancelled" }
         },
         orderBy: { createdAt: "desc" },
-        include: {
-          service: true,
-        }
       });
     }
 
@@ -189,9 +186,6 @@ export async function listMyBookings(user?: BookingSessionUser) {
           status: { not: "cancelled" }
         },
         orderBy: { createdAt: "desc" },
-        include: {
-          service: true,
-        }
       });
     }
 
@@ -203,9 +197,6 @@ export async function listMyBookings(user?: BookingSessionUser) {
           status: { not: "cancelled" }
         },
         orderBy: { createdAt: "desc" },
-        include: {
-          service: true,
-        }
       });
     }
 
