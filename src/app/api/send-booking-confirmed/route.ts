@@ -11,6 +11,12 @@ export async function POST(request: Request) {
 
     const transport = nodemailer.createTransport(MailtrapTransport({ token: TOKEN }));
 
+    // ✅ FIXED: Added sender definition
+    const sender = {
+      address: process.env.MAILTRAP_FROM_EMAIL || "admin@KnotXandKrafts.com",
+      name: process.env.MAILTRAP_FROM_NAME || "KnotXandKrafts",
+    };
+
     const html = `
       <!DOCTYPE html>
       <html>
