@@ -1,6 +1,11 @@
+// ============================================
+// COMPLETE FIXED VERSION
+// src/modules/booking/booking.types.ts
+// ============================================
+
 export type BookingSessionUser = {
   userId: number;
-  userType: "local" | "oauth";
+  userType: "local" | "oauth" | "guest";  // ← FIXED: Added "guest"
   email?: string;
   role?: "user" | "worker" | "admin" | "super_admin";
   name?: string;
@@ -22,7 +27,7 @@ export type CreateBookingInput = {
   time: string;
   notes?: string;
   userId?: number;
-  userType?: "oauth" | "local";
+  userType?: "oauth" | "local" | "guest";  // ← FIXED: Added "guest"
 };
 
 export type AvailabilityInput = {
