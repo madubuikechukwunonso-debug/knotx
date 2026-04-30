@@ -23,6 +23,7 @@ function minutesToTime(value: number) {
   return `${hours}:${minutes}`;
 }
 
+// Generate all possible start times
 function buildSlots(startTime: string, endTime: string, stepMinutes: number): string[] {
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
@@ -31,6 +32,30 @@ function buildSlots(startTime: string, endTime: string, stepMinutes: number): st
     slots.push(minutesToTime(current));
   }
   return slots;
+}
+
+// ============================================
+// FIX: Check if a time slot overlaps with any existing booking
+// ============================================
+function isSlotAvailable(
+  slotTime: string,
+  serviceDurationMinutes: number,
+  existingBookings: Array<{ time: string; durationMinutes: number }>
+): boolean {
+  const slotStart = timeToMinutes(slotTime);
+  const slotEnd = slotStart + serviceDurationMinutes;
+
+  for (const booking of existingBookings) {
+    const bookingStart = timeToMinutes(booking.time);
+    const bookingEnd = bookingStart + booking.durationMinutes;
+
+    // Check for overlap
+    if (slotStart < bookingEnd && slotEnd > bookingStart) {
+      return false; // Slot overlaps with existing booking
+    }
+  }
+
+  return true;
 }
 
 export async function listServices() {
@@ -44,16 +69,20 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
   const service = await prisma.service.findFirst({
     where: { id: input.serviceId, active: true },
   });
-
   if (!service) return [];
 
   const dayOfWeek = dayOfWeekFromDate(input.date);
-
   const profiles = await prisma.staffProfile.findMany();
   const hours = await prisma.staffWorkingHour.findMany();
   const timeOffs = await prisma.staffTimeOff.findMany();
+  
+  // Get bookings with their duration
   const bookings = await prisma.booking.findMany({
-    where: { date: input.date },
+    where: { 
+      date: input.date,
+      status: { not: "cancelled" },
+    },
+    select: { staffUserId: true, time: true, durationMinutes: true },
   });
 
   const bookingEnabledProfiles = profiles.filter((p) => p.bookingEnabled);
@@ -62,7 +91,6 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
     const working = hours.find(
       (h) => h.staffUserId === profile.userId && h.dayOfWeek === dayOfWeek && h.isWorking
     );
-
     if (!working) return [];
 
     const hasTimeOff = timeOffs.some((t) => {
@@ -72,22 +100,24 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
       const target = new Date(`${input.date}T12:00:00`);
       return target >= start && target <= end;
     });
-
     if (hasTimeOff) return [];
 
-    const bookedTimes = new Set(
-      bookings
-        .filter((b) => b.staffUserId === profile.userId && b.status !== "cancelled")
-        .map((b) => b.time)
+    // Get existing bookings for THIS specific braider
+    const braiderBookings = bookings.filter((b) => b.staffUserId === profile.userId);
+
+    // Generate all possible start times
+    const allSlots = buildSlots(working.startTime, working.endTime, service.durationMinutes);
+
+    // Filter out slots that overlap with existing bookings
+    const availableSlots = allSlots.filter((slot) => 
+      isSlotAvailable(slot, service.durationMinutes, braiderBookings)
     );
 
-    return buildSlots(working.startTime, working.endTime, service.durationMinutes)
-      .filter((slot) => !bookedTimes.has(slot))
-      .map((slot) => ({
-        staffUserId: profile.userId,
-        staffName: profile.displayName,
-        time: slot,
-      }));
+    return availableSlots.map((slot) => ({
+      staffUserId: profile.userId,
+      staffName: profile.displayName,
+      time: slot,
+    }));
   });
 
   return availableByStaff;
@@ -97,8 +127,18 @@ export async function createBooking(input: CreateBookingInput) {
   const service = await prisma.service.findFirst({
     where: { id: input.serviceId, active: true },
   });
-
   if (!service) throw new Error("Service not found");
+
+  // ============================================
+  // FIX: Validate date is not in the past
+  // ============================================
+  const bookingDate = new Date(`${input.date}T00:00:00`);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  if (bookingDate < today) {
+    throw new Error("Cannot book appointments in the past");
+  }
 
   const available = await getAvailabilityForService({
     date: input.date,
@@ -136,14 +176,12 @@ export async function createBooking(input: CreateBookingInput) {
 
 export async function listMyBookings(user?: BookingSessionUser) {
   if (!user) return [];
-
   if (user.userType === "local") {
     return prisma.booking.findMany({
       where: { customerEmail: user.email || "" },
       orderBy: { createdAt: "desc" },
     });
   }
-
   return prisma.booking.findMany({
     where: {
       userId: user.userId,
