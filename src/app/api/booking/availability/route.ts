@@ -1,10 +1,10 @@
+// src/app/api/booking/availability/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 function dayOfWeekFromDate(dateStr: string): number {
-  // Parse YYYY-MM-DD safely as local date (noon) to avoid timezone shift issues
   const [year, month, day] = dateStr.split('-').map(Number);
-  const date = new Date(year, month - 1, day, 12, 0, 0); // local time, noon
+  const date = new Date(year, month - 1, day, 12, 0, 0);
   return date.getDay();
 }
 
@@ -23,7 +23,6 @@ function buildSlots(startTime: string, endTime: string, stepMinutes: number, ser
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
   const slots: string[] = [];
-  // Last possible start time = endTime - serviceDurationMinutes
   const latestStart = end - serviceDurationMinutes;
   for (let current = start; current <= latestStart; current += stepMinutes) {
     slots.push(minutesToTime(current));
@@ -36,8 +35,6 @@ export async function GET(request: Request) {
   const serviceId = searchParams.get('serviceId');
 
   if (serviceId) {
-    // Return braiders assigned to this service, or ALL enabled braiders if none assigned yet
-    // (this ensures newly created admin braiders with working hours appear immediately)
     let assignments = await prisma.serviceStaffAssignment.findMany({
       where: { serviceId: Number(serviceId) },
       include: {
@@ -71,6 +68,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, braiders });
   }
 
+  // ✅ FIXED: Include hairRequirement and categoryId
   const services = await prisma.service.findMany({
     where: { active: true },
     orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -84,6 +82,8 @@ export async function GET(request: Request) {
       durationMinutes: true,
       slotDurationMinutes: true,
       image: true,
+      hairRequirement: true,      // ← ADDED
+      categoryId: true,           // ← ADDED
     },
   });
 
@@ -93,7 +93,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { date, serviceId, staffUserId } = body; // staffUserId is now optional for filtering to a specific braider
+    const { date, serviceId, staffUserId } = body;
 
     if (!date || !serviceId) {
       return NextResponse.json({ ok: false, message: 'date and serviceId are required' }, { status: 400 });
@@ -109,7 +109,6 @@ export async function POST(request: Request) {
 
     const dayOfWeek = dayOfWeekFromDate(date);
 
-    // Get staff assigned to this service (filter by staffUserId if provided)
     let assignments = await prisma.serviceStaffAssignment.findMany({
       where: { 
         serviceId: Number(serviceId),
@@ -126,8 +125,6 @@ export async function POST(request: Request) {
       },
     });
 
-    // Fallback: If no ServiceStaffAssignment records exist for this service,
-    // treat ALL enabled braiders as available (so custom hours always work)
     if (assignments.length === 0) {
       const allEnabled = await prisma.staffProfile.findMany({
         where: { bookingEnabled: true },
@@ -142,7 +139,6 @@ export async function POST(request: Request) {
       const profile = assignment.staff;
       if (!profile.bookingEnabled) continue;
 
-      // Only use exact working hours for this day (no fallbacks at all)
       const working = await prisma.staffWorkingHour.findFirst({
         where: {
           staffUserId: profile.id,
@@ -151,12 +147,10 @@ export async function POST(request: Request) {
         },
       });
 
-      // If no exact match for this day (e.g. Sunday is closed), skip this braider completely
       if (!working) continue;
 
       const workingHours = working;
 
-      // Check if the entire day is blocked (StaffTimeOff or BlockedSlot)
       const hasFullDayBlock = await prisma.staffTimeOff.findFirst({
         where: {
           staffUserId: profile.id,
@@ -174,7 +168,6 @@ export async function POST(request: Request) {
 
       if (hasFullDayBlock || hasBlockedSlot) continue;
 
-      // Get existing bookings for this staff on this date
       const existingBookings = await prisma.booking.findMany({
         where: {
           staffUserId: profile.id,
@@ -186,11 +179,9 @@ export async function POST(request: Request) {
 
       const bookedTimes = new Set(existingBookings.map(b => b.time));
 
-      // Generate slots using slotDurationMinutes (or fallback to durationMinutes)
       const stepMinutes = service.slotDurationMinutes || service.durationMinutes;
       const allSlots = buildSlots(workingHours.startTime, workingHours.endTime, stepMinutes, service.durationMinutes);
 
-      // Filter out booked times
       const freeSlots = allSlots
         .filter(slot => !bookedTimes.has(slot))
         .map(slot => ({
