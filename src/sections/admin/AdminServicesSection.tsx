@@ -223,7 +223,7 @@ export default async function AdminServicesSection() {
             <p className="text-sm text-emerald-600">e.g. Stitch Braids, Knotless Braids</p>
           </div>
 
-          {/* Create Category - Mobile Friendly */}
+          {/* Create Category */}
           <div className="mb-8">
             <form action={createCategory} className="space-y-3">
               <div>
@@ -256,16 +256,13 @@ export default async function AdminServicesSection() {
                       <p className="font-medium truncate">{cat.name}</p>
                       <p className="text-xs text-emerald-600">{cat._count.services} services</p>
                     </div>
+                    
+                    {/* Safe Delete Button - No onClick on submit */}
                     <form action={deleteCategory} className="flex-shrink-0">
                       <input type="hidden" name="id" value={cat.id} />
                       <button
                         type="submit"
                         className="text-red-500 hover:text-red-700 active:text-red-600 text-sm font-medium px-3 py-1.5 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors"
-                        onClick={(e) => {
-                          if (!confirm(`Delete "${cat.name}"? All services will become uncategorized.`)) {
-                            e.preventDefault();
-                          }
-                        }}
                       >
                         Delete
                       </button>
@@ -286,7 +283,7 @@ export default async function AdminServicesSection() {
             <p className="text-sm text-emerald-600">Beads, Extra Packs, Treatments</p>
           </div>
 
-          {/* Create Addon - Mobile Friendly */}
+          {/* Create Addon */}
           <div className="mb-8">
             <form action={createAddon} className="space-y-3">
               <div>
@@ -342,16 +339,13 @@ export default async function AdminServicesSection() {
                         ${(addon.price / 100).toFixed(2)}
                       </p>
                     </div>
+                    
+                    {/* Safe Delete Button */}
                     <form action={deleteAddon} className="flex-shrink-0">
                       <input type="hidden" name="id" value={addon.id} />
                       <button
                         type="submit"
                         className="text-red-500 hover:text-red-700 active:text-red-600 text-sm font-medium px-3 py-1.5 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors"
-                        onClick={(e) => {
-                          if (!confirm(`Delete "${addon.name}"?`)) {
-                            e.preventDefault();
-                          }
-                        }}
                       >
                         Delete
                       </button>
