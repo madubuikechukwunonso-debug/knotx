@@ -496,24 +496,26 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* DATE & TIME STEP */}
+              {/* DATE & TIME STEP - NARROW DATE PICKER */}
               {modalStep === 'datetime' && (
                 <div>
                   <h3 className="text-xl font-medium mb-4">Choose Date & Time</h3>
                   
                   <div className="mb-6">
                     <label className="block text-sm font-medium mb-2">Date</label>
-                    <div className="relative">
-                      <input
-                        type="date"
-                        value={selectedDate}
-                        onChange={handleDateChange}
-                        min={today}
-                        max={maxDate}
-                        className="w-full border border-gray-300 rounded-2xl px-4 py-4 text-lg focus:outline-none focus:border-emerald-500"
-                      />
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
-                        <Calendar className="h-5 w-5" />
+                    <div className="inline-block">
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={selectedDate}
+                          onChange={handleDateChange}
+                          min={today}
+                          max={maxDate}
+                          className="border border-gray-300 rounded-2xl px-5 py-3.5 text-base focus:outline-none focus:border-emerald-500 bg-white cursor-pointer"
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                          <Calendar className="h-5 w-5" />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -557,7 +559,7 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* DETAILS STEP - GUEST WARNING OR FORM */}
+              {/* DETAILS STEP - GUEST WARNING ALONE OR FORM */}
               {modalStep === 'details' && (
                 <div>
                   {/* GUEST WARNING - SHOWN ALONE FOR NON-REGISTERED USERS */}
