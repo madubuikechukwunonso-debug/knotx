@@ -23,6 +23,7 @@ function minutesToTime(value: number) {
   return `${hours}:${minutes}`;
 }
 
+// Generate all possible start times
 function buildSlots(startTime: string, endTime: string, stepMinutes: number): string[] {
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
@@ -33,6 +34,9 @@ function buildSlots(startTime: string, endTime: string, stepMinutes: number): st
   return slots;
 }
 
+// ============================================
+// FIX: Properly block overlapping time slots
+// ============================================
 function isSlotAvailable(
   slotTime: string,
   serviceDurationMinutes: number,
@@ -45,6 +49,7 @@ function isSlotAvailable(
     const bookingStart = timeToMinutes(booking.time);
     const bookingEnd = bookingStart + booking.durationMinutes;
 
+    // Check for any overlap
     if (slotStart < bookingEnd && slotEnd > bookingStart) {
       return false;
     }
@@ -71,6 +76,7 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
   const hours = await prisma.staffWorkingHour.findMany();
   const timeOffs = await prisma.staffTimeOff.findMany();
   
+  // Get ALL bookings for this date (not cancelled)
   const bookings = await prisma.booking.findMany({
     where: { 
       date: input.date,
@@ -96,8 +102,13 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
     });
     if (hasTimeOff) return [];
 
+    // Get bookings for THIS braider only
     const braiderBookings = bookings.filter((b) => b.staffUserId === profile.userId);
+
+    // Generate all possible start times
     const allSlots = buildSlots(working.startTime, working.endTime, service.durationMinutes);
+
+    // Filter out overlapping slots
     const availableSlots = allSlots.filter((slot) => 
       isSlotAvailable(slot, service.durationMinutes, braiderBookings)
     );
@@ -118,6 +129,9 @@ export async function createBooking(input: CreateBookingInput) {
   });
   if (!service) throw new Error("Service not found");
 
+  // ============================================
+  // FIX: Block past dates
+  // ============================================
   const bookingDate = new Date(`${input.date}T00:00:00`);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -160,49 +174,19 @@ export async function createBooking(input: CreateBookingInput) {
   return newBooking;
 }
 
-// ============================================
-// FIX: listMyBookings without invalid include
-// ============================================
 export async function listMyBookings(user?: BookingSessionUser) {
   if (!user) return [];
-
-  try {
-    // For local users (email-based)
-    if (user.userType === "local") {
-      return await prisma.booking.findMany({
-        where: { 
-          customerEmail: user.email || "",
-          status: { not: "cancelled" }
-        },
-        orderBy: { createdAt: "desc" },
-      });
-    }
-
-    // For OAuth users (userId-based)
-    if (user.userType === "oauth" && user.userId) {
-      return await prisma.booking.findMany({
-        where: { 
-          userId: user.userId,
-          status: { not: "cancelled" }
-        },
-        orderBy: { createdAt: "desc" },
-      });
-    }
-
-    // Fallback: Try to find by email if available
-    if (user.email) {
-      return await prisma.booking.findMany({
-        where: { 
-          customerEmail: user.email,
-          status: { not: "cancelled" }
-        },
-        orderBy: { createdAt: "desc" },
-      });
-    }
-
-    return [];
-  } catch (error) {
-    console.error("Error fetching user bookings:", error);
-    return [];
+  if (user.userType === "local") {
+    return prisma.booking.findMany({
+      where: { customerEmail: user.email || "" },
+      orderBy: { createdAt: "desc" },
+    });
   }
+  return prisma.booking.findMany({
+    where: {
+      userId: user.userId,
+      userType: user.userType,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 }
