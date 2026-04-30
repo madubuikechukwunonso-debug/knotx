@@ -75,6 +75,26 @@ model Product {
   orderItems OrderItem[]
 }
 
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  slug      String   @unique
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  services  Service[]
+}
+
+model Addon {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  price       Int
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 model Service {
   id                  Int      @id @default(autoincrement())
   name                String
@@ -94,6 +114,11 @@ model Service {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  // NEW FIELDS
+  hairRequirement     String?
+  categoryId          Int?
+  category            Category? @relation(fields: [categoryId], references: [id])
+
   // Opposite relation for ServiceStaffAssignment
   assignments         ServiceStaffAssignment[]
 }
@@ -103,7 +128,6 @@ model ServiceStaffAssignment {
   serviceId   Int
   staffUserId Int
   createdAt   DateTime @default(now())
-
   service     Service      @relation(fields: [serviceId], references: [id])
   staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
@@ -144,7 +168,6 @@ model StaffProfile {
   bookingEnabled Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
   // Relations
   workingHours   StaffWorkingHour[]
   timeOffs       StaffTimeOff[]
@@ -161,7 +184,6 @@ model StaffWorkingHour {
   isWorking   Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
   staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
@@ -172,7 +194,6 @@ model StaffTimeOff {
   endAt       DateTime
   reason      String?
   createdAt   DateTime @default(now())
-
   staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
@@ -184,7 +205,6 @@ model BlockedSlot {
   endTime     String
   reason      String?
   createdAt   DateTime @default(now())
-
   staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
@@ -242,6 +262,9 @@ model Booking {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
   user                   LocalUser? @relation(fields: [userId], references: [id])
+
+  // NEW: Store selected addons as JSON (e.g. [{ "id": 1, "name": "Beads", "price": 1500 }])
+  selectedAddons         Json?
 }
 
 // ====================== WISHLIST ======================
@@ -279,23 +302,23 @@ model Subscriber {
 }
 
 model NewsletterCampaign {
-  id              Int      @id @default(autoincrement())
-  subject         String
-  htmlBody        String
-  audienceType    String   @default("selected")
-  sendToEveryone  Boolean  @default(false)
-  createdById     Int?
-  sentAt          DateTime?
-  createdAt       DateTime @default(now())
+  id           Int      @id @default(autoincrement())
+  subject      String
+  htmlBody     String
+  audienceType String   @default("selected")
+  sendToEveryone Boolean @default(false)
+  createdById  Int?
+  sentAt       DateTime?
+  createdAt    DateTime @default(now())
 }
 
 model NewsletterRecipient {
-  id             Int      @id @default(autoincrement())
-  campaignId     Int
-  email          String
-  name           String?
-  deliveryStatus String   @default("pending")
-  createdAt      DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  campaignId    Int
+  email         String
+  name          String?
+  deliveryStatus String  @default("pending")
+  createdAt     DateTime @default(now())
 }
 
 model ContactMessage {
@@ -316,10 +339,10 @@ model ContactMessage {
 }
 
 model ContactReply {
-  id        Int      @id @default(autoincrement())
-  messageId Int
-  sentById  Int
-  body      String
-  sentAt    DateTime @default(now())
-  message   ContactMessage @relation(fields: [messageId], references: [id])
+  id         Int      @id @default(autoincrement())
+  messageId  Int
+  sentById   Int
+  body       String
+  sentAt     DateTime @default(now())
+  message    ContactMessage @relation(fields: [messageId], references: [id])
 }
