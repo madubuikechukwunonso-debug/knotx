@@ -35,7 +35,7 @@ function buildSlots(startTime: string, endTime: string, stepMinutes: number): st
 }
 
 // ============================================
-// FIX 1: Check if a time slot overlaps with any existing booking
+// FIX: Properly block overlapping time slots
 // ============================================
 function isSlotAvailable(
   slotTime: string,
@@ -49,9 +49,9 @@ function isSlotAvailable(
     const bookingStart = timeToMinutes(booking.time);
     const bookingEnd = bookingStart + booking.durationMinutes;
 
-    // Check for overlap
+    // Check for any overlap
     if (slotStart < bookingEnd && slotEnd > bookingStart) {
-      return false; // Slot overlaps with existing booking
+      return false;
     }
   }
 
@@ -76,7 +76,7 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
   const hours = await prisma.staffWorkingHour.findMany();
   const timeOffs = await prisma.staffTimeOff.findMany();
   
-  // Get bookings with their duration
+  // Get ALL bookings for this date (not cancelled)
   const bookings = await prisma.booking.findMany({
     where: { 
       date: input.date,
@@ -102,13 +102,13 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
     });
     if (hasTimeOff) return [];
 
-    // Get existing bookings for THIS specific braider
+    // Get bookings for THIS braider only
     const braiderBookings = bookings.filter((b) => b.staffUserId === profile.userId);
 
     // Generate all possible start times
     const allSlots = buildSlots(working.startTime, working.endTime, service.durationMinutes);
 
-    // Filter out slots that overlap with existing bookings
+    // Filter out overlapping slots
     const availableSlots = allSlots.filter((slot) => 
       isSlotAvailable(slot, service.durationMinutes, braiderBookings)
     );
@@ -130,7 +130,7 @@ export async function createBooking(input: CreateBookingInput) {
   if (!service) throw new Error("Service not found");
 
   // ============================================
-  // FIX 2: Validate date is not in the past
+  // FIX: Block past dates
   // ============================================
   const bookingDate = new Date(`${input.date}T00:00:00`);
   const today = new Date();
