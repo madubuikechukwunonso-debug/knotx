@@ -40,9 +40,9 @@ export async function POST(request: Request) {
     // ============================================
     // FIX: Calculate totals correctly
     // ============================================
-    const addonsTotal = selectedAddons?.reduce((sum, addon) => 
+    const addonsTotal = selectedAddons?.reduce((sum, addon) =>
       sum + (addon.price * addon.quantity), 0) || 0;
-    
+   
     const calculatedTotalAmount = servicePrice + addonsTotal;
     const actualDepositPaid = depositAmount || 0;
     const outstandingBalance = calculatedTotalAmount - actualDepositPaid;
@@ -95,8 +95,10 @@ export async function POST(request: Request) {
           <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);">
             
             <!-- Header -->
-            <div style="background: #111; color: white; padding: 32px 40px; text-align: center;">
-              <h1 style="margin: 0; font-size: 28px; font-weight: 600;">KnotXandKrafts</h1>
+            <div style="background: linear-gradient(135deg, #111 0%, #1a1a1a 100%); color: white; padding: 32px 40px; text-align: center; position: relative;">
+              <div style="position: absolute; top: 10px; left: 20px; font-size: 20px; opacity: 0.3;">🌸</div>
+              <div style="position: absolute; top: 15px; right: 25px; font-size: 18px; opacity: 0.3;">🌺</div>
+              <h1 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: 1px;">KnotXandKrafts</h1>
               <p style="margin: 8px 0 0; opacity: 0.8; font-size: 14px;">Booking Invoice</p>
             </div>
 
@@ -107,28 +109,52 @@ export async function POST(request: Request) {
                 Thank you for booking with KnotXandKrafts! Here's your invoice for the appointment.
               </p>
 
-              <!-- Booking Details -->
-              <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
-                <h3 style="margin: 0 0 16px; color: #111; font-size: 16px;">Appointment Details</h3>
+              <!-- BOOKING DETAILS - BEAUTIFUL GREEN CARD WITH FLOWERS -->
+              <div style="
+                background: linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%);
+                border-radius: 20px;
+                padding: 32px 28px;
+                margin-bottom: 32px;
+                position: relative;
+                overflow: hidden;
+                box-shadow: 0 10px 30px rgba(16, 185, 129, 0.3);
+              ">
+                <!-- Decorative Flowers -->
+                <div style="position: absolute; top: -10px; left: -10px; font-size: 60px; opacity: 0.15; transform: rotate(-15deg);">🌸</div>
+                <div style="position: absolute; top: 20px; right: -15px; font-size: 50px; opacity: 0.15; transform: rotate(20deg);">🌺</div>
+                <div style="position: absolute; bottom: -15px; left: 30px; font-size: 45px; opacity: 0.12; transform: rotate(10deg);">🌼</div>
+                <div style="position: absolute; bottom: 10px; right: 20px; font-size: 55px; opacity: 0.15; transform: rotate(-25deg);">🌷</div>
                 
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                  <span style="color: #666;">Service</span>
-                  <span style="font-weight: 500;">${serviceName}</span>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                  <span style="color: #666;">Braider</span>
-                  <span style="font-weight: 500;">${braiderName}</span>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                  <span style="color: #666;">Date</span>
-                  <span style="font-weight: 500;">${bookingDate}</span>
-                </div>
-                
-                <div style="display: flex; justify-content: space-between;">
-                  <span style="color: #666;">Time</span>
-                  <span style="font-weight: 500;">${bookingTime}</span>
+                <!-- Content -->
+                <div style="position: relative; z-index: 2;">
+                  <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                      <span style="font-size: 20px;">📅</span>
+                    </div>
+                    <h3 style="margin: 0; color: white; font-size: 20px; font-weight: 700; letter-spacing: 0.5px;">Appointment Details</h3>
+                  </div>
+                  
+                  <div style="background: rgba(255,255,255,0.15); border-radius: 14px; padding: 20px; backdrop-filter: blur(10px);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2);">
+                      <span style="color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500;">Service</span>
+                      <span style="color: white; font-weight: 700; font-size: 15px;">${serviceName}</span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2);">
+                      <span style="color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500;">Braider</span>
+                      <span style="color: white; font-weight: 700; font-size: 15px;">${braiderName}</span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.2);">
+                      <span style="color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500;">Date</span>
+                      <span style="color: white; font-weight: 700; font-size: 15px;">${bookingDate}</span>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <span style="color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500;">Time</span>
+                      <span style="color: white; font-weight: 700; font-size: 15px;">${bookingTime}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
