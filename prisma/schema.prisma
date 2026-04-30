@@ -83,6 +83,7 @@ model Category {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   services  Service[]
+  addons    Addon[]   // ← NEW: Relation to addons
 }
 
 model Addon {
@@ -91,6 +92,8 @@ model Addon {
   price       Int
   description String?
   active      Boolean  @default(true)
+  categoryId  Int?                    // ← NEW
+  category    Category? @relation(fields: [categoryId], references: [id])  // ← NEW
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -113,12 +116,10 @@ model Service {
   stripePriceId       String?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
-
   // NEW FIELDS
   hairRequirement     String?
   categoryId          Int?
   category            Category? @relation(fields: [categoryId], references: [id])
-
   // Opposite relation for ServiceStaffAssignment
   assignments         ServiceStaffAssignment[]
 }
@@ -128,26 +129,26 @@ model ServiceStaffAssignment {
   serviceId   Int
   staffUserId Int
   createdAt   DateTime @default(now())
-  service     Service      @relation(fields: [serviceId], references: [id])
+  service     Service  @relation(fields: [serviceId], references: [id])
   staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
 // ====================== GALLERY & HERO ======================
 model GalleryItem {
-  id           Int      @id @default(autoincrement())
-  type         String
-  url          String
+  id          Int      @id @default(autoincrement())
+  type        String
+  url         String
   thumbnailUrl String?
-  title        String?
-  caption      String?
-  description  String?
-  category     String   @default("general")
-  isFeatured   Boolean  @default(false)
-  isActive     Boolean  @default(true)
-  sortOrder    Int      @default(0)
-  createdById  Int?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  title       String?
+  caption     String?
+  description String?
+  category    String   @default("general")
+  isFeatured  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdById Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model HeroImage {
@@ -210,24 +211,24 @@ model BlockedSlot {
 
 // ====================== ORDERS ======================
 model Order {
-  id                  Int      @id @default(autoincrement())
-  userId              Int?
-  userType            String?
-  customerName        String
-  customerEmail       String
-  customerPhone       String?
-  total               Int
-  status              String   @default("pending")
-  shippingStatus      String   @default("pending")
-  shippingCarrier     String?
-  trackingNumber      String?
-  fulfilledAt         DateTime?
-  fulfilledById       Int?
+  id                Int      @id @default(autoincrement())
+  userId            Int?
+  userType          String?
+  customerName      String
+  customerEmail     String
+  customerPhone     String?
+  total             Int
+  status            String   @default("pending")
+  shippingStatus    String   @default("pending")
+  shippingCarrier   String?
+  trackingNumber    String?
+  fulfilledAt       DateTime?
+  fulfilledById     Int?
   stripePaymentIntent String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  user                LocalUser? @relation(fields: [userId], references: [id])
-  items               OrderItem[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              LocalUser? @relation(fields: [userId], references: [id])
+  items             OrderItem[]
 }
 
 model OrderItem {
@@ -236,8 +237,8 @@ model OrderItem {
   productId Int
   quantity  Int
   price     Int
-  order     Order    @relation(fields: [orderId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
+  order     Order  @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 // ====================== BOOKINGS ======================
@@ -262,8 +263,7 @@ model Booking {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
   user                   LocalUser? @relation(fields: [userId], references: [id])
-
-  // NEW: Store selected addons as JSON (e.g. [{ "id": 1, "name": "Beads", "price": 1500 }])
+  // NEW: Store selected addons as JSON
   selectedAddons         Json?
 }
 
@@ -302,47 +302,47 @@ model Subscriber {
 }
 
 model NewsletterCampaign {
-  id           Int      @id @default(autoincrement())
-  subject      String
-  htmlBody     String
-  audienceType String   @default("selected")
-  sendToEveryone Boolean @default(false)
-  createdById  Int?
-  sentAt       DateTime?
-  createdAt    DateTime @default(now())
-}
-
-model NewsletterRecipient {
   id            Int      @id @default(autoincrement())
-  campaignId    Int
-  email         String
-  name          String?
-  deliveryStatus String  @default("pending")
+  subject       String
+  htmlBody      String
+  audienceType  String   @default("selected")
+  sendToEveryone Boolean  @default(false)
+  createdById   Int?
+  sentAt        DateTime?
   createdAt     DateTime @default(now())
 }
 
-model ContactMessage {
+model NewsletterRecipient {
   id             Int      @id @default(autoincrement())
-  name           String
+  campaignId     Int
   email          String
-  subject        String?
-  message        String
-  read           Boolean  @default(false)
-  status         String   @default("new")
-  assignedToId   Int?
-  lastRepliedAt  DateTime?
-  followUpAt     DateTime?
-  followUpNotes  String?
+  name           String?
+  deliveryStatus String   @default("pending")
   createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  replies        ContactReply[]
+}
+
+model ContactMessage {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String
+  subject       String?
+  message       String
+  read          Boolean  @default(false)
+  status        String   @default("new")
+  assignedToId  Int?
+  lastRepliedAt DateTime?
+  followUpAt    DateTime?
+  followUpNotes String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  replies       ContactReply[]
 }
 
 model ContactReply {
-  id         Int      @id @default(autoincrement())
-  messageId  Int
-  sentById   Int
-  body       String
-  sentAt     DateTime @default(now())
-  message    ContactMessage @relation(fields: [messageId], references: [id])
+  id        Int      @id @default(autoincrement())
+  messageId Int
+  sentById  Int
+  body      String
+  sentAt    DateTime @default(now())
+  message   ContactMessage @relation(fields: [messageId], references: [id])
 }
