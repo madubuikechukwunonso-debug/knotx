@@ -321,13 +321,13 @@ export default function BookingPage() {
                       onClick={() => handleServiceSelect(service.id)}
                       className={`group cursor-pointer rounded-3xl border overflow-hidden transition-all hover:shadow-xl ${selectedService === service.id ? 'border-emerald-600 ring-2 ring-emerald-600' : 'border-gray-200 hover:border-emerald-300'}`}
                     >
-                      {/* FULL IMAGE WITH DARK EDGES FALLBACK */}
+                      {/* FULL IMAGE - NO CROPPING */}
                       <div className="h-56 bg-black relative overflow-hidden">
                         {service.image ? (
                           <img 
                             src={service.image} 
                             alt={service.name} 
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500" 
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
