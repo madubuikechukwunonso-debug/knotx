@@ -52,6 +52,9 @@ async function createBooking(formData: FormData) {
 async function updateBooking(formData: FormData) {
   'use server';
   const id = parseInt(formData.get('id') as string);
+  const newStatus = formData.get('status') as string;
+  const oldBooking = await prisma.booking.findUnique({ where: { id } });
+
   await prisma.booking.update({
     where: { id },
     data: {
@@ -63,11 +66,63 @@ async function updateBooking(formData: FormData) {
       price: parseInt(formData.get('price') as string),
       date: formData.get('date') as string,
       time: formData.get('time') as string,
-      status: formData.get('status') as string,
+      status: newStatus,
       paymentStatus: formData.get('paymentStatus') as string,
       notes: (formData.get('notes') as string) || undefined,
     },
   });
+
+  // Send email based on status change
+  if (oldBooking && oldBooking.status !== newStatus) {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    
+    if (newStatus === 'confirmed') {
+      await fetch(`${baseUrl}/api/send-booking-confirmed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: formData.get('customerName'),
+          customerEmail: formData.get('customerEmail'),
+          serviceName: formData.get('serviceType'),
+          bookingDate: formData.get('date'),
+          bookingTime: formData.get('time'),
+          braiderName: 'Our Team',
+        }),
+      });
+    }
+
+    if (newStatus === 'canceled') {
+      await fetch(`${baseUrl}/api/send-booking-canceled`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: formData.get('customerName'),
+          customerEmail: formData.get('customerEmail'),
+          serviceName: formData.get('serviceType'),
+          bookingDate: formData.get('date'),
+          bookingTime: formData.get('time'),
+          braiderName: 'Our Team',
+          cancellationReason: formData.get('notes') || 'No reason provided',
+        }),
+      });
+    }
+
+    if (newStatus === 'completed') {
+      await fetch(`${baseUrl}/api/send-booking-completed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName: formData.get('customerName'),
+          customerEmail: formData.get('customerEmail'),
+          serviceName: formData.get('serviceType'),
+          bookingDate: formData.get('date'),
+          bookingTime: formData.get('time'),
+          braiderName: 'Our Team',
+        }),
+      });
+    }
+  }
+
   revalidatePath('/admin/bookings');
 }
 
@@ -82,7 +137,6 @@ export default async function AdminBookingsSection() {
   const bookings = await getBookings();
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-serif text-emerald-950">Bookings</h1>
@@ -90,13 +144,11 @@ export default async function AdminBookingsSection() {
             {bookings.length} booking{bookings.length !== 1 ? 's' : ''} • Appointments & reservations
           </p>
         </div>
-        {/* The button is now inside AdminBookingTable — but we keep a visual header button for consistency */}
         <div className="flex items-center gap-3">
-          <span className="text-xs text-emerald-500 hidden sm:inline">Click “New Booking” below</span>
+          <span className="text-xs text-emerald-500 hidden sm:inline">Click "New Booking" below</span>
         </div>
       </div>
 
-      {/* FULLY WIRED TABLE + MODAL */}
       <AdminBookingTable
         bookings={bookings}
         onCreate={createBooking}
