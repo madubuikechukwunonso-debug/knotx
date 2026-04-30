@@ -52,9 +52,10 @@ async function syncServiceToStripe(
   return { stripeProductId, stripePriceId: price.id };
 }
 
-// ====================== SERVER ACTIONS ======================
+// ====================== SERVER ACTIONS - SERVICES ======================
 async function createService(formData: FormData) {
   'use server';
+
   const name = formData.get('name') as string;
   let slug = (formData.get('slug') as string) || name.toLowerCase().replace(/\s+/g, '-');
   const description = (formData.get('description') as string) || undefined;
@@ -67,22 +68,41 @@ async function createService(formData: FormData) {
   const categoryId = formData.get('categoryId') ? parseInt(formData.get('categoryId') as string) : null;
 
   let imageUrl: string | undefined;
-  if (imageFile && imageFile.size > 0) imageUrl = await uploadServiceImage(imageFile);
+  if (imageFile && imageFile.size > 0) {
+    imageUrl = await uploadServiceImage(imageFile);
+  }
 
-  const { stripeProductId, stripePriceId } = await syncServiceToStripe(name, description, imageUrl, depositAmount);
+  const { stripeProductId, stripePriceId } = await syncServiceToStripe(
+    name,
+    description,
+    imageUrl,
+    depositAmount
+  );
 
   await prisma.service.create({
     data: {
-      name, slug, description, price, depositAmount, durationMinutes,
-      image: imageUrl, featured, active: true, stripeProductId, stripePriceId,
-      hairRequirement, categoryId: categoryId || undefined,
+      name,
+      slug,
+      description,
+      price,
+      depositAmount,
+      durationMinutes,
+      image: imageUrl,
+      featured,
+      active: true,
+      stripeProductId,
+      stripePriceId,
+      hairRequirement,
+      categoryId: categoryId || undefined,
     },
   });
+
   revalidatePath('/admin');
 }
 
 async function updateService(formData: FormData) {
   'use server';
+
   const id = parseInt(formData.get('id') as string);
   const name = formData.get('name') as string;
   let slug = (formData.get('slug') as string) || name.toLowerCase().replace(/\s+/g, '-');
@@ -98,19 +118,42 @@ async function updateService(formData: FormData) {
   const categoryId = formData.get('categoryId') ? parseInt(formData.get('categoryId') as string) : null;
 
   let imageUrl = currentImage || undefined;
-  if (imageFile && imageFile.size > 0) imageUrl = await uploadServiceImage(imageFile);
+  if (imageFile && imageFile.size > 0) {
+    imageUrl = await uploadServiceImage(imageFile);
+  }
 
-  const existing = await prisma.service.findUnique({ where: { id }, select: { stripeProductId: true } });
-  const { stripeProductId, stripePriceId } = await syncServiceToStripe(name, description, imageUrl, depositAmount, existing?.stripeProductId);
+  const existing = await prisma.service.findUnique({
+    where: { id },
+    select: { stripeProductId: true },
+  });
+
+  const { stripeProductId, stripePriceId } = await syncServiceToStripe(
+    name,
+    description,
+    imageUrl,
+    depositAmount,
+    existing?.stripeProductId
+  );
 
   await prisma.service.update({
     where: { id },
     data: {
-      name, slug, description, price, depositAmount, durationMinutes,
-      image: imageUrl, featured, active, stripeProductId, stripePriceId,
-      hairRequirement, categoryId: categoryId || undefined,
+      name,
+      slug,
+      description,
+      price,
+      depositAmount,
+      durationMinutes,
+      image: imageUrl,
+      featured,
+      active,
+      stripeProductId,
+      stripePriceId,
+      hairRequirement,
+      categoryId: categoryId || undefined,
     },
   });
+
   revalidatePath('/admin');
 }
 
@@ -125,7 +168,10 @@ async function toggleServiceActive(formData: FormData) {
   'use server';
   const id = parseInt(formData.get('id') as string);
   const current = await prisma.service.findUnique({ where: { id }, select: { active: true } });
-  await prisma.service.update({ where: { id }, data: { active: !current?.active } });
+  await prisma.service.update({
+    where: { id },
+    data: { active: !current?.active },
+  });
   revalidatePath('/admin');
 }
 
@@ -134,14 +180,20 @@ async function createCategory(formData: FormData) {
   'use server';
   const name = formData.get('name') as string;
   const slug = name.toLowerCase().replace(/\s+/g, '-');
-  await prisma.category.create({ data: { name, slug } });
+
+  await prisma.category.create({
+    data: { name, slug },
+  });
   revalidatePath('/admin');
 }
 
 async function deleteCategory(formData: FormData) {
   'use server';
   const id = parseInt(formData.get('id') as string);
-  await prisma.service.updateMany({ where: { categoryId: id }, data: { categoryId: null } });
+  await prisma.service.updateMany({
+    where: { categoryId: id },
+    data: { categoryId: null },
+  });
   await prisma.category.delete({ where: { id } });
   revalidatePath('/admin');
 }
@@ -152,7 +204,17 @@ async function createAddon(formData: FormData) {
   const name = formData.get('name') as string;
   const price = parseInt(formData.get('price') as string);
   const description = (formData.get('description') as string) || undefined;
-  await prisma.addon.create({ data: { name, price, description, active: true } });
+  const categoryId = formData.get('categoryId') ? parseInt(formData.get('categoryId') as string) : null;
+
+  await prisma.addon.create({
+    data: {
+      name,
+      price,
+      description,
+      active: true,
+      categoryId: categoryId || undefined,
+    },
+  });
   revalidatePath('/admin');
 }
 
@@ -167,28 +229,45 @@ export default async function AdminServicesSection() {
   const services = await prisma.service.findMany({
     orderBy: { sortOrder: 'asc' },
     select: {
-      id: true, name: true, slug: true, description: true, price: true,
-      depositAmount: true, durationMinutes: true, image: true, featured: true,
-      active: true, sortOrder: true, stripeProductId: true, stripePriceId: true,
-      hairRequirement: true, categoryId: true,
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      price: true,
+      depositAmount: true,
+      durationMinutes: true,
+      image: true,
+      featured: true,
+      active: true,
+      sortOrder: true,
+      stripeProductId: true,
+      stripePriceId: true,
+      hairRequirement: true,
+      categoryId: true,
       category: { select: { id: true, name: true } },
     },
   });
 
   const categories = await prisma.category.findMany({
     orderBy: { name: 'asc' },
-    include: { _count: { select: { services: true } } },
+    include: {
+      _count: { select: { services: true } },
+    },
   });
 
   const addons = await prisma.addon.findMany({
     where: { active: true },
     orderBy: { name: 'asc' },
+    include: {
+      category: { select: { name: true } },
+    },
   });
 
   const servicesByCategory = categories.map(cat => ({
     ...cat,
     services: services.filter(s => s.categoryId === cat.id),
   }));
+
   const uncategorizedServices = services.filter(s => !s.categoryId);
 
   return (
@@ -203,6 +282,7 @@ export default async function AdminServicesSection() {
             </p>
           </div>
         </div>
+
         <AdminServiceTable
           services={services}
           categories={categories}
@@ -213,7 +293,7 @@ export default async function AdminServicesSection() {
         />
       </div>
 
-      {/* CATEGORIES + ADDONS - MOBILE FIRST */}
+      {/* CATEGORIES + ADDONS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* CATEGORIES */}
@@ -223,29 +303,25 @@ export default async function AdminServicesSection() {
             <p className="text-sm text-emerald-600">e.g. Stitch Braids, Knotless Braids</p>
           </div>
 
-          {/* Create Category */}
-          <div className="mb-8">
-            <form action={createCategory} className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium mb-1">New Category Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Stitch Braids"
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
-              >
-                Create Category
-              </button>
-            </form>
-          </div>
+          <form action={createCategory} className="mb-8 space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">New Category Name</label>
+              <input
+                type="text"
+                name="name"
+                placeholder="Stitch Braids"
+                className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
+            >
+              Create Category
+            </button>
+          </form>
 
-          {/* Existing Categories */}
           <div>
             <h3 className="font-semibold mb-3 text-lg">Existing ({categories.length})</h3>
             {categories.length > 0 ? (
@@ -256,8 +332,6 @@ export default async function AdminServicesSection() {
                       <p className="font-medium truncate">{cat.name}</p>
                       <p className="text-xs text-emerald-600">{cat._count.services} services</p>
                     </div>
-                    
-                    {/* Safe Delete Button - No onClick on submit */}
                     <form action={deleteCategory} className="flex-shrink-0">
                       <input type="hidden" name="id" value={cat.id} />
                       <button
@@ -276,57 +350,70 @@ export default async function AdminServicesSection() {
           </div>
         </div>
 
-        {/* ADDONS */}
+        {/* ADDONS WITH CATEGORY ASSOCIATION */}
         <div className="bg-white rounded-3xl border border-emerald-100 p-6">
           <div className="mb-6">
             <h2 className="text-2xl font-serif text-emerald-950">Add-ons</h2>
-            <p className="text-sm text-emerald-600">Beads, Extra Packs, Treatments</p>
+            <p className="text-sm text-emerald-600">Beads, Extra Packs, Treatments • Can be linked to a category</p>
           </div>
 
-          {/* Create Addon */}
-          <div className="mb-8">
-            <form action={createAddon} className="space-y-3">
+          <form action={createAddon} className="mb-8 space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Addon Name</label>
+              <input
+                type="text"
+                name="name"
+                placeholder="3 Packs of Beads"
+                className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Addon Name</label>
+                <label className="block text-sm font-medium mb-1">Price (cents)</label>
                 <input
-                  type="text"
-                  name="name"
-                  placeholder="3 Packs of Beads"
+                  type="number"
+                  name="price"
+                  placeholder="1500"
                   className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Price (cents)</label>
-                  <input
-                    type="number"
-                    name="price"
-                    placeholder="1500"
-                    className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Description</label>
-                  <input
-                    type="text"
-                    name="description"
-                    placeholder="Extra styling"
-                    className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Category (optional)</label>
+                <select
+                  name="categoryId"
+                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <button
-                type="submit"
-                className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 rounded-2xl font-medium text-base transition-colors mt-1"
-              >
-                Create Add-on
-              </button>
-            </form>
-          </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Description (optional)</label>
+              <input
+                type="text"
+                name="description"
+                placeholder="Extra styling beads"
+                className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            
+            <button
+              type="submit"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
+            >
+              Create Add-on
+            </button>
+          </form>
 
-          {/* Existing Addons */}
           <div>
             <h3 className="font-semibold mb-3 text-lg">Available ({addons.length})</h3>
             {addons.length > 0 ? (
@@ -337,10 +424,9 @@ export default async function AdminServicesSection() {
                       <p className="font-medium truncate">{addon.name}</p>
                       <p className="text-sm text-emerald-600 font-medium">
                         ${(addon.price / 100).toFixed(2)}
+                        {addon.category && ` • ${addon.category.name}`}
                       </p>
                     </div>
-                    
-                    {/* Safe Delete Button */}
                     <form action={deleteAddon} className="flex-shrink-0">
                       <input type="hidden" name="id" value={addon.id} />
                       <button
@@ -363,15 +449,16 @@ export default async function AdminServicesSection() {
       {/* CATEGORY PREVIEW */}
       <div className="bg-white rounded-3xl border border-emerald-100 p-6">
         <h2 className="text-2xl font-serif text-emerald-950 mb-6">Category Preview</h2>
+        
         {categories.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {servicesByCategory.map((cat) => {
-              const firstImage = cat.services[0]?.image;
+              const firstServiceImage = cat.services[0]?.image;
               return (
                 <div key={cat.id} className="border border-emerald-200 rounded-3xl overflow-hidden">
                   <div className="h-44 bg-emerald-100 relative">
-                    {firstImage ? (
-                      <img src={firstImage} alt={cat.name} className="w-full h-full object-cover" />
+                    {firstServiceImage ? (
+                      <img src={firstServiceImage} alt={cat.name} className="w-full h-full object-cover" />
                     ) : (
                       <div className="flex items-center justify-center h-full text-emerald-400 text-sm">No image yet</div>
                     )}
@@ -383,6 +470,7 @@ export default async function AdminServicesSection() {
                 </div>
               );
             })}
+            
             {uncategorizedServices.length > 0 && (
               <div className="border border-gray-300 rounded-3xl overflow-hidden">
                 <div className="h-44 bg-gray-100 flex items-center justify-center text-gray-400 text-sm">Uncategorized</div>
@@ -394,7 +482,7 @@ export default async function AdminServicesSection() {
             )}
           </div>
         ) : (
-          <p className="text-center py-8 text-gray-500">Create categories to see preview</p>
+          <p className="text-center py-8 text-gray-500">Create categories above to see preview</p>
         )}
       </div>
     </div>
