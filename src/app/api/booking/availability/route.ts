@@ -68,7 +68,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, braiders });
   }
 
-  // ✅ FIXED: Include hairRequirement and categoryId
+  // ✅ COMPLETE: All required fields including depositAmount, hairRequirement, categoryId
   const services = await prisma.service.findMany({
     where: { active: true },
     orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -78,12 +78,12 @@ export async function GET(request: Request) {
       slug: true,
       description: true,
       price: true,
-      depositAmount: true,
+      depositAmount: true,        // ← CRITICAL for deposit display
       durationMinutes: true,
       slotDurationMinutes: true,
       image: true,
-      hairRequirement: true,      // ← ADDED
-      categoryId: true,           // ← ADDED
+      hairRequirement: true,      // ← For hair requirement display
+      categoryId: true,           // ← For category filtering
     },
   });
 
