@@ -35,7 +35,7 @@ function buildSlots(startTime: string, endTime: string, stepMinutes: number): st
 }
 
 // ============================================
-// FIX: Check if a time slot overlaps with any existing booking
+// FIX 1: Check if a time slot overlaps with any existing booking
 // ============================================
 function isSlotAvailable(
   slotTime: string,
@@ -130,7 +130,7 @@ export async function createBooking(input: CreateBookingInput) {
   if (!service) throw new Error("Service not found");
 
   // ============================================
-  // FIX: Validate date is not in the past
+  // FIX 2: Validate date is not in the past
   // ============================================
   const bookingDate = new Date(`${input.date}T00:00:00`);
   const today = new Date();
