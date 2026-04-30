@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
-import { Calendar, Clock, Check, ArrowLeft, User, Plus, Minus } from 'lucide-react';
+import { Clock, Check, ArrowLeft, User, Plus, Minus } from 'lucide-react';
 
 type Slot = { staffUserId: number; staffName: string; time: string };
 type Service = {
@@ -44,6 +44,7 @@ export default function BookingPage() {
   const [notes, setNotes] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [showAddonStep, setShowAddonStep] = useState(false);
 
   // Fetch data
   useEffect(() => {
@@ -86,7 +87,7 @@ export default function BookingPage() {
     }
   }, [user]);
 
-  // Fetch braiders
+  // Fetch braiders when service selected
   useEffect(() => {
     if (selectedService) {
       const svc = allServices.find(s => s.id === selectedService);
@@ -103,6 +104,7 @@ export default function BookingPage() {
       setSelectedTime('');
       setAvailableSlots([]);
       setSelectedAddons([]);
+      setShowAddonStep(false);
     }
   }, [selectedService, allServices]);
 
@@ -128,6 +130,7 @@ export default function BookingPage() {
     setSelectedServiceData(null);
     setBraiders([]);
     setSelectedAddons([]);
+    setShowAddonStep(false);
   };
 
   const handleServiceSelect = (serviceId: number) => {
@@ -145,6 +148,11 @@ export default function BookingPage() {
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
+  };
+
+  // Force user to complete addon step before braider
+  const proceedToBraider = () => {
+    setShowAddonStep(true);
   };
 
   // Addon quantity handlers
@@ -299,7 +307,6 @@ export default function BookingPage() {
                     onClick={() => handleServiceSelect(service.id)}
                     className={`group cursor-pointer rounded-3xl border overflow-hidden transition-all hover:shadow-xl ${selectedService === service.id ? 'border-emerald-600 ring-2 ring-emerald-600' : 'border-gray-200 hover:border-emerald-300'}`}
                   >
-                    {/* FULL IMAGE */}
                     {service.image && (
                       <div className="h-56 overflow-hidden">
                         <img 
@@ -324,7 +331,6 @@ export default function BookingPage() {
                         <span>{service.durationMinutes} min</span>
                       </div>
 
-                      {/* DEPOSIT & HAIR REQUIREMENT - BLUE DESIGN */}
                       <div className="mb-3 space-y-2">
                         <div className="flex justify-between text-sm">
                           <span className="text-gray-600">Deposit (30%)</span>
@@ -346,16 +352,81 @@ export default function BookingPage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-12 text-gray-500">No services in this category yet.</div>
+              <div className="text-center py-12 text-gray-500">
+                No services in this category yet. Please try another category.
+              </div>
             )}
           </div>
 
-          {/* REST OF BOOKING FLOW */}
-          {selectedService && (
+          {/* ADDON SELECTION - FORCED BEFORE BRAIDER */}
+          {selectedService && !showAddonStep && (
+            <div className="mb-10">
+              <h2 className="text-xl font-medium mb-4">3. Add Extras (Optional)</h2>
+              <p className="text-sm text-gray-600 mb-4">You can select multiple quantities of each addon.</p>
+              
+              {addons.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  {addons
+                    .filter(addon => !addon.categoryId || addon.categoryId === selectedCategoryId)
+                    .map((addon) => {
+                      const quantity = getAddonQuantity(addon.id);
+                      return (
+                        <div key={addon.id} className="border border-gray-200 rounded-2xl p-5">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <div className="font-medium">{addon.name}</div>
+                              {addon.description && <div className="text-xs text-gray-600">{addon.description}</div>}
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-emerald-600">+${(addon.price / 100).toFixed(2)}</div>
+                              <div className="text-xs text-gray-500">each</div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-4">
+                            <div className="flex items-center gap-3">
+                              <button
+                                onClick={() => updateAddonQuantity(addon, quantity - 1)}
+                                className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 active:bg-gray-200"
+                              >
+                                <Minus className="h-4 w-4" />
+                              </button>
+                              <div className="w-10 text-center font-semibold text-lg">{quantity}</div>
+                              <button
+                                onClick={() => updateAddonQuantity(addon, quantity + 1)}
+                                className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 active:bg-gray-200"
+                              >
+                                <Plus className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              = ${(addon.price * quantity / 100).toFixed(2)}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              ) : (
+                <p className="text-gray-500 mb-4">No add-ons available for this category.</p>
+              )}
+
+              <button
+                onClick={proceedToBraider}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-medium text-lg flex items-center justify-center gap-2 transition-colors"
+              >
+                Continue to Select Braider →
+              </button>
+              <p className="text-center text-xs text-gray-500 mt-2">You can skip add-ons by clicking continue</p>
+            </div>
+          )}
+
+          {/* BRAIDER + DATE + TIME (Only show after addon step) */}
+          {showAddonStep && selectedService && (
             <div className="space-y-10">
               {/* Braider Selection */}
               <div>
-                <h2 className="text-xl font-medium mb-4">3. Choose Braider</h2>
+                <h2 className="text-xl font-medium mb-4">4. Choose Braider</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {braiders.length > 0 ? braiders.map((braider) => (
                     <button
@@ -368,7 +439,7 @@ export default function BookingPage() {
                       </div>
                       {braider.bio && <p className="text-sm text-gray-600 mt-1 line-clamp-2">{braider.bio}</p>}
                     </button>
-                  )) : <p className="text-gray-500">No braiders available.</p>}
+                  )) : <p className="text-gray-500">No braiders available for this service.</p>}
                 </div>
               </div>
 
@@ -376,7 +447,7 @@ export default function BookingPage() {
               {selectedBraiderId && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h2 className="text-xl font-medium mb-4">4. Choose Date</h2>
+                    <h2 className="text-xl font-medium mb-4">5. Choose Date</h2>
                     <input
                       type="date"
                       value={selectedDate}
@@ -389,7 +460,7 @@ export default function BookingPage() {
 
                   {selectedDate && availableSlots.length > 0 && (
                     <div>
-                      <h2 className="text-xl font-medium mb-4">5. Choose Time</h2>
+                      <h2 className="text-xl font-medium mb-4">6. Choose Time</h2>
                       <div className="flex flex-wrap gap-3">
                         {availableSlots.map((slot, index) => (
                           <button
@@ -403,58 +474,6 @@ export default function BookingPage() {
                       </div>
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* ADDONS WITH QUANTITY */}
-              {selectedTime && addons.length > 0 && (
-                <div>
-                  <h2 className="text-xl font-medium mb-4">6. Add Extras (Select Multiple Times)</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {addons
-                      .filter(addon => !addon.categoryId || addon.categoryId === selectedCategoryId)
-                      .map((addon) => {
-                        const quantity = getAddonQuantity(addon.id);
-                        return (
-                          <div key={addon.id} className="border border-gray-200 rounded-2xl p-5">
-                            <div className="flex justify-between items-start mb-3">
-                              <div>
-                                <div className="font-medium">{addon.name}</div>
-                                {addon.description && <div className="text-xs text-gray-600">{addon.description}</div>}
-                              </div>
-                              <div className="text-right">
-                                <div className="font-semibold text-emerald-600">+${(addon.price / 100).toFixed(2)}</div>
-                                <div className="text-xs text-gray-500">each</div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between mt-4">
-                              <div className="flex items-center gap-3">
-                                <button
-                                  onClick={() => updateAddonQuantity(addon, quantity - 1)}
-                                  className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 active:bg-gray-200"
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </button>
-                                
-                                <div className="w-10 text-center font-semibold text-lg">{quantity}</div>
-                                
-                                <button
-                                  onClick={() => updateAddonQuantity(addon, quantity + 1)}
-                                  className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-xl hover:bg-gray-100 active:bg-gray-200"
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </button>
-                              </div>
-                              
-                              <div className="text-sm text-gray-600">
-                                = ${(addon.price * quantity / 100).toFixed(2)}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
                 </div>
               )}
 
