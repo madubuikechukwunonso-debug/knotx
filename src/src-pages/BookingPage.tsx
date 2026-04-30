@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
-import { Clock, Check, ArrowLeft, User, Plus, Minus, X } from 'lucide-react';
+import { Clock, Check, ArrowLeft, User, Plus, Minus, X, Calendar } from 'lucide-react';
 
 type Slot = { staffUserId: number; staffName: string; time: string };
 type Service = {
@@ -502,15 +502,20 @@ export default function BookingPage() {
                   <h3 className="text-xl font-medium mb-4">Choose Date & Time</h3>
                   
                   <div className="mb-6">
-                    <label className="block text-sm font-medium mb-1">Date</label>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={handleDateChange}
-                      min={today}
-                      max={maxDate}
-                      className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
-                    />
+                    <label className="block text-sm font-medium mb-2">Date</label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={handleDateChange}
+                        min={today}
+                        max={maxDate}
+                        className="w-full border border-gray-300 rounded-2xl px-4 py-4 text-lg focus:outline-none focus:border-emerald-500"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                    </div>
                   </div>
 
                   {selectedDate && (
@@ -546,100 +551,114 @@ export default function BookingPage() {
                       disabled={!selectedTime}
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
                     >
-                      Continue to Details
+                      Continue
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* DETAILS STEP */}
+              {/* DETAILS STEP - GUEST WARNING OR FORM */}
               {modalStep === 'details' && (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <h3 className="text-xl font-medium mb-4">Your Details</h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Full Name</label>
-                      <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" required />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Email</label>
-                      <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" required />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Phone</label>
-                    <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Notes</label>
-                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" rows={3} />
-                  </div>
-
-                  {/* GUEST WARNING WITH LOGIN / REGISTER / CONTINUE AS GUEST */}
-                  {showGuestWarning && !user && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-                      <p className="text-sm text-amber-800 mb-4">
-                        <strong>Note:</strong> You are booking as a guest. We recommend creating an account for easier management of future bookings.
+                <div>
+                  {/* GUEST WARNING - SHOWN ALONE FOR NON-REGISTERED USERS */}
+                  {showGuestWarning && !user ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+                        <User className="h-8 w-8 text-amber-600" />
+                      </div>
+                      <h3 className="text-xl font-medium mb-2">Booking as a Guest</h3>
+                      <p className="text-amber-700 mb-6 max-w-md mx-auto">
+                        You are booking as a guest. We recommend creating an account for easier management of future bookings.
                       </p>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <Link href="/login" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-center py-2.5 rounded-xl font-medium text-sm transition-colors">
+                      
+                      <div className="flex flex-col gap-3 max-w-xs mx-auto">
+                        <Link 
+                          href="/login" 
+                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center py-3.5 rounded-2xl font-medium text-base transition-colors"
+                        >
                           Login
                         </Link>
-                        <Link href="/register" className="flex-1 border border-emerald-600 text-emerald-600 hover:bg-emerald-50 text-center py-2.5 rounded-xl font-medium text-sm transition-colors">
+                        <Link 
+                          href="/register" 
+                          className="w-full border border-emerald-600 text-emerald-600 hover:bg-emerald-50 text-center py-3.5 rounded-2xl font-medium text-base transition-colors"
+                        >
                           Create Account
                         </Link>
                         <button
                           type="button"
                           onClick={() => setShowGuestWarning(false)}
-                          className="flex-1 text-gray-600 hover:text-gray-900 py-2.5 rounded-xl font-medium text-sm transition-colors"
+                          className="w-full bg-black hover:bg-black/90 text-white text-center py-3.5 rounded-2xl font-medium text-base transition-colors"
                         >
                           Continue as Guest
                         </button>
                       </div>
                     </div>
-                  )}
+                  ) : (
+                    /* FORM FOR REGISTERED USERS OR AFTER CONTINUING AS GUEST */
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                      <h3 className="text-xl font-medium mb-4">Your Details</h3>
 
-                  {/* TOTAL SUMMARY */}
-                  <div className="bg-emerald-50 rounded-2xl p-6">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Service</span>
-                      <span>${((selectedServiceData?.price || 0) / 100).toFixed(2)}</span>
-                    </div>
-                    {selectedAddons.length > 0 && (
-                      <div className="flex justify-between text-sm mb-2 text-emerald-700">
-                        <span>Add-ons</span>
-                        <span>+${(selectedAddons.reduce((sum, item) => sum + (item.addon.price * item.quantity), 0) / 100).toFixed(2)}</span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Full Name</label>
+                          <input type="text" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" required />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Email</label>
+                          <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" required />
+                        </div>
                       </div>
-                    )}
-                    <div className="border-t border-emerald-200 pt-3 mt-3 flex justify-between font-semibold text-lg">
-                      <span>Total</span>
-                      <span>${(calculateTotal() / 100).toFixed(2)} CAD</span>
-                    </div>
-                    <div className="text-xs text-emerald-600 mt-1">
-                      Deposit due now: ${(calculateDeposit() / 100).toFixed(2)}
-                    </div>
-                  </div>
 
-                  <div className="flex gap-4 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setModalStep('datetime')}
-                      className="flex-1 border border-gray-300 hover:bg-gray-100 py-3.5 rounded-2xl font-medium text-base transition-colors"
-                    >
-                      Back
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={checkoutLoading || !selectedTime}
-                      className="flex-1 bg-black hover:bg-black/90 disabled:bg-gray-400 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
-                    >
-                      {checkoutLoading ? 'Processing...' : `Pay Deposit & Book →`}
-                    </button>
-                  </div>
-                </form>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Phone</label>
+                        <input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Notes</label>
+                        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full border border-gray-300 rounded-2xl px-4 py-3" rows={3} />
+                      </div>
+
+                      {/* TOTAL SUMMARY */}
+                      <div className="bg-emerald-50 rounded-2xl p-6">
+                        <div className="flex justify-between text-sm mb-2">
+                          <span>Service</span>
+                          <span>${((selectedServiceData?.price || 0) / 100).toFixed(2)}</span>
+                        </div>
+                        {selectedAddons.length > 0 && (
+                          <div className="flex justify-between text-sm mb-2 text-emerald-700">
+                            <span>Add-ons</span>
+                            <span>+${(selectedAddons.reduce((sum, item) => sum + (item.addon.price * item.quantity), 0) / 100).toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="border-t border-emerald-200 pt-3 mt-3 flex justify-between font-semibold text-lg">
+                          <span>Total</span>
+                          <span>${(calculateTotal() / 100).toFixed(2)} CAD</span>
+                        </div>
+                        <div className="text-xs text-emerald-600 mt-1">
+                          Deposit due now: ${(calculateDeposit() / 100).toFixed(2)}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4 pt-4">
+                        <button
+                          type="button"
+                          onClick={() => setModalStep('datetime')}
+                          className="flex-1 border border-gray-300 hover:bg-gray-100 py-3.5 rounded-2xl font-medium text-base transition-colors"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={checkoutLoading || !selectedTime}
+                          className="flex-1 bg-black hover:bg-black/90 disabled:bg-gray-400 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
+                        >
+                          {checkoutLoading ? 'Processing...' : `Pay Deposit & Book →`}
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
               )}
             </div>
           </div>
