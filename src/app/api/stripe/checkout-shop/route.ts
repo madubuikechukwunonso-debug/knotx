@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       success_url: `${baseUrl}/shop/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/cart?canceled=true`,
       metadata: {
+        type: 'order',  // ← CRITICAL: Tells webhook to create Order (not Booking) for admin section
         userId: userId ? userId.toString() : '',
         userType: userType || 'guest',
         customerName: customerName || '',
