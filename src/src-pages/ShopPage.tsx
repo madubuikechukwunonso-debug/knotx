@@ -48,10 +48,23 @@ export default function ShopPage() {
     return () => window.removeEventListener('storage', checkAuth);
   }, []);
 
-  // Load wishlist from localStorage
+  // Load wishlist FROM DATABASE (not localStorage)
   useEffect(() => {
-    const savedWishlist = localStorage.getItem('wishlist');
-    if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
+    const loadWishlist = async () => {
+      try {
+        const res = await fetch('/api/wishlist');
+        const data = await res.json();
+        // Extract product IDs from wishlist items
+        const wishlistIds = (data.items || []).map((item: any) => item.product?.id || item.productId);
+        setWishlist(wishlistIds);
+      } catch (error) {
+        console.error('Failed to load wishlist:', error);
+        // Fallback to localStorage if API fails
+        const savedWishlist = localStorage.getItem('wishlist');
+        if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
+      }
+    };
+    loadWishlist();
   }, []);
 
   // Fetch categories and products
@@ -102,15 +115,12 @@ export default function ShopPage() {
     const currentQty = selectedProducts[product.id] || 0;
     
     if (currentQty <= 1) {
-      // Remove completely
       handleRemove(product);
     } else {
       setSelectedProducts(prev => ({
         ...prev,
         [product.id]: currentQty - 1
       }));
-      
-      // Remove one from cart
       removeItem(product.id);
     }
   };
@@ -119,7 +129,6 @@ export default function ShopPage() {
   const handleRemove = (product: Product) => {
     const currentQty = selectedProducts[product.id] || 0;
     
-    // Remove all quantities from cart
     for (let i = 0; i < currentQty; i++) {
       removeItem(product.id);
     }
@@ -131,18 +140,39 @@ export default function ShopPage() {
     });
   };
 
-  // Toggle wishlist
-  const toggleWishlist = (productId: number) => {
-    let newWishlist: number[];
-    
-    if (wishlist.includes(productId)) {
-      newWishlist = wishlist.filter(id => id !== productId);
-    } else {
-      newWishlist = [...wishlist, productId];
+  // Toggle wishlist - NOW SAVES TO DATABASE
+  const toggleWishlist = async (productId: number) => {
+    try {
+      if (wishlist.includes(productId)) {
+        // Remove from database
+        await fetch('/api/wishlist', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId }),
+        });
+        setWishlist(prev => prev.filter(id => id !== productId));
+      } else {
+        // Add to database
+        const res = await fetch('/api/wishlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productId }),
+        });
+        
+        if (res.ok) {
+          setWishlist(prev => [...prev, productId]);
+        } else {
+          // If not logged in, prompt to login
+          const shouldLogin = confirm('Please login to save to wishlist. Go to login page?');
+          if (shouldLogin) {
+            router.push('/login?redirect=/shop');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Wishlist error:', error);
+      alert('Failed to update wishlist. Please try again.');
     }
-    
-    setWishlist(newWishlist);
-    localStorage.setItem('wishlist', JSON.stringify(newWishlist));
   };
 
   // Smart checkout
