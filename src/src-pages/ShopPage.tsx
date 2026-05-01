@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useCart } from "@/hooks/useCart";
-import { useAuth } from "@/hooks/useAuth";
 import { ShoppingBag, Heart, Plus, Minus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -26,7 +25,6 @@ type Product = {
 export default function ShopPage() {
   const router = useRouter();
   const { addItem, items, removeItem } = useCart();
-  const { user, isAuthenticated } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -36,13 +34,12 @@ export default function ShopPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const isLoggedIn = isAuthenticated && !!user;
 
+  // Load wishlist on mount
   useEffect(() => {
     const loadWishlist = async () => {
-      if (!isLoggedIn || !user?.id) return;
       try {
-        const res = await fetch(`/api/wishlist?userId=${user.id}`);
+        const res = await fetch('/api/wishlist');
         const data = await res.json();
         const wishlistIds = (data.items || []).map((item: any) => item.product?.id || item.productId);
         setWishlist(wishlistIds);
@@ -51,8 +48,9 @@ export default function ShopPage() {
       }
     };
     loadWishlist();
-  }, [isLoggedIn, user?.id]);
+  }, []);
 
+  // Fetch categories and products
   useEffect(() => {
     fetch('/api/product-categories')
       .then((r) => r.json())
@@ -95,25 +93,26 @@ export default function ShopPage() {
     setSelectedProducts(prev => { const updated = { ...prev }; delete updated[product.id]; return updated; });
   };
 
+  // ATTEMPT TO SAVE FIRST - Show modal only on failure
   const toggleWishlist = async (productId: number) => {
-    if (!isLoggedIn || !user?.id) {
-      setShowLoginModal(true);
-      return;
-    }
-
     try {
       if (wishlist.includes(productId)) {
-        await fetch('/api/wishlist', {
+        const res = await fetch('/api/wishlist', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId, userId: user.id }),
+          body: JSON.stringify({ productId }),
         });
-        setWishlist(prev => prev.filter(id => id !== productId));
+        
+        if (res.ok) {
+          setWishlist(prev => prev.filter(id => id !== productId));
+        } else {
+          setShowLoginModal(true);
+        }
       } else {
         const res = await fetch('/api/wishlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId, userId: user.id }),
+          body: JSON.stringify({ productId }),
         });
         
         if (res.ok) {
@@ -218,7 +217,7 @@ export default function ShopPage() {
 
       {cartCount > 0 && (
         <div className="fixed bottom-6 right-6 z-50">
-          <button onClick={handleCheckout} className="group flex items-center gap-3 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 hover:from-amber-500 hover:via-yellow-600 hover:to-amber-600 text-black font-semibold py-4 px-6 rounded-3xl shadow-2xl active:scale-[0.985] transition-all duration-200">
+          <button onClick={() => router.push('/cart')} className="group flex items-center gap-3 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 hover:from-amber-500 hover:via-yellow-600 hover:to-amber-600 text-black font-semibold py-4 px-6 rounded-3xl shadow-2xl active:scale-[0.985] transition-all duration-200">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-5 w-5" />
               <span className="text-base font-semibold">Proceed to Cart</span>
