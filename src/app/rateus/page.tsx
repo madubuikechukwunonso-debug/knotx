@@ -52,7 +52,7 @@ export default function RateUsPage() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      setCustomerName(user.name || user.displayName || "");
+      setCustomerName(user.name || ""); // ← FIXED: Removed .displayName
       setCustomerEmail(user.email || "");
     }
   }, [isAuthenticated, user]);
@@ -101,7 +101,7 @@ export default function RateUsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedEmoji && !comment.trim()) {
       alert("Please select an emoji or write a comment!");
       return;
@@ -118,7 +118,7 @@ export default function RateUsPage() {
       formData.append('emoji', selectedEmoji !== null ? EMOJIS[selectedEmoji].emoji : '⭐');
       formData.append('comment', comment);
       formData.append('serviceType', serviceType);
-      
+
       if (image) {
         formData.append('image', image);
       }
@@ -130,7 +130,6 @@ export default function RateUsPage() {
 
       if (res.ok) {
         setSubmitted(true);
-        // Refresh reviews
         setTimeout(() => {
           fetchReviews();
         }, 1000);
@@ -145,8 +144,6 @@ export default function RateUsPage() {
     }
   };
 
-  const currentReview = reviews[currentReviewIndex];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-950 via-black to-emerald-950">
       <Navigation />
@@ -159,7 +156,7 @@ export default function RateUsPage() {
               <Heart className="h-5 w-5 text-emerald-400" />
               <span className="text-emerald-400 text-sm font-medium tracking-[3px] uppercase">We Value Your Voice</span>
             </div>
-            
+
             <h1 className="text-6xl sm:text-7xl lg:text-8xl font-serif text-white mb-6 tracking-tight">
               How Was<br />Your Experience?
             </h1>
@@ -250,7 +247,7 @@ export default function RateUsPage() {
                   <label className="block text-sm font-medium text-emerald-300 mb-3 flex items-center gap-2">
                     <Camera className="h-4 w-4" /> Share a photo (optional)
                   </label>
-                  
+
                   <label className="block cursor-pointer">
                     <div className="border-2 border-dashed border-white/20 hover:border-emerald-500/50 rounded-3xl p-8 text-center transition-colors">
                       {imagePreview ? (
@@ -279,7 +276,7 @@ export default function RateUsPage() {
                 {/* CUSTOMER DETAILS */}
                 <div className="pt-4 border-t border-white/10">
                   <label className="block text-sm font-medium text-emerald-300 mb-4">Your Details</label>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <input
                       type="text"
@@ -298,7 +295,7 @@ export default function RateUsPage() {
                       required
                     />
                   </div>
-                  
+
                   <input
                     type="tel"
                     placeholder="Phone Number (optional)"
@@ -339,8 +336,8 @@ export default function RateUsPage() {
                       <div
                         key={review.id}
                         className={`absolute inset-0 transition-all duration-700 ${
-                          index === currentReviewIndex 
-                            ? 'opacity-100 translate-y-0' 
+                          index === currentReviewIndex
+                            ? 'opacity-100 translate-y-0'
                             : 'opacity-0 translate-y-8 pointer-events-none'
                         }`}
                       >
@@ -371,8 +368,8 @@ export default function RateUsPage() {
                           )}
 
                           <div className="mt-6 pt-6 border-t border-white/10 text-xs text-emerald-400/60">
-                            {new Date(review.createdAt).toLocaleDateString('en-US', { 
-                              month: 'long', 
+                            {new Date(review.createdAt).toLocaleDateString('en-US', {
+                              month: 'long',
                               day: 'numeric',
                               year: 'numeric'
                             })}
