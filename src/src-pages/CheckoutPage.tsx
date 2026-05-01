@@ -152,7 +152,7 @@ export default function CheckoutPage() {
 
                   <div>
                     <label className="mb-2 block text-xs uppercase tracking-[0.22em] text-black/55">
-                      Phone Number
+                      Phone Number *
                     </label>
                     <input
                       type="tel"
@@ -160,6 +160,7 @@ export default function CheckoutPage() {
                       onChange={(e) => setCustomerPhone(e.target.value)}
                       className="w-full border border-black/10 px-4 py-3 outline-none focus:border-black"
                       placeholder="(555) 123-4567"
+                      required
                     />
                   </div>
                 </div>
