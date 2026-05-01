@@ -36,32 +36,39 @@ export default function ShopPage() {
   // Calculate total items in cart
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Check if user is logged in
+  // BETTER AUTH CHECK - Check for user session properly
   useEffect(() => {
-    const checkAuth = () => {
-      const user = localStorage.getItem('user') || sessionStorage.getItem('user');
-      const hasSession = document.cookie.includes('session') || document.cookie.includes('auth');
-      setIsLoggedIn(!!user || !!hasSession);
+    const checkAuth = async () => {
+      try {
+        // Try to fetch user session from API
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          setIsLoggedIn(!!data.user);
+        } else {
+          // Fallback: check localStorage for user data
+          const userData = localStorage.getItem('user') || localStorage.getItem('userSession');
+          setIsLoggedIn(!!userData);
+        }
+      } catch {
+        // Final fallback
+        const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
+        setIsLoggedIn(!!userData);
+      }
     };
     checkAuth();
-    window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
   }, []);
 
-  // Load wishlist FROM DATABASE (not localStorage)
+  // Load wishlist from database
   useEffect(() => {
     const loadWishlist = async () => {
       try {
         const res = await fetch('/api/wishlist');
         const data = await res.json();
-        // Extract product IDs from wishlist items
         const wishlistIds = (data.items || []).map((item: any) => item.product?.id || item.productId);
         setWishlist(wishlistIds);
       } catch (error) {
         console.error('Failed to load wishlist:', error);
-        // Fallback to localStorage if API fails
-        const savedWishlist = localStorage.getItem('wishlist');
-        if (savedWishlist) setWishlist(JSON.parse(savedWishlist));
       }
     };
     loadWishlist();
@@ -86,7 +93,6 @@ export default function ShopPage() {
 
   const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-  // Add product with quantity tracking
   const handleAdd = (product: Product) => {
     const currentQty = selectedProducts[product.id] || 0;
     const newQty = currentQty + 1;
@@ -110,7 +116,6 @@ export default function ShopPage() {
     setTimeout(() => setAddedId(null), 800);
   };
 
-  // Decrease quantity
   const handleDecrease = (product: Product) => {
     const currentQty = selectedProducts[product.id] || 0;
     
@@ -125,7 +130,6 @@ export default function ShopPage() {
     }
   };
 
-  // Remove product completely
   const handleRemove = (product: Product) => {
     const currentQty = selectedProducts[product.id] || 0;
     
@@ -140,11 +144,10 @@ export default function ShopPage() {
     });
   };
 
-  // Toggle wishlist - NOW SAVES TO DATABASE
+  // Toggle wishlist - DATABASE BACKED
   const toggleWishlist = async (productId: number) => {
     try {
       if (wishlist.includes(productId)) {
-        // Remove from database
         await fetch('/api/wishlist', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -152,7 +155,6 @@ export default function ShopPage() {
         });
         setWishlist(prev => prev.filter(id => id !== productId));
       } else {
-        // Add to database
         const res = await fetch('/api/wishlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -162,26 +164,19 @@ export default function ShopPage() {
         if (res.ok) {
           setWishlist(prev => [...prev, productId]);
         } else {
-          // If not logged in, prompt to login
-          const shouldLogin = confirm('Please login to save to wishlist. Go to login page?');
-          if (shouldLogin) {
-            router.push('/login?redirect=/shop');
-          }
+          alert('Please login to save items to your wishlist');
+          router.push('/login?redirect=/shop');
         }
       }
     } catch (error) {
       console.error('Wishlist error:', error);
-      alert('Failed to update wishlist. Please try again.');
+      alert('Failed to update wishlist');
     }
   };
 
-  // Smart checkout
+  // SMART CHECKOUT - Goes to CART (not checkout)
   const handleCheckout = () => {
-    if (isLoggedIn) {
-      router.push('/cart');
-    } else {
-      router.push('/login?redirect=/cart');
-    }
+    router.push('/cart'); // Always goes to cart - user will wire up Stripe from cart page
   };
 
   const allCategories = [
@@ -294,7 +289,7 @@ export default function ShopPage() {
                   </div>
 
                   <div className="px-1">
-                    <h3 className="text-[15px] font-medium text-black leading-tight pr-8">{product.name}</h3>
+                    <h3 className="font-sans text-[17px] font-medium text-black leading-tight pr-8">{product.name}</h3>
                     <p className="mt-1.5 text-sm font-medium text-black/60">
                       {formatPrice(product.price)}
                     </p>
@@ -318,7 +313,7 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* FLOATING CHECKOUT BUTTON WITH CART ICON */}
+      {/* FLOATING CHECKOUT BUTTON - "PROCEED TO CART" */}
       {cartCount > 0 && (
         <div className="fixed bottom-6 right-6 z-50">
           <button 
