@@ -4,8 +4,11 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "next/navigation";
+import { ShoppingBag } from "lucide-react";
 
 export default function WishlistSection() {
+  const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -13,7 +16,6 @@ export default function WishlistSection() {
   useEffect(() => {
     const loadWishlist = async () => {
       if (!isAuthenticated || !user?.id) {
-        console.log('Not logged in, skipping wishlist load');
         setLoading(false);
         return;
       }
@@ -21,7 +23,6 @@ export default function WishlistSection() {
       try {
         const res = await fetch(`/api/wishlist?userId=${user.id}`);
         const data = await res.json();
-        console.log('Dashboard wishlist data:', data);
         setWishlist(data.items || []);
       } catch (error) {
         console.error('Failed to load wishlist:', error);
@@ -33,9 +34,26 @@ export default function WishlistSection() {
     loadWishlist();
   }, [isAuthenticated, user?.id]);
 
+  const handleProceedToCart = () => {
+    router.push('/cart');
+  };
+
   return (
     <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-lg">
-      <h2 className="text-2xl font-medium mb-6">Wishlist &amp; Favorites</h2>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-medium">Wishlist &amp; Favorites</h2>
+        
+        {wishlist.length > 0 && (
+          <button
+            onClick={handleProceedToCart}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-2xl text-sm font-medium transition-colors"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            Proceed to Cart
+          </button>
+        )}
+      </div>
+
       {loading ? (
         <div className="py-12 text-center text-black/40">Loading your wishlist...</div>
       ) : wishlist.length === 0 ? (
