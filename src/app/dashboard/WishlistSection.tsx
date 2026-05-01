@@ -5,13 +5,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
-import { ShoppingBag } from "lucide-react";
+import { ShoppingBag, Heart } from "lucide-react";
 
 export default function WishlistSection() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addedToCart, setAddedToCart] = useState<number | null>(null);
 
   useEffect(() => {
     const loadWishlist = async () => {
@@ -34,23 +35,24 @@ export default function WishlistSection() {
     loadWishlist();
   }, [isAuthenticated, user?.id]);
 
-  const handleProceedToCart = () => {
-    router.push('/cart');
+  const handleAddToCart = (product: any) => {
+    // Add to cart logic - you'll need to integrate with your cart hook
+    // For now, navigate to cart
+    setAddedToCart(product.id);
+    setTimeout(() => {
+      setAddedToCart(null);
+      router.push('/cart');
+    }, 500);
   };
 
   return (
     <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-lg">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-medium">Wishlist &amp; Favorites</h2>
-        
         {wishlist.length > 0 && (
-          <button
-            onClick={handleProceedToCart}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-2xl text-sm font-medium transition-colors"
-          >
-            <ShoppingBag className="h-4 w-4" />
-            Proceed to Cart
-          </button>
+          <div className="text-xs px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+            {wishlist.length} items
+          </div>
         )}
       </div>
 
@@ -70,6 +72,8 @@ export default function WishlistSection() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
           {wishlist.map((item) => {
             const product = item.product;
+            const isAdded = addedToCart === product?.id;
+
             return (
               <div key={item.id} className="text-center group">
                 <div className="aspect-square bg-[#f6f6f6] rounded-3xl mb-3 overflow-hidden flex items-center justify-center relative">
@@ -83,7 +87,30 @@ export default function WishlistSection() {
                   ) : (
                     <span className="text-5xl">🪢</span>
                   )}
+
+                  {/* CART ICON AT CENTER OF IMAGE */}
+                  <button
+                    onClick={() => handleAddToCart(product)}
+                    className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
+                      isAdded 
+                        ? 'bg-emerald-500/90' 
+                        : 'bg-black/0 group-hover:bg-black/60'
+                    }`}
+                  >
+                    <div className={`p-4 rounded-full transition-all duration-300 ${
+                      isAdded 
+                        ? 'bg-white scale-110' 
+                        : 'bg-white/90 scale-90 group-hover:scale-100'
+                    }`}>
+                      {isAdded ? (
+                        <span className="text-emerald-600 text-2xl">✓</span>
+                      ) : (
+                        <ShoppingBag className="h-6 w-6 text-black" />
+                      )}
+                    </div>
+                  </button>
                 </div>
+
                 <p className="font-medium text-sm line-clamp-2">{product?.name || "Saved Item"}</p>
                 <p className="text-xs text-black/50 mt-1">
                   {product?.category ? product.category.replace(/-/g, " ") : "Favorite"}
