@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
 import { ShoppingBag, Heart, Plus, Minus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -25,6 +26,7 @@ type Product = {
 export default function ShopPage() {
   const router = useRouter();
   const { addItem, items, removeItem } = useCart();
+  const { user, isAuthenticated } = useAuth(); // ← USE AUTH HOOK
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -34,63 +36,21 @@ export default function ShopPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const isLoggedIn = isAuthenticated && !!user;
+  const userId = user?.id; // ← GET USER ID FROM AUTH HOOK
 
-  // ROBUST: Get user ID from multiple possible storage locations
-  const getCurrentUserId = (): number | null => {
-    try {
-      // Try multiple possible keys
-      const possibleKeys = ['user', 'userSession', 'auth', 'session', 'currentUser'];
-      
-      for (const key of possibleKeys) {
-        const data = localStorage.getItem(key) || sessionStorage.getItem(key);
-        if (data) {
-          try {
-            const parsed = JSON.parse(data);
-            // Try multiple possible ID fields
-            const userId = parsed?.id || parsed?.userId || parsed?.user?.id || parsed?.data?.id;
-            if (userId) {
-              console.log(`Found userId ${userId} in ${key}`);
-              return parseInt(userId);
-            }
-          } catch (e) {
-            // Not JSON, might be a string ID
-            if (!isNaN(parseInt(data))) {
-              return parseInt(data);
-            }
-          }
-        }
-      }
-      
-      // Check cookies as fallback
-      const cookies = document.cookie.split(';');
-      for (const cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'userId' || name === 'session') {
-          return parseInt(value);
-        }
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Error getting user ID:', error);
-      return null;
-    }
-  };
-
-  // Load wishlist on mount
+  // Load wishlist when user is authenticated
   useEffect(() => {
     const loadWishlist = async () => {
-      const userId = getCurrentUserId();
-      console.log('Loading wishlist, userId:', userId);
+      if (!isLoggedIn || !userId) {
+        console.log('Not logged in, skipping wishlist load');
+        return;
+      }
+      
+      console.log('Loading wishlist for userId:', userId);
       
       try {
-        const url = userId 
-          ? `/api/wishlist?userId=${userId}` 
-          : '/api/wishlist';
-        
-        const res = await fetch(url);
-        console.log('Wishlist response status:', res.status);
-        
+        const res = await fetch(`/api/wishlist?userId=${userId}`);
         const data = await res.json();
         console.log('Wishlist data:', data);
         
@@ -101,7 +61,7 @@ export default function ShopPage() {
       }
     };
     loadWishlist();
-  }, []);
+  }, [isLoggedIn, userId]);
 
   // Fetch categories and products
   useEffect(() => {
@@ -146,9 +106,14 @@ export default function ShopPage() {
     setSelectedProducts(prev => { const updated = { ...prev }; delete updated[product.id]; return updated; });
   };
 
-  // Toggle wishlist - Pass userId to API
+  // Toggle wishlist using user from auth hook
   const toggleWishlist = async (productId: number) => {
-    const userId = getCurrentUserId();
+    if (!isLoggedIn || !userId) {
+      console.log('Not logged in, showing modal');
+      setShowLoginModal(true);
+      return;
+    }
+
     console.log('Toggle wishlist, userId:', userId, 'productId:', productId);
 
     try {
