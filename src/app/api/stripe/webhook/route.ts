@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const metadata = session.metadata || {};
 
     // ============================================
-    // HANDLE ORDER CHECKOUT (New)
+    // HANDLE ORDER CHECKOUT (Shop Products)
     // ============================================
     if (metadata.type === 'order') {
       try {
@@ -73,6 +73,30 @@ export async function POST(request: NextRequest) {
 
         console.log(`Order created: ${order.id} for session ${session.id}`);
 
+        // ============================================
+        // REMOVE ONLY THE PAID ITEMS FROM WISHLIST
+        // ============================================
+        try {
+          const userId = metadata.userId ? parseInt(metadata.userId) : null;
+
+          if (userId && items.length > 0) {
+            const purchasedProductIds = items.map(item => item.productId);
+
+            await prisma.wishlist.deleteMany({
+              where: {
+                userId: userId,
+                productId: { in: purchasedProductIds },
+              },
+            });
+
+            console.log(`Removed ${purchasedProductIds.length} paid items from wishlist for user ${userId}`);
+          }
+        } catch (wishlistError) {
+          console.error('Failed to remove wishlist items:', wishlistError);
+          // Don't fail the webhook
+        }
+        // ============================================
+
         // Send order confirmation email
         try {
           await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-order-confirmation`, {
@@ -97,7 +121,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ============================================
-    // HANDLE BOOKING CHECKOUT (Existing)
+    // HANDLE BOOKING CHECKOUT (Services)
     // ============================================
     else {
       // Check if booking already exists (idempotency)
@@ -178,7 +202,7 @@ export async function POST(request: NextRequest) {
 
             const totalAmount = session.amount_total ||
               (service.price + selectedAddons.reduce((sum, a) => sum + (a.price * a.quantity), 0));
-            
+
             const depositAmount = session.amount_subtotal ||
               service.depositAmount || Math.round(totalAmount * 0.3);
 
@@ -204,7 +228,6 @@ export async function POST(request: NextRequest) {
         } catch (invoiceError: any) {
           console.error('Failed to send invoice:', invoiceError);
         }
-
       } catch (error: any) {
         console.error('Error creating booking from webhook:', error);
       }
