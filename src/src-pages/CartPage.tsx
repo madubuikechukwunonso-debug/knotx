@@ -9,7 +9,7 @@ import { useState } from "react";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, totalPrice, clearCart } = useCart();
-  const { user, isAuthenticated, login, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [pending, setPending] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
 
