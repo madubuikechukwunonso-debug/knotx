@@ -56,48 +56,47 @@ model LocalUser {
 
 // ====================== PRODUCTS & SERVICES ======================
 model ProductCategory {
-  id        Int       @id @default(autoincrement())
-  name      String    @unique
-  slug      String    @unique
-  image     String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  products  Product[]
+  id Int @id @default(autoincrement())
+  name String @unique
+  slug String @unique
+  image String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products Product[]
 }
 
 model Product {
-  id                Int      @id @default(autoincrement())
-  name              String
-  slug              String   @unique
-  description       String?
-  price             Int
-  priceCurrency     String   @default("cad")
-  image             String?
-  category          String   @default("general")
-  productCategoryId Int?                          // ← NEW: Link to ProductCategory
-  inventory         Int      @default(0)
-  featured          Boolean  @default(false)
-  active            Boolean  @default(true)
-  sortOrder         Int      @default(0)
-  stripeProductId   String?
-  stripePriceId     String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
- 
-  productCategory   ProductCategory? @relation(fields: [productCategoryId], references: [id]) // ← NEW
-  wishlistItems     Wishlist[]
-  orderItems        OrderItem[]
+  id Int @id @default(autoincrement())
+  name String
+  slug String @unique
+  description String?
+  price Int
+  priceCurrency String @default("cad")
+  image String?
+  category String @default("general")
+  productCategoryId Int? // ← NEW: Link to ProductCategory
+  inventory Int @default(0)
+  featured Boolean @default(false)
+  active Boolean @default(true)
+  sortOrder Int @default(0)
+  stripeProductId String?
+  stripePriceId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  productCategory ProductCategory? @relation(fields: [productCategoryId], references: [id]) // ← NEW
+  wishlistItems Wishlist[]
+  orderItems OrderItem[]
 }
 
 model Category {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  slug      String   @unique
-  image     String?
+  id Int @id @default(autoincrement())
+  name String @unique
+  slug String @unique
+  image String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  services  Service[]
-  addons    Addon[]
+  services Service[]
+  addons Addon[]
   // NOTE: Products now use ProductCategory (separate from booking categories)
 }
 
@@ -291,6 +290,22 @@ model Wishlist {
   user LocalUser @relation(fields: [userId], references: [id])
   product Product @relation(fields: [productId], references: [id])
   @@unique([userId, productId])
+}
+
+// ====================== REVIEWS (RATE US PAGE) ======================
+model Review {
+  id            Int      @id @default(autoincrement())
+  customerName  String
+  customerEmail String
+  customerPhone String?
+  rating        Int      // 1-5 stars
+  emoji         String?  // 😍 😊 🙂 😐 😕 etc.
+  comment       String?
+  image         String?  // Optional photo upload
+  serviceType   String   // "Hair Braiding Service", "Hair Product Purchase", etc.
+  isApproved    Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // ====================== NEWSLETTER & CONTACT ======================
