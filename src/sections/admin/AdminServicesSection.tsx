@@ -278,7 +278,7 @@ export default async function AdminServicesSection() {
           <div>
             <h1 className="text-3xl font-serif text-emerald-950">Services</h1>
             <p className="text-emerald-600 text-sm mt-1">
-              {services.length} service{services.length !== 1 ? 's' : ''} • Deposit + full price + hair requirements
+              {services.length} service{services.length !== 1 ? 's' : ''} • Grouped by category for shop
             </p>
           </div>
         </div>
@@ -296,31 +296,12 @@ export default async function AdminServicesSection() {
       {/* CATEGORIES + ADDONS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* CATEGORIES */}
+        {/* CATEGORIES - NOW WITH INLINE CREATE */}
         <div className="bg-white rounded-3xl border border-emerald-100 p-6">
           <div className="mb-6">
             <h2 className="text-2xl font-serif text-emerald-950">Categories</h2>
-            <p className="text-sm text-emerald-600">e.g. Stitch Braids, Knotless Braids</p>
+            <p className="text-sm text-emerald-600">Group services for shop display • Create new categories in the modal</p>
           </div>
-
-          <form action={createCategory} className="mb-8 space-y-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">New Category Name</label>
-              <input
-                type="text"
-                name="name"
-                placeholder="Stitch Braids"
-                className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
-            >
-              Create Category
-            </button>
-          </form>
 
           <div>
             <h3 className="font-semibold mb-3 text-lg">Existing ({categories.length})</h3>
@@ -345,7 +326,7 @@ export default async function AdminServicesSection() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 py-4">No categories yet.</p>
+              <p className="text-sm text-gray-500 py-4">No categories yet. Create one in the service modal.</p>
             )}
           </div>
         </div>
@@ -354,7 +335,7 @@ export default async function AdminServicesSection() {
         <div className="bg-white rounded-3xl border border-emerald-100 p-6">
           <div className="mb-6">
             <h2 className="text-2xl font-serif text-emerald-950">Add-ons</h2>
-            <p className="text-sm text-emerald-600">Beads, Extra Packs, Treatments • Can be linked to a category</p>
+            <p className="text-sm text-emerald-600">Beads, Extra Packs, Treatments • Linked to categories</p>
           </div>
 
           <form action={createAddon} className="mb-8 space-y-3">
@@ -446,26 +427,41 @@ export default async function AdminServicesSection() {
         </div>
       </div>
 
-      {/* CATEGORY PREVIEW */}
+      {/* CATEGORY PREVIEW - SHOP GROUPING */}
       <div className="bg-white rounded-3xl border border-emerald-100 p-6">
-        <h2 className="text-2xl font-serif text-emerald-950 mb-6">Category Preview</h2>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-serif text-emerald-950">Shop Category Preview</h2>
+            <p className="text-sm text-emerald-600">How services will appear grouped in the shop</p>
+          </div>
+          <div className="text-xs px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full">
+            {categories.length} Categories
+          </div>
+        </div>
         
         {categories.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {servicesByCategory.map((cat) => {
               const firstServiceImage = cat.services[0]?.image;
               return (
-                <div key={cat.id} className="border border-emerald-200 rounded-3xl overflow-hidden">
+                <div key={cat.id} className="border border-emerald-200 rounded-3xl overflow-hidden group">
                   <div className="h-44 bg-emerald-100 relative">
                     {firstServiceImage ? (
-                      <img src={firstServiceImage} alt={cat.name} className="w-full h-full object-cover" />
+                      <img 
+                        src={firstServiceImage} 
+                        alt={cat.name} 
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                      />
                     ) : (
                       <div className="flex items-center justify-center h-full text-emerald-400 text-sm">No image yet</div>
                     )}
+                    <div className="absolute top-3 right-3 bg-white/90 px-3 py-1 rounded-full text-xs font-medium text-emerald-700">
+                      {cat.services.length} services
+                    </div>
                   </div>
                   <div className="p-5">
                     <h3 className="font-semibold text-lg">{cat.name}</h3>
-                    <p className="text-sm text-emerald-600">{cat.services.length} services</p>
+                    <p className="text-sm text-emerald-600 mt-1">Click to view all {cat.name.toLowerCase()}</p>
                   </div>
                 </div>
               );
@@ -482,7 +478,11 @@ export default async function AdminServicesSection() {
             )}
           </div>
         ) : (
-          <p className="text-center py-8 text-gray-500">Create categories above to see preview</p>
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📁</div>
+            <p className="text-gray-500 mb-2">No categories yet</p>
+            <p className="text-sm text-gray-400">Create a category in the service modal to group products</p>
+          </div>
         )}
       </div>
     </div>
