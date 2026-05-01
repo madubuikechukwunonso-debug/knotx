@@ -2,7 +2,6 @@
 generator client {
   provider = "prisma-client-js"
 }
-
 datasource db {
   provider = "postgresql"
   url = env("DATABASE_URL")
@@ -231,6 +230,13 @@ model Order {
   customerName String
   customerEmail String
   customerPhone String?
+  // SHIPPING ADDRESS FIELDS (for shipping orders)
+  shippingAddressLine1 String?
+  shippingAddressLine2 String?
+  shippingCity String?
+  shippingState String?
+  shippingPostalCode String?
+  shippingCountry String? @default("Canada")
   total Int
   status String @default("pending")
   shippingStatus String @default("pending")
@@ -294,18 +300,18 @@ model Wishlist {
 
 // ====================== REVIEWS (RATE US PAGE) ======================
 model Review {
-  id            Int      @id @default(autoincrement())
-  customerName  String
+  id Int @id @default(autoincrement())
+  customerName String
   customerEmail String
   customerPhone String?
-  rating        Int      // 1-5 stars
-  emoji         String?  // 😍 😊 🙂 😐 😕 etc.
-  comment       String?
-  image         String?  // Optional photo upload
-  serviceType   String   // "Hair Braiding Service", "Hair Product Purchase", etc.
-  isApproved    Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  rating Int // 1-5 stars
+  emoji String? // 😍 😊 🙂 😐 😕 etc.
+  comment String?
+  image String? // Optional photo upload
+  serviceType String // "Hair Braiding Service", "Hair Product Purchase", etc.
+  isApproved Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ====================== NEWSLETTER & CONTACT ======================
