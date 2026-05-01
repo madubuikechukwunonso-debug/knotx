@@ -175,7 +175,7 @@ async function toggleServiceActive(formData: FormData) {
   revalidatePath('/admin');
 }
 
-// ====================== CATEGORIES ======================
+// ====================== CATEGORIES - NOW WORKS OUTSIDE MODAL ====================
 async function createCategory(formData: FormData) {
   'use server';
   const name = formData.get('name') as string;
@@ -278,7 +278,7 @@ export default async function AdminServicesSection() {
           <div>
             <h1 className="text-3xl font-serif text-emerald-950">Services</h1>
             <p className="text-emerald-600 text-sm mt-1">
-              {services.length} service{services.length !== 1 ? 's' : ''} • Grouped by category for shop
+              {services.length} service{services.length !== 1 ? 's' : ''} • Categories appear in modal dropdown
             </p>
           </div>
         </div>
@@ -296,12 +296,32 @@ export default async function AdminServicesSection() {
       {/* CATEGORIES + ADDONS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* CATEGORIES - NOW WITH INLINE CREATE */}
+        {/* CATEGORIES - CREATE OUTSIDE MODAL, APPEARS IN DROPDOWN */}
         <div className="bg-white rounded-3xl border border-emerald-100 p-6">
           <div className="mb-6">
             <h2 className="text-2xl font-serif text-emerald-950">Categories</h2>
-            <p className="text-sm text-emerald-600">Group services for shop display • Create new categories in the modal</p>
+            <p className="text-sm text-emerald-600">Create here → appears in service modal dropdown</p>
           </div>
+
+          {/* CREATE CATEGORY FORM - OUTSIDE MODAL */}
+          <form action={createCategory} className="mb-8 space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">New Category Name</label>
+              <input
+                type="text"
+                name="name"
+                placeholder="Stitch Braids"
+                className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
+            >
+              Create Category
+            </button>
+          </form>
 
           <div>
             <h3 className="font-semibold mb-3 text-lg">Existing ({categories.length})</h3>
@@ -326,7 +346,7 @@ export default async function AdminServicesSection() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 py-4">No categories yet. Create one in the service modal.</p>
+              <p className="text-sm text-gray-500 py-4">No categories yet. Create one above!</p>
             )}
           </div>
         </div>
@@ -432,7 +452,7 @@ export default async function AdminServicesSection() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-serif text-emerald-950">Shop Category Preview</h2>
-            <p className="text-sm text-emerald-600">How services will appear grouped in the shop</p>
+            <p className="text-sm text-emerald-600">How services appear grouped in the shop</p>
           </div>
           <div className="text-xs px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full">
             {categories.length} Categories
@@ -481,7 +501,7 @@ export default async function AdminServicesSection() {
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📁</div>
             <p className="text-gray-500 mb-2">No categories yet</p>
-            <p className="text-sm text-gray-400">Create a category in the service modal to group products</p>
+            <p className="text-sm text-gray-400">Create a category above to group products in the shop</p>
           </div>
         )}
       </div>
