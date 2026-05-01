@@ -49,18 +49,25 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Create the order with items
+        // Create the order with items - SENDS TO ADMIN SECTION
         const order = await prisma.order.create({
           data: {
             customerName: metadata.customerName || 'Guest',
             customerEmail: metadata.customerEmail || '',
             customerPhone: metadata.customerPhone || undefined,
             total: parseInt(metadata.totalAmount || '0'),
-            status: 'paid',
-            shippingStatus: 'pending',
+            status: 'paid',           // ← Admin sees this in AdminOrdersSection
+            shippingStatus: 'pending', // ← Admin can update shipping status
             stripePaymentIntent: session.payment_intent as string,
             userId: metadata.userId ? parseInt(metadata.userId) : undefined,
             userType: metadata.userType || undefined,
+            // Shipping address for admin
+            shippingAddressLine1: metadata.shippingAddressLine1 || '',
+            shippingAddressLine2: metadata.shippingAddressLine2 || '',
+            shippingCity: metadata.shippingCity || '',
+            shippingState: metadata.shippingState || '',
+            shippingPostalCode: metadata.shippingPostalCode || '',
+            shippingCountry: metadata.shippingCountry || 'Canada',
             items: {
               create: items.map((item) => ({
                 productId: item.productId,
@@ -71,33 +78,30 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        console.log(`Order created: ${order.id} for session ${session.id}`);
+        console.log(`✅ ORDER SENT TO ADMIN SECTION: ${order.id} for session ${session.id}`);
 
         // ============================================
         // REMOVE ONLY THE PAID ITEMS FROM WISHLIST
         // ============================================
         try {
           const userId = metadata.userId ? parseInt(metadata.userId) : null;
-
           if (userId && items.length > 0) {
             const purchasedProductIds = items.map(item => item.productId);
-
             await prisma.wishlist.deleteMany({
               where: {
                 userId: userId,
                 productId: { in: purchasedProductIds },
               },
             });
-
             console.log(`Removed ${purchasedProductIds.length} paid items from wishlist for user ${userId}`);
           }
         } catch (wishlistError) {
           console.error('Failed to remove wishlist items:', wishlistError);
-          // Don't fail the webhook
         }
-        // ============================================
 
+        // ============================================
         // Send order confirmation email
+        // ============================================
         try {
           await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-order-confirmation`, {
             method: 'POST',
@@ -179,7 +183,7 @@ export async function POST(request: NextRequest) {
             notes: metadata.notes || undefined,
             userId: metadata.userId ? parseInt(metadata.userId) : undefined,
             userType: isRegisteredUser
-              ? (metadata.userType as 'local' | 'oauth')
+              ? (metadata.userType as 'local' || 'oauth')
               : 'guest',
             status: 'pending',
           },
@@ -228,6 +232,7 @@ export async function POST(request: NextRequest) {
         } catch (invoiceError: any) {
           console.error('Failed to send invoice:', invoiceError);
         }
+
       } catch (error: any) {
         console.error('Error creating booking from webhook:', error);
       }
