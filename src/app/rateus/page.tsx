@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
-import { Star, Camera, Send, Heart } from "lucide-react";
+import { Star, Camera, Send, Heart, CheckCircle } from "lucide-react";
 
 const EMOJIS = [
   { emoji: "😍", label: "Amazing", value: 5 },
@@ -41,7 +41,7 @@ export default function RateUsPage() {
   const [image, setImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
 
@@ -94,6 +94,18 @@ export default function RateUsPage() {
     }
   };
 
+  const resetForm = () => {
+    setSelectedEmoji(null);
+    setRating(5);
+    setComment("");
+    setServiceType(SERVICE_TYPES[0]);
+    setImage(null);
+    setImagePreview(null);
+    setCustomerName(user?.name || "");
+    setCustomerEmail(user?.email || "");
+    setCustomerPhone("");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -119,7 +131,8 @@ export default function RateUsPage() {
       const res = await fetch('/api/reviews', { method: 'POST', body: formData });
 
       if (res.ok) {
-        setSubmitted(true);
+        setShowSuccessModal(true);
+        resetForm();
         setTimeout(() => fetchReviews(), 1000);
       } else {
         alert("Failed to submit review. Please try again.");
@@ -137,7 +150,7 @@ export default function RateUsPage() {
 
       <div className="pt-20 pb-16 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto">
-          {/* HERO HEADER - MOBILE OPTIMIZED */}
+          {/* HERO HEADER */}
           <div className="text-center mb-10 sm:mb-16">
             <div className="inline-flex items-center gap-2 sm:gap-3 bg-white/10 backdrop-blur-xl px-4 sm:px-6 py-1.5 sm:py-2 rounded-full mb-5 sm:mb-6">
               <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-400" />
@@ -153,7 +166,7 @@ export default function RateUsPage() {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6 sm:gap-8">
-            {/* RATING FORM - MOBILE FIRST */}
+            {/* RATING FORM */}
             <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8 lg:p-10">
               <div className="mb-8 sm:mb-10">
                 <div className="flex items-center gap-3 sm:gap-4 mb-4">
@@ -168,7 +181,7 @@ export default function RateUsPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
-                {/* EMOJI RATING - MOBILE RESPONSIVE */}
+                {/* EMOJI RATING */}
                 <div>
                   <label className="block text-sm font-medium text-emerald-300 mb-3 sm:mb-4">How do you feel?</label>
                   <div className="grid grid-cols-5 gap-2 sm:gap-3">
@@ -299,7 +312,7 @@ export default function RateUsPage() {
               </form>
             </div>
 
-            {/* LIVE REVIEWS - MOBILE OPTIMIZED */}
+            {/* LIVE REVIEWS */}
             <div className="space-y-5 sm:space-y-6">
               <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-8">
                 <div className="flex items-center gap-3 mb-6 sm:mb-8">
@@ -308,14 +321,14 @@ export default function RateUsPage() {
                 </div>
 
                 {reviews.length > 0 ? (
-                  <div className="relative h-[380px] sm:h-[420px] overflow-hidden">
+                  <div className="relative h-[420px] sm:h-[480px] overflow-hidden">
                     {reviews.map((review, index) => (
                       <div
                         key={review.id}
                         className={`absolute inset-0 transition-all duration-700 ${index === currentReviewIndex ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8 pointer-events-none'}`}
                       >
-                        <div className="bg-white/5 rounded-2xl sm:rounded-3xl p-6 sm:p-8 h-full flex flex-col">
-                          <div className="flex items-start gap-3 sm:gap-4 mb-5 sm:mb-6">
+                        <div className="bg-white/5 rounded-2xl sm:rounded-3xl p-6 sm:p-8 h-full flex flex-col overflow-hidden">
+                          <div className="flex items-start gap-3 sm:gap-4 mb-4 flex-shrink-0">
                             <div className="text-5xl sm:text-6xl flex-shrink-0">{review.emoji}</div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -330,18 +343,28 @@ export default function RateUsPage() {
                             </div>
                           </div>
 
-                          <p className="text-emerald-100 flex-1 text-sm sm:text-[15px] leading-relaxed line-clamp-4">
-                            "{review.comment || 'Had an amazing experience!'}"
-                          </p>
+                          <div className="flex-1 overflow-y-auto pr-1 mb-4">
+                            <p className="text-emerald-100 text-sm sm:text-[15px] leading-relaxed">
+                              "{review.comment || 'Had an amazing experience!'}"
+                            </p>
+                          </div>
 
                           {review.image && (
-                            <div className="mt-5 sm:mt-6 rounded-2xl overflow-hidden">
-                              <img src={review.image} alt="Review" className="w-full h-40 sm:h-48 object-cover" />
+                            <div className="flex-shrink-0 rounded-2xl overflow-hidden border border-white/10 mb-4">
+                              <img 
+                                src={review.image} 
+                                alt="Review photo" 
+                                className="w-full max-h-[180px] sm:max-h-[200px] object-contain bg-black/20" 
+                              />
                             </div>
                           )}
 
-                          <div className="mt-5 sm:mt-6 pt-4 sm:pt-6 border-t border-white/10 text-xs text-emerald-400/60">
-                            {new Date(review.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                          <div className="flex-shrink-0 pt-4 border-t border-white/10 text-xs text-emerald-400/60">
+                            {new Date(review.createdAt).toLocaleDateString('en-US', { 
+                              month: 'long', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            })}
                           </div>
                         </div>
                       </div>
@@ -355,7 +378,7 @@ export default function RateUsPage() {
                 )}
               </div>
 
-              {/* TRUST BAR - MOBILE OPTIMIZED */}
+              {/* TRUST BAR */}
               <div className="bg-gradient-to-r from-emerald-500/10 to-transparent border border-emerald-500/20 rounded-2xl sm:rounded-3xl p-6 sm:p-8">
                 <div className="flex items-center gap-3 sm:gap-4">
                   <div className="flex -space-x-2 sm:-space-x-3">
@@ -373,6 +396,27 @@ export default function RateUsPage() {
           </div>
         </div>
       </div>
+
+      {/* SUCCESS MODAL */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-8 text-center shadow-2xl">
+            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircle className="h-12 w-12 text-emerald-600" />
+            </div>
+            
+            <h3 className="text-3xl font-serif text-emerald-950 mb-3">Thank You!</h3>
+            <p className="text-emerald-600 text-lg mb-6">Your review has been posted successfully.</p>
+            
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold py-4 rounded-2xl text-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
