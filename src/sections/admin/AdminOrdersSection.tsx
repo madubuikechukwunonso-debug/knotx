@@ -160,6 +160,34 @@ export default function AdminOrdersSection({ orders: initialOrders }: AdminOrder
     updateOrderDetails(formData);
   };
 
+  const deleteOrder = async (orderId: number) => {
+    if (!confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const response = await fetch('/api/admin/orders/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: orderId }),
+      });
+
+      if (response.ok) {
+        setOrders(prev => prev.filter(order => order.id !== orderId));
+        console.log('Order deleted successfully');
+      } else {
+        const error = await response.json();
+        alert(error.error || 'Failed to delete order');
+      }
+    } catch (error) {
+      console.error('Failed to delete order:', error);
+      alert('Failed to delete order');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -260,6 +288,15 @@ export default function AdminOrdersSection({ orders: initialOrders }: AdminOrder
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                         </svg>
                       </button>
+                      <button
+                        onClick={() => deleteOrder(order.id)}
+                        className="p-2 hover:bg-red-100 rounded-xl transition-colors"
+                        title="Delete Order"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.7 12.3a2 2 0 01-2 1.7H7.7a2 2 0 01-2-1.7L5 7m5 4v6m4-6v6m1-10V5a1 1 0 00-1-1H9a1 1 0 00-1 1v2" />
+                        </svg>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -336,6 +373,14 @@ export default function AdminOrdersSection({ orders: initialOrders }: AdminOrder
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                   Edit Order
+                </button>
+                <button
+                  onClick={() => deleteOrder(order.id)}
+                  className="px-4 py-2.5 bg-red-600 text-white rounded-2xl text-sm font-medium hover:bg-red-700 transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.7 12.3a2 2 0 01-2 1.7H7.7a2 2 0 01-2-1.7L5 7m5 4v6m4-6v6m1-10V5a1 1 0 00-1-1H9a1 1 0 00-1 1v2" />
+                  </svg>
                 </button>
               </div>
             </div>
