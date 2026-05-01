@@ -55,40 +55,50 @@ model LocalUser {
 }
 
 // ====================== PRODUCTS & SERVICES ======================
+model ProductCategory {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  image     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
 model Product {
-  id Int @id @default(autoincrement())
-  name String
-  slug String @unique
-  description String?
-  price Int
-  priceCurrency String @default("cad")
-  image String?
-  category String @default("general")
-  categoryId Int? // ← NEW: Link to Category
-  inventory Int @default(0)
-  featured Boolean @default(false)
-  active Boolean @default(true)
-  sortOrder Int @default(0)
-  stripeProductId String?
-  stripePriceId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  name              String
+  slug              String   @unique
+  description       String?
+  price             Int
+  priceCurrency     String   @default("cad")
+  image             String?
+  category          String   @default("general")
+  productCategoryId Int?                          // ← NEW: Link to ProductCategory
+  inventory         Int      @default(0)
+  featured          Boolean  @default(false)
+  active            Boolean  @default(true)
+  sortOrder         Int      @default(0)
+  stripeProductId   String?
+  stripePriceId     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
  
-  categoryRel Category? @relation(fields: [categoryId], references: [id]) // ← NEW
-  wishlistItems Wishlist[]
-  orderItems OrderItem[]
+  productCategory   ProductCategory? @relation(fields: [productCategoryId], references: [id]) // ← NEW
+  wishlistItems     Wishlist[]
+  orderItems        OrderItem[]
 }
 
 model Category {
-  id Int @id @default(autoincrement())
-  name String @unique
-  slug String @unique
-  image String?
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  slug      String   @unique
+  image     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  services Service[]
-  addons Addon[]
-  products Product[] // ← NEW: Products can belong to categories
+  services  Service[]
+  addons    Addon[]
+  // NOTE: Products now use ProductCategory (separate from booking categories)
 }
 
 model Addon {
