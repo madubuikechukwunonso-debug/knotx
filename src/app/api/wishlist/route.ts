@@ -3,13 +3,12 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
-    // Try multiple auth methods
-    let userId = request.cookies.get('userId')?.value || 
-                 request.cookies.get('session')?.value ||
-                 request.headers.get('x-user-id');
-    
-    // If no userId found, try to get from localStorage via a different approach
-    // For now, we'll return empty if no auth found (frontend will handle)
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('userId') || 
+                   request.cookies.get('userId')?.value ||
+                   request.cookies.get('session')?.value ||
+                   request.headers.get('x-user-id');
+
     if (!userId) {
       return NextResponse.json({ items: [] });
     }
@@ -40,13 +39,20 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { productId } = await request.json();
-    let userId = request.cookies.get('userId')?.value || 
-                 request.cookies.get('session')?.value ||
-                 request.headers.get('x-user-id');
+    const body = await request.json();
+    const { productId, userId: bodyUserId } = body;
+    
+    // Try multiple sources
+    const userId = bodyUserId || 
+                   request.cookies.get('userId')?.value ||
+                   request.cookies.get('session')?.value ||
+                   request.headers.get('x-user-id');
 
     if (!userId || !productId) {
-      return NextResponse.json({ error: 'Please login to save to wishlist' }, { status: 401 });
+      return NextResponse.json({ 
+        error: 'Please login to save to wishlist',
+        debug: { hasUserId: !!userId, hasProductId: !!productId }
+      }, { status: 401 });
     }
 
     const existing = await prisma.wishlist.findUnique({
@@ -78,10 +84,13 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { productId } = await request.json();
-    let userId = request.cookies.get('userId')?.value || 
-                 request.cookies.get('session')?.value ||
-                 request.headers.get('x-user-id');
+    const body = await request.json();
+    const { productId, userId: bodyUserId } = body;
+    
+    const userId = bodyUserId || 
+                   request.cookies.get('userId')?.value ||
+                   request.cookies.get('session')?.value ||
+                   request.headers.get('x-user-id');
 
     if (!userId || !productId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
