@@ -22,6 +22,39 @@ export default function CartPage() {
       // LOGGED IN USER: Go directly to Stripe
       setPending(true);
       try {
+        // ============================================
+        // FETCH USER'S SAVED SHIPPING ADDRESS
+        // ============================================
+        let shippingAddress = {
+          shippingAddressLine1: '',
+          shippingAddressLine2: '',
+          shippingCity: '',
+          shippingState: '',
+          shippingPostalCode: '',
+          shippingCountry: 'Canada',
+        };
+
+        try {
+          const profileRes = await fetch('/api/user/profile');
+          if (profileRes.ok) {
+            const profile = await profileRes.json();
+            shippingAddress = {
+              shippingAddressLine1: profile.shippingAddressLine1 || '',
+              shippingAddressLine2: profile.shippingAddressLine2 || '',
+              shippingCity: profile.shippingCity || '',
+              shippingState: profile.shippingState || '',
+              shippingPostalCode: profile.shippingPostalCode || '',
+              shippingCountry: profile.shippingCountry || 'Canada',
+            };
+            console.log('✅ Fetched user shipping address:', shippingAddress);
+          }
+        } catch (profileError) {
+          console.log('Could not fetch profile, using empty address');
+        }
+
+        // ============================================
+        // CREATE STRIPE CHECKOUT WITH ADDRESS
+        // ============================================
         const response = await fetch("/api/stripe/checkout-shop", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -37,6 +70,8 @@ export default function CartPage() {
             userId: user.id,
             userType: user.userType || "local",
             totalAmount: totalPrice,
+            // Include user's saved shipping address
+            ...shippingAddress,
           }),
         });
 
