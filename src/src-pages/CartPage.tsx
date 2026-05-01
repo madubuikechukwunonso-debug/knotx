@@ -3,12 +3,67 @@
 import Link from "next/link";
 import Navigation from "@/components/Navigation";
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
 import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, totalPrice } = useCart();
+  const { items, updateQuantity, removeItem, totalPrice, clearCart } = useCart();
+  const { user, isAuthenticated } = useAuth();
+  const [pending, setPending] = useState(false);
 
   const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+
+  const handleCheckout = async () => {
+    if (items.length === 0) return;
+
+    setPending(true);
+
+    try {
+      if (isAuthenticated && user) {
+        // LOGGED IN USER: Go directly to Stripe
+        const response = await fetch("/api/stripe/checkout-shop", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: items.map((item) => ({
+              productId: item.id,
+              quantity: item.quantity,
+              name: item.name,
+              price: item.price,
+            })),
+            customerName: user.name || user.displayName || "Customer",
+            customerEmail: user.email,
+            userId: user.id,
+            userType: user.userType || "local",
+            totalAmount: totalPrice,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(error || "Failed to create checkout session");
+        }
+
+        const { url } = await response.json();
+        
+        if (url) {
+          clearCart();
+          window.location.href = url;
+        } else {
+          throw new Error("No checkout URL returned");
+        }
+      } else {
+        // NOT LOGGED IN: Go to checkout page for details
+        window.location.href = "/checkout";
+      }
+    } catch (error: any) {
+      console.error("Checkout error:", error);
+      alert(error.message || "Failed to proceed to checkout");
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -130,12 +185,19 @@ export default function CartPage() {
                     </div>
                   </div>
 
-                  <Link
-                    href="/checkout"
-                    className="block w-full bg-black px-6 py-4 text-center text-sm uppercase tracking-widest text-white transition-opacity hover:opacity-90"
+                  <button
+                    onClick={handleCheckout}
+                    disabled={pending || items.length === 0}
+                    className="block w-full bg-black px-6 py-4 text-center text-sm uppercase tracking-widest text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Proceed to Checkout
-                  </Link>
+                    {pending ? "Processing..." : "Proceed to Checkout"}
+                  </button>
+
+                  {!isAuthenticated && (
+                    <p className="mt-3 text-center text-xs text-black/50">
+                      You'll be asked for shipping details
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
