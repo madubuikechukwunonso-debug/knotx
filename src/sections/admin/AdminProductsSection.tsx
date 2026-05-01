@@ -44,7 +44,7 @@ async function createProduct(formData: FormData) {
   let slug = (formData.get('slug') as string) || generateSlug(name);
   const description = (formData.get('description') as string) || undefined;
   const price = parseInt(formData.get('price') as string);
-  const categoryId = formData.get('categoryId') ? parseInt(formData.get('categoryId') as string) : null;
+  const productCategoryId = formData.get('productCategoryId') ? parseInt(formData.get('productCategoryId') as string) : null;
   const inventory = parseInt(formData.get('inventory') as string) || 0;
   const imageFile = formData.get('image') as File | null;
   const featured = formData.get('featured') === 'on';
@@ -57,7 +57,7 @@ async function createProduct(formData: FormData) {
   await prisma.product.create({
     data: {
       name, slug, description, price, category: 'general',
-      categoryId: categoryId || undefined,
+      productCategoryId: productCategoryId || undefined,  // ← FIXED
       inventory, image: imageUrl, featured, active: true,
       stripeProductId, stripePriceId,
     },
@@ -73,7 +73,7 @@ async function updateProduct(formData: FormData) {
   let slug = (formData.get('slug') as string) || generateSlug(name);
   const description = (formData.get('description') as string) || undefined;
   const price = parseInt(formData.get('price') as string);
-  const categoryId = formData.get('categoryId') ? parseInt(formData.get('categoryId') as string) : null;
+  const productCategoryId = formData.get('productCategoryId') ? parseInt(formData.get('productCategoryId') as string) : null;
   const inventory = parseInt(formData.get('inventory') as string) || 0;
   const imageFile = formData.get('image') as File | null;
   const currentImage = formData.get('currentImage') as string | null;
@@ -90,7 +90,7 @@ async function updateProduct(formData: FormData) {
     where: { id },
     data: {
       name, slug, description, price, category: 'general',
-      categoryId: categoryId || undefined,
+      productCategoryId: productCategoryId || undefined,  // ← FIXED
       inventory, image: imageUrl, featured, active,
       stripeProductId, stripePriceId,
     },
@@ -114,20 +114,20 @@ async function toggleProductActive(formData: FormData) {
   revalidatePath('/admin');
 }
 
-// ====================== CATEGORIES ======================
-async function createCategory(formData: FormData) {
+// ====================== PRODUCT CATEGORIES ======================
+async function createProductCategory(formData: FormData) {
   'use server';
   const name = formData.get('name') as string;
   const slug = name.toLowerCase().replace(/\s+/g, '-');
-  await prisma.category.create({ data: { name, slug } });
+  await prisma.productCategory.create({ data: { name, slug } });
   revalidatePath('/admin');
 }
 
-async function deleteCategory(formData: FormData) {
+async function deleteProductCategory(formData: FormData) {
   'use server';
   const id = parseInt(formData.get('id') as string);
-  await prisma.product.updateMany({ where: { categoryId: id }, data: { categoryId: null } });
-  await prisma.category.delete({ where: { id } });
+  await prisma.product.updateMany({ where: { productCategoryId: id }, data: { productCategoryId: null } });
+  await prisma.productCategory.delete({ where: { id } });
   revalidatePath('/admin');
 }
 
@@ -137,24 +137,24 @@ export default async function AdminProductsSection() {
     select: {
       id: true, name: true, slug: true, description: true, price: true,
       priceCurrency: true, image: true, category: true,
-      categoryId: true,
-      categoryRel: { select: { id: true, name: true } },
+      productCategoryId: true,
+      productCategory: { select: { id: true, name: true } },
       inventory: true, featured: true, active: true, sortOrder: true,
       stripeProductId: true, stripePriceId: true, createdAt: true, updatedAt: true,
     },
   });
 
-  const categories = await prisma.category.findMany({
+  const productCategories = await prisma.productCategory.findMany({
     orderBy: { name: 'asc' },
     include: { _count: { select: { products: true } } },
   });
 
-  const productsByCategory = categories.map(cat => ({
+  const productsByCategory = productCategories.map(cat => ({
     ...cat,
-    products: products.filter(p => p.categoryId === cat.id),
+    products: products.filter(p => p.productCategoryId === cat.id),
   }));
 
-  const uncategorizedProducts = products.filter(p => !p.categoryId);
+  const uncategorizedProducts = products.filter(p => !p.productCategoryId);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto px-4">
@@ -171,7 +171,7 @@ export default async function AdminProductsSection() {
 
         <AdminProductTable
           products={products}
-          categories={categories}
+          productCategories={productCategories}
           onCreate={createProduct}
           onUpdate={updateProduct}
           onDelete={deleteProduct}
@@ -179,7 +179,7 @@ export default async function AdminProductsSection() {
         />
       </div>
 
-      {/* CATEGORIES SECTION - MODERN DESIGN */}
+      {/* PRODUCT CATEGORIES - MODERN DESIGN */}
       <div className="bg-white rounded-3xl border border-emerald-100 p-6 sm:p-8">
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -188,13 +188,12 @@ export default async function AdminProductsSection() {
               <p className="text-sm text-emerald-600 mt-1">Organize your shop products beautifully</p>
             </div>
             <div className="text-xs px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full font-medium self-start sm:self-auto">
-              {categories.length} Categories
+              {productCategories.length} Categories
             </div>
           </div>
         </div>
 
-        {/* CREATE CATEGORY FORM - MOBILE FRIENDLY */}
-        <form action={createCategory} className="mb-8">
+        <form action={createProductCategory} className="mb-8">
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
               <input
@@ -214,13 +213,12 @@ export default async function AdminProductsSection() {
           </div>
         </form>
 
-        {/* EXISTING CATEGORIES - MODERN CARDS */}
         <div>
           <h3 className="font-semibold text-lg mb-4 text-emerald-950">Your Categories</h3>
           
-          {categories.length > 0 ? (
+          {productCategories.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categories.map((cat) => (
+              {productCategories.map((cat) => (
                 <div 
                   key={cat.id} 
                   className="group bg-gradient-to-br from-emerald-50 to-white border border-emerald-200 rounded-3xl p-6 hover:shadow-xl hover:border-emerald-300 transition-all duration-300 active:scale-[0.985]"
@@ -229,7 +227,7 @@ export default async function AdminProductsSection() {
                     <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center text-white text-2xl flex-shrink-0">
                       📁
                     </div>
-                    <form action={deleteCategory}>
+                    <form action={deleteProductCategory}>
                       <input type="hidden" name="id" value={cat.id} />
                       <button
                         type="submit"
@@ -274,7 +272,7 @@ export default async function AdminProductsSection() {
           </div>
         </div>
         
-        {categories.length > 0 ? (
+        {productCategories.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {productsByCategory.map((cat) => {
               const firstProductImage = cat.products[0]?.image;
@@ -285,7 +283,6 @@ export default async function AdminProductsSection() {
                   key={cat.id} 
                   className="group relative bg-white border border-emerald-200 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-500 active:scale-[0.985]"
                 >
-                  {/* IMAGE SECTION */}
                   <div className="relative h-56 sm:h-64 bg-gradient-to-br from-emerald-100 to-emerald-200 overflow-hidden">
                     {firstProductImage ? (
                       <img 
@@ -302,7 +299,6 @@ export default async function AdminProductsSection() {
                       </div>
                     )}
                     
-                    {/* OVERLAY BADGE */}
                     <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-1.5 rounded-full shadow-lg">
                       <span className="text-emerald-700 text-sm font-semibold">
                         {productCount} {productCount === 1 ? 'item' : 'items'}
@@ -310,7 +306,6 @@ export default async function AdminProductsSection() {
                     </div>
                   </div>
 
-                  {/* CONTENT SECTION */}
                   <div className="p-6">
                     <div className="flex items-start justify-between gap-3 mb-3">
                       <h3 className="font-semibold text-xl text-emerald-950 leading-tight pr-2">
@@ -326,13 +321,11 @@ export default async function AdminProductsSection() {
                     </p>
                   </div>
 
-                  {/* HOVER EFFECT BAR */}
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-emerald-600 to-emerald-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
                 </div>
               );
             })}
             
-            {/* UNCATEGORIZED CARD */}
             {uncategorizedProducts.length > 0 && (
               <div className="group relative bg-white border border-gray-200 rounded-3xl overflow-hidden hover:shadow-2xl transition-all duration-500">
                 <div className="relative h-56 sm:h-64 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
