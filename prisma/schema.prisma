@@ -64,7 +64,7 @@ model Product {
   priceCurrency String @default("cad")
   image String?
   category String @default("general")
-  categoryId Int?                                    // ← NEW: Link to Category
+  categoryId Int? // ← NEW: Link to Category
   inventory Int @default(0)
   featured Boolean @default(false)
   active Boolean @default(true)
@@ -73,8 +73,8 @@ model Product {
   stripePriceId String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  categoryRel Category? @relation(fields: [categoryId], references: [id])  // ← NEW
+ 
+  categoryRel Category? @relation(fields: [categoryId], references: [id]) // ← NEW
   wishlistItems Wishlist[]
   orderItems OrderItem[]
 }
@@ -88,7 +88,7 @@ model Category {
   updatedAt DateTime @updatedAt
   services Service[]
   addons Addon[]
-  products Product[]  // ← NEW: Products can belong to categories
+  products Product[] // ← NEW: Products can belong to categories
 }
 
 model Addon {
