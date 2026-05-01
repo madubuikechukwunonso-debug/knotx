@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
 import { Check, ShoppingBag, Heart, Plus, Minus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -25,40 +26,23 @@ type Product = {
 export default function ShopPage() {
   const router = useRouter();
   const { addItem, items, removeItem } = useCart();
+  const { user, isAuthenticated } = useAuth(); // ← USE THE SAME AUTH HOOK AS BOOKING PAGE
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [addedId, setAddedId] = useState<number | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Record<number, number>>({});
   const [wishlist, setWishlist] = useState<number[]>([]);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const isLoggedIn = isAuthenticated && !!user; // ← USE AUTH STATE
 
-  // Auth check
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await fetch('/api/auth/session');
-        if (res.ok) {
-          const data = await res.json();
-          setIsLoggedIn(!!data.user);
-        } else {
-          const userData = localStorage.getItem('user') || localStorage.getItem('userSession');
-          setIsLoggedIn(!!userData);
-        }
-      } catch {
-        const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
-        setIsLoggedIn(!!userData);
-      }
-    };
-    checkAuth();
-  }, []);
-
-  // Load wishlist
+  // Load wishlist from database
   useEffect(() => {
     const loadWishlist = async () => {
+      if (!isLoggedIn) return;
+      
       try {
         const res = await fetch('/api/wishlist');
         const data = await res.json();
@@ -69,7 +53,7 @@ export default function ShopPage() {
       }
     };
     loadWishlist();
-  }, []);
+  }, [isLoggedIn]);
 
   // Fetch categories and products
   useEffect(() => {
@@ -114,8 +98,13 @@ export default function ShopPage() {
     setSelectedProducts(prev => { const updated = { ...prev }; delete updated[product.id]; return updated; });
   };
 
-  // Toggle wishlist with nice modal
+  // Toggle wishlist - NOW PROPERLY AUTHENTICATED
   const toggleWishlist = async (productId: number) => {
+    if (!isLoggedIn) {
+      setShowLoginModal(true);
+      return;
+    }
+
     try {
       if (wishlist.includes(productId)) {
         await fetch('/api/wishlist', {
@@ -134,7 +123,6 @@ export default function ShopPage() {
         if (res.ok) {
           setWishlist(prev => [...prev, productId]);
         } else {
-          // Show nice modal instead of alert
           setShowLoginModal(true);
         }
       }
@@ -170,9 +158,7 @@ export default function ShopPage() {
               <button
                 key={cat.id ?? 'all'}
                 onClick={() => setSelectedCategoryId(cat.id)}
-                className={`rounded-full border px-5 py-2.5 text-sm font-medium transition-all ${
-                  selectedCategoryId === cat.id ? "border-emerald-600 bg-emerald-600 text-white" : "border-black/10 text-black/60 hover:border-black/30 hover:text-black"
-                }`}
+                className={`rounded-full border px-5 py-2.5 text-sm font-medium transition-all ${selectedCategoryId === cat.id ? "border-emerald-600 bg-emerald-600 text-white" : "border-black/10 text-black/60 hover:border-black/30 hover:text-black"}`}
               >
                 {cat.name}
               </button>
