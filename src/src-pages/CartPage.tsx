@@ -4,24 +4,24 @@ import Link from "next/link";
 import Navigation from "@/components/Navigation";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { ArrowLeft, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { useState } from "react";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, totalPrice, clearCart } = useCart();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, login, logout } = useAuth();
   const [pending, setPending] = useState(false);
+  const [showGuestModal, setShowGuestModal] = useState(false);
 
   const formatPrice = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
   const handleCheckout = async () => {
     if (items.length === 0) return;
 
-    setPending(true);
-
-    try {
-      if (isAuthenticated && user) {
-        // LOGGED IN USER: Go directly to Stripe
+    if (isAuthenticated && user) {
+      // LOGGED IN USER: Go directly to Stripe
+      setPending(true);
+      try {
         const response = await fetch("/api/stripe/checkout-shop", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -53,16 +53,21 @@ export default function CartPage() {
         } else {
           throw new Error("No checkout URL returned");
         }
-      } else {
-        // NOT LOGGED IN: Go to checkout page for details
-        window.location.href = "/checkout";
+      } catch (error: any) {
+        console.error("Checkout error:", error);
+        alert(error.message || "Failed to proceed to checkout");
+      } finally {
+        setPending(false);
       }
-    } catch (error: any) {
-      console.error("Checkout error:", error);
-      alert(error.message || "Failed to proceed to checkout");
-    } finally {
-      setPending(false);
+    } else {
+      // NOT LOGGED IN: Show beautiful guest warning modal
+      setShowGuestModal(true);
     }
+  };
+
+  const proceedAsGuest = () => {
+    setShowGuestModal(false);
+    window.location.href = "/checkout";
   };
 
   return (
@@ -204,6 +209,73 @@ export default function CartPage() {
           )}
         </div>
       </div>
+
+      {/* GUEST WARNING MODAL */}
+      {showGuestModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-8 relative">
+            <button
+              onClick={() => setShowGuestModal(false)}
+              className="absolute top-6 right-6 text-black/40 hover:text-black transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <div className="text-center">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-amber-100">
+                <ShoppingBag className="h-10 w-10 text-amber-600" />
+              </div>
+
+              <h3 className="text-2xl font-semibold text-black mb-3">
+                Checking Out as a Guest
+              </h3>
+
+              <p className="text-black/60 mb-6 leading-relaxed">
+                You are trying to pay for a product as a guest. 
+                <span className="font-medium text-black"> Login or signup</span> to keep track of your items and view your order history.
+              </p>
+
+              <div className="bg-[#f6f6f6] rounded-2xl p-4 mb-6 text-left">
+                <p className="text-sm font-medium text-black mb-2">With an account you can:</p>
+                <ul className="text-sm text-black/60 space-y-1.5">
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-500">✓</span> Track your orders in real-time
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-500">✓</span> Save your shipping addresses
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-500">✓</span> View past purchases & re-order
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-500">✓</span> Earn rewards & get exclusive offers
+                  </li>
+                </ul>
+              </div>
+
+              <div className="space-y-3">
+                <Link
+                  href="/login"
+                  className="block w-full bg-black text-white py-4 rounded-2xl text-sm uppercase tracking-widest font-medium hover:bg-black/90 transition-colors"
+                >
+                  Login / Sign Up
+                </Link>
+
+                <button
+                  onClick={proceedAsGuest}
+                  className="block w-full border-2 border-black py-4 rounded-2xl text-sm uppercase tracking-widest font-medium hover:bg-black hover:text-white transition-all"
+                >
+                  Proceed as a Guest
+                </button>
+              </div>
+
+              <p className="mt-4 text-xs text-black/50">
+                💡 As a guest, you'll still receive order updates via email
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
