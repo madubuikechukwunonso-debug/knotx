@@ -13,6 +13,8 @@ type Product = {
   price: number;
   priceCurrency?: string;
   category: string;
+  categoryId?: number | null;
+  categoryRel?: { id: number; name: string } | null;
   inventory: number;
   image: string | null;
   featured: boolean;
@@ -24,8 +26,16 @@ type Product = {
   updatedAt?: Date;
 };
 
+type Category = {
+  id: number;
+  name: string;
+  slug: string;
+  _count?: { products: number };
+};
+
 type Props = {
   products: Product[];
+  categories: Category[];
   onCreate: (formData: FormData) => Promise<void>;
   onUpdate: (formData: FormData) => Promise<void>;
   onDelete: (formData: FormData) => Promise<void>;
@@ -34,6 +44,7 @@ type Props = {
 
 export default function AdminProductTable({
   products,
+  categories,
   onCreate,
   onUpdate,
   onDelete,
@@ -43,10 +54,14 @@ export default function AdminProductTable({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   const openModal = (product: Product | null = null) => {
     setEditingProduct(product);
     setPreviewUrl(null);
+    setShowCreateCategory(false);
+    setNewCategoryName('');
     setModalOpen(true);
   };
 
@@ -81,6 +96,7 @@ export default function AdminProductTable({
     setModalOpen(false);
     setEditingProduct(null);
     setPreviewUrl(null);
+    setShowCreateCategory(false);
     router.refresh();
   };
 
@@ -143,7 +159,9 @@ export default function AdminProductTable({
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-4 text-sm capitalize sm:px-6">{product.category}</td>
+                <td className="px-4 py-4 text-sm capitalize sm:px-6">
+                  {product.categoryRel?.name || product.category || 'general'}
+                </td>
                 <td className="px-4 py-4 font-medium sm:px-6">
                   ${(product.price / 100).toFixed(2)} CAD
                 </td>
@@ -199,11 +217,10 @@ export default function AdminProductTable({
                 {editingProduct ? 'Edit Product' : 'New Product'}
               </h2>
 
-              {/* IMAGE UPLOAD - BOTH CAMERA AND GALLERY */}
+              {/* IMAGE UPLOAD */}
               <div>
                 <label className="block text-xs font-medium mb-2">Product Image</label>
 
-                {/* Current image (when editing) */}
                 {editingProduct?.image && !previewUrl && (
                   <div className="mb-3">
                     <p className="text-xs text-black/60 mb-1">Current Image:</p>
@@ -215,7 +232,6 @@ export default function AdminProductTable({
                   </div>
                 )}
 
-                {/* New image preview */}
                 {previewUrl && (
                   <div className="mb-3">
                     <p className="text-xs text-black/60 mb-1">New Image Preview:</p>
@@ -241,7 +257,7 @@ export default function AdminProductTable({
                 </p>
               </div>
 
-              {/* Form fields */}
+              {/* NAME */}
               <div>
                 <label className="block text-xs font-medium mb-1">Product Name</label>
                 <input
@@ -249,9 +265,11 @@ export default function AdminProductTable({
                   defaultValue={editingProduct?.name || ''}
                   required
                   className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                  placeholder="Hair Beads Pack"
                 />
               </div>
 
+              {/* DESCRIPTION */}
               <div>
                 <label className="block text-xs font-medium mb-1">Description</label>
                 <textarea
@@ -259,9 +277,11 @@ export default function AdminProductTable({
                   defaultValue={editingProduct?.description || ''}
                   rows={3}
                   className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                  placeholder="Premium hair styling beads..."
                 />
               </div>
 
+              {/* PRICE & INVENTORY */}
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-medium mb-1">Price (in cents)</label>
@@ -271,20 +291,10 @@ export default function AdminProductTable({
                     defaultValue={editingProduct?.price ?? 0}
                     required
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                    placeholder="2500"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium mb-1">Category</label>
-                  <input
-                    name="category"
-                    defaultValue={editingProduct?.category || 'general'}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-medium mb-1">Inventory</label>
                   <input
@@ -293,20 +303,80 @@ export default function AdminProductTable({
                     defaultValue={editingProduct?.inventory ?? 0}
                     required
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium mb-1">Sort Order</label>
-                  <input
-                    name="sortOrder"
-                    type="number"
-                    defaultValue={editingProduct?.sortOrder ?? 0}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                    placeholder="50"
                   />
                 </div>
               </div>
 
+              {/* CATEGORY DROPDOWN */}
+              <div>
+                <label className="block text-xs font-medium mb-1">Category</label>
+                <div className="flex gap-2">
+                  <select
+                    name="categoryId"
+                    defaultValue={editingProduct?.categoryId?.toString() || ''}
+                    className="flex-1 rounded-2xl border border-black/10 px-4 py-3"
+                  >
+                    <option value="">Uncategorized</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateCategory(!showCreateCategory)}
+                    className="px-4 py-3 border border-black/20 rounded-2xl text-sm hover:bg-black/5"
+                  >
+                    + New
+                  </button>
+                </div>
+
+                {/* INLINE CREATE CATEGORY */}
+                {showCreateCategory && (
+                  <div className="mt-3 p-4 bg-emerald-50 rounded-2xl">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Category name"
+                        className="flex-1 border border-gray-300 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!newCategoryName.trim()) return;
+                          const formData = new FormData();
+                          formData.append('name', newCategoryName.trim());
+                          // Note: This would need a server action to create category
+                          // For now, alert and close
+                          alert('Please create category from Admin Products page first, then refresh.');
+                          setNewCategoryName('');
+                          setShowCreateCategory(false);
+                        }}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium"
+                      >
+                        Create
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SORT ORDER */}
+              <div>
+                <label className="block text-xs font-medium mb-1">Sort Order</label>
+                <input
+                  name="sortOrder"
+                  type="number"
+                  defaultValue={editingProduct?.sortOrder ?? 0}
+                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                />
+              </div>
+
+              {/* CHECKBOXES */}
               <div className="flex gap-6">
                 <label className="flex items-center gap-2">
                   <input
@@ -326,6 +396,7 @@ export default function AdminProductTable({
                 </label>
               </div>
 
+              {/* BUTTONS */}
               <div className="flex gap-3 pt-4">
                 <button
                   type="button"
@@ -334,6 +405,7 @@ export default function AdminProductTable({
                     setModalOpen(false);
                     setEditingProduct(null);
                     setPreviewUrl(null);
+                    setShowCreateCategory(false);
                   }}
                   className="flex-1 py-4 rounded-2xl border border-black/10 font-medium"
                 >
