@@ -3,25 +3,39 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function WishlistSection() {
+  const { user, isAuthenticated } = useAuth();
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/wishlist")
-      .then((r) => r.json())
-      .then((d) => {
-        setWishlist(d.items || []);
+    const loadWishlist = async () => {
+      if (!isAuthenticated || !user?.id) {
+        console.log('Not logged in, skipping wishlist load');
         setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/wishlist?userId=${user.id}`);
+        const data = await res.json();
+        console.log('Dashboard wishlist data:', data);
+        setWishlist(data.items || []);
+      } catch (error) {
+        console.error('Failed to load wishlist:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadWishlist();
+  }, [isAuthenticated, user?.id]);
 
   return (
     <div className="bg-white rounded-3xl p-5 sm:p-8 shadow-lg">
       <h2 className="text-2xl font-medium mb-6">Wishlist &amp; Favorites</h2>
-
       {loading ? (
         <div className="py-12 text-center text-black/40">Loading your wishlist...</div>
       ) : wishlist.length === 0 ? (
