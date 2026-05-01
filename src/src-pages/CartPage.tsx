@@ -32,7 +32,7 @@ export default function CartPage() {
               name: item.name,
               price: item.price,
             })),
-            customerName: user.name || user.displayName || "Customer",
+            customerName: user.name || "Customer",
             customerEmail: user.email,
             userId: user.id,
             userType: user.userType || "local",
