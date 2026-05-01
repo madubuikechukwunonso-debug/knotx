@@ -35,7 +35,11 @@ export default function CartPage() {
         };
 
         try {
-          const profileRes = await fetch('/api/user/profile');
+          // Pass user ID in Authorization header for the simplified profile API
+          const profileRes = await fetch('/api/user/profile', {
+            headers: user?.id ? { 'Authorization': `User ${user.id}` } : {},
+          });
+          
           if (profileRes.ok) {
             const profile = await profileRes.json();
             shippingAddress = {
@@ -47,6 +51,8 @@ export default function CartPage() {
               shippingCountry: profile.shippingCountry || 'Canada',
             };
             console.log('✅ Fetched user shipping address:', shippingAddress);
+          } else {
+            console.log('⚠️ Profile API returned:', profileRes.status, '- using empty address');
           }
         } catch (profileError) {
           console.log('Could not fetch profile, using empty address');
