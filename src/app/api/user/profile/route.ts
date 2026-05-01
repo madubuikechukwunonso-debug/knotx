@@ -8,12 +8,21 @@ const JWT_SECRET = new TextEncoder().encode(
 
 export async function GET(request: NextRequest) {
   try {
-    // Get token from cookie or Authorization header
-    const token = request.cookies.get('auth-token')?.value || 
-                  request.headers.get('authorization')?.replace('Bearer ', '');
+    // Try multiple possible cookie names for auth token
+    const token = 
+      request.cookies.get('auth-token')?.value ||
+      request.cookies.get('token')?.value ||
+      request.cookies.get('session')?.value ||
+      request.cookies.get('next-auth.session-token')?.value ||
+      request.headers.get('authorization')?.replace('Bearer ', '');
+
+    console.log('Profile API - Token found:', !!token);
 
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ 
+        error: 'Unauthorized', 
+        debug: { cookies: request.cookies.getAll().map(c => c.name) }
+      }, { status: 401 });
     }
 
     // Verify JWT token
@@ -21,7 +30,7 @@ export async function GET(request: NextRequest) {
     try {
       const { payload: verifiedPayload } = await jwtVerify(token, JWT_SECRET);
       payload = verifiedPayload;
-    } catch (jwtError) {
+    } catch (jwtError: any) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
@@ -30,19 +39,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // Find the user in LocalUser table (where shipping address is stored)
     const user = await prisma.localUser.findUnique({
       where: { email: userEmail },
       select: {
-        id: true,
-        email: true,
-        displayName: true,
-        shippingAddressLine1: true,
-        shippingAddressLine2: true,
-        shippingCity: true,
-        shippingState: true,
-        shippingPostalCode: true,
-        shippingCountry: true,
+        id: true, email: true, displayName: true,
+        shippingAddressLine1: true, shippingAddressLine2: true,
+        shippingCity: true, shippingState: true,
+        shippingPostalCode: true, shippingCountry: true,
       },
     });
 
@@ -51,9 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      id: user.id,
-      email: user.email,
-      name: user.displayName,
+      id: user.id, email: user.email, name: user.displayName,
       shippingAddressLine1: user.shippingAddressLine1,
       shippingAddressLine2: user.shippingAddressLine2,
       shippingCity: user.shippingCity,
@@ -62,10 +63,6 @@ export async function GET(request: NextRequest) {
       shippingCountry: user.shippingCountry,
     });
   } catch (error: any) {
-    console.error('Error fetching user profile:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch profile' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 });
   }
 }
