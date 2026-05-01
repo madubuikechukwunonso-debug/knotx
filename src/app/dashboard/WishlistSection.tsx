@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/hooks/useCart";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Heart } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 
 export default function WishlistSection() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const { addItem } = useCart(); // ← ADD CART HOOK
   const [wishlist, setWishlist] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [addedToCart, setAddedToCart] = useState<number | null>(null);
@@ -36,13 +38,24 @@ export default function WishlistSection() {
   }, [isAuthenticated, user?.id]);
 
   const handleAddToCart = (product: any) => {
-    // Add to cart logic - you'll need to integrate with your cart hook
-    // For now, navigate to cart
+    if (!product) return;
+
+    // Add to cart
+    addItem({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      image: product.image || "",
+    }, 1);
+
+    // Show feedback
     setAddedToCart(product.id);
+    
+    // Navigate to cart after short delay
     setTimeout(() => {
       setAddedToCart(null);
       router.push('/cart');
-    }, 500);
+    }, 600);
   };
 
   return (
@@ -88,7 +101,7 @@ export default function WishlistSection() {
                     <span className="text-5xl">🪢</span>
                   )}
 
-                  {/* CART ICON AT CENTER OF IMAGE */}
+                  {/* CART ICON AT CENTER - NOW ADDS TO CART */}
                   <button
                     onClick={() => handleAddToCart(product)}
                     className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ${
