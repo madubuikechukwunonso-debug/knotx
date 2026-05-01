@@ -1,7 +1,9 @@
+import { prisma } from "@/lib/prisma";
+
 export async function listProducts(filters?: {
   category?: string;
   featured?: boolean;
-  productCategoryId?: number;  // ← NEW
+  productCategoryId?: number; // ← NEW
 }) {
   return prisma.product.findMany({
     where: {
