@@ -1,22 +1,23 @@
 // src/src-pages/AdminSubPage.tsx
 import type { AdminTabId } from '@/components/admin/AdminSidebar';
+import { prisma } from '@/lib/prisma';
 import AdminOverviewSection from '@/sections/admin/AdminOverviewSection';
 import AdminServicesSection from '@/sections/admin/AdminServicesSection';
 import AdminProductsSection from '@/sections/admin/AdminProductsSection';
 import AdminGallerySection from '@/sections/admin/AdminGallerySection';
-import AdminOrdersSection from '@/sections/admin/AdminOrdersSection';
+import AdminOrdersSection from '@/sections/admin/AdminOrdersSection.with-emails';
 import AdminNewsletterSection from '@/sections/admin/AdminNewsletterSection';
 import AdminUsersSection from '@/sections/admin/AdminUsersSection';
 import AdminStaffSection from '@/sections/admin/AdminStaffSection';
 import AdminMessagesSection from '@/sections/admin/AdminMessagesSection';
 import AdminBookingsSection from '@/sections/admin/AdminBookingsSection';
-import AdminAvailabilitySection from '@/sections/admin/AdminAvailabilitySection';   // ← NEW
+import AdminAvailabilitySection from '@/sections/admin/AdminAvailabilitySection';
 
 type AdminSubPageProps = {
   tab: AdminTabId;
 };
 
-export default function AdminSubPage({ tab }: AdminSubPageProps) {
+export default async function AdminSubPage({ tab }: AdminSubPageProps) {
   switch (tab) {
     case 'overview':
       return <AdminOverviewSection />;
@@ -27,7 +28,17 @@ export default function AdminSubPage({ tab }: AdminSubPageProps) {
     case 'gallery':
       return <AdminGallerySection />;
     case 'orders':
-      return <AdminOrdersSection />;
+      const orders = await prisma.order.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+      return <AdminOrdersSection orders={orders} />;
     case 'newsletter':
       return <AdminNewsletterSection />;
     case 'users':
@@ -38,7 +49,7 @@ export default function AdminSubPage({ tab }: AdminSubPageProps) {
       return <AdminMessagesSection />;
     case 'bookings':
       return <AdminBookingsSection />;
-    case 'availability':                    // ← NEW
+    case 'availability':
       return <AdminAvailabilitySection />;
     default:
       return <AdminOverviewSection />;
