@@ -5,7 +5,7 @@ import AdminOverviewSection from '@/sections/admin/AdminOverviewSection';
 import AdminServicesSection from '@/sections/admin/AdminServicesSection';
 import AdminProductsSection from '@/sections/admin/AdminProductsSection';
 import AdminGallerySection from '@/sections/admin/AdminGallerySection';
-import AdminOrdersSection from '@/sections/admin/AdminOrdersSection.with-emails';
+import AdminOrdersSection from '@/sections/admin/AdminOrdersSection';
 import AdminNewsletterSection from '@/sections/admin/AdminNewsletterSection';
 import AdminUsersSection from '@/sections/admin/AdminUsersSection';
 import AdminStaffSection from '@/sections/admin/AdminStaffSection';
