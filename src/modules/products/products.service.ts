@@ -1,31 +1,28 @@
-// src/modules/products/products.service.ts
-import { prisma } from "@/lib/prisma";
-
-export async function listProducts(input?: {
+export async function listProducts(filters?: {
   category?: string;
   featured?: boolean;
+  productCategoryId?: number;  // ← NEW
 }) {
   return prisma.product.findMany({
     where: {
-      ...(input?.category ? { category: input.category } : {}),
-      ...(input?.featured !== undefined ? { featured: input.featured } : {}),
       active: true,
+      ...(filters?.category && { category: filters.category }),
+      ...(filters?.featured !== undefined && { featured: filters.featured }),
+      ...(filters?.productCategoryId && { 
+        productCategoryId: filters.productCategoryId 
+      }),
     },
-    orderBy: [
-      { sortOrder: "asc" },
-      { createdAt: "desc" },
-    ],
-  });
-}
-
-export async function getProductById(id: number) {
-  return prisma.product.findUnique({
-    where: { id },
-  });
-}
-
-export async function getProductBySlug(slug: string) {
-  return prisma.product.findUnique({
-    where: { slug },
+    orderBy: { sortOrder: 'asc' },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      price: true,
+      image: true,
+      productCategoryId: true,
+      productCategory: {
+        select: { id: true, name: true },
+      },
+    },
   });
 }
