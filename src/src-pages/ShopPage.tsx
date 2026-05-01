@@ -35,16 +35,44 @@ export default function ShopPage() {
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Get current user ID from localStorage/sessionStorage
+  // ROBUST: Get user ID from multiple possible storage locations
   const getCurrentUserId = (): number | null => {
     try {
-      const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
-      if (userData) {
-        const parsed = JSON.parse(userData);
-        return parsed?.id || null;
+      // Try multiple possible keys
+      const possibleKeys = ['user', 'userSession', 'auth', 'session', 'currentUser'];
+      
+      for (const key of possibleKeys) {
+        const data = localStorage.getItem(key) || sessionStorage.getItem(key);
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            // Try multiple possible ID fields
+            const userId = parsed?.id || parsed?.userId || parsed?.user?.id || parsed?.data?.id;
+            if (userId) {
+              console.log(`Found userId ${userId} in ${key}`);
+              return parseInt(userId);
+            }
+          } catch (e) {
+            // Not JSON, might be a string ID
+            if (!isNaN(parseInt(data))) {
+              return parseInt(data);
+            }
+          }
+        }
       }
+      
+      // Check cookies as fallback
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'userId' || name === 'session') {
+          return parseInt(value);
+        }
+      }
+      
       return null;
-    } catch {
+    } catch (error) {
+      console.error('Error getting user ID:', error);
       return null;
     }
   };
@@ -53,6 +81,7 @@ export default function ShopPage() {
   useEffect(() => {
     const loadWishlist = async () => {
       const userId = getCurrentUserId();
+      console.log('Loading wishlist, userId:', userId);
       
       try {
         const url = userId 
@@ -60,7 +89,11 @@ export default function ShopPage() {
           : '/api/wishlist';
         
         const res = await fetch(url);
+        console.log('Wishlist response status:', res.status);
+        
         const data = await res.json();
+        console.log('Wishlist data:', data);
+        
         const wishlistIds = (data.items || []).map((item: any) => item.product?.id || item.productId);
         setWishlist(wishlistIds);
       } catch (error) {
@@ -116,6 +149,7 @@ export default function ShopPage() {
   // Toggle wishlist - Pass userId to API
   const toggleWishlist = async (productId: number) => {
     const userId = getCurrentUserId();
+    console.log('Toggle wishlist, userId:', userId, 'productId:', productId);
 
     try {
       if (wishlist.includes(productId)) {
@@ -125,9 +159,13 @@ export default function ShopPage() {
           body: JSON.stringify({ productId, userId }),
         });
         
+        console.log('DELETE response status:', res.status);
+        
         if (res.ok) {
           setWishlist(prev => prev.filter(id => id !== productId));
         } else {
+          const errorData = await res.json();
+          console.log('DELETE error:', errorData);
           setShowLoginModal(true);
         }
       } else {
@@ -137,9 +175,13 @@ export default function ShopPage() {
           body: JSON.stringify({ productId, userId }),
         });
         
+        console.log('POST response status:', res.status);
+        
         if (res.ok) {
           setWishlist(prev => [...prev, productId]);
         } else {
+          const errorData = await res.json();
+          console.log('POST error:', errorData);
           setShowLoginModal(true);
         }
       }
