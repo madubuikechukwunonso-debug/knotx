@@ -30,7 +30,7 @@ interface Order {
   shippingStatus: string;
   shippingCarrier: string | null;
   trackingNumber: string | null;
-  createdAt: string;
+  createdAt: Date | string;
   items: OrderItem[];
 }
 
