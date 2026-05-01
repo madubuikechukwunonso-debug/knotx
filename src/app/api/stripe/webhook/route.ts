@@ -24,117 +24,190 @@ export async function POST(request: NextRequest) {
     const session = event.data.object as Stripe.Checkout.Session;
     const metadata = session.metadata || {};
 
-    // Check if booking already exists (idempotency)
-    const existingBooking = await prisma.booking.findFirst({
-      where: { stripeCheckoutSessionId: session.id },
-    });
-
-    if (existingBooking) {
-      console.log(`Booking already exists for session ${session.id}`);
-      return NextResponse.json({ received: true });
-    }
-
-    try {
-      if (!metadata.serviceId || !metadata.staffUserId || !metadata.date || !metadata.time) {
-        console.error('Missing required metadata', metadata);
-        return NextResponse.json({ received: true });
-      }
-
-      const serviceId = parseInt(metadata.serviceId);
-      const staffUserId = parseInt(metadata.staffUserId);
-
-      if (isNaN(serviceId) || isNaN(staffUserId)) {
-        console.error('Invalid serviceId or staffUserId', metadata);
-        return NextResponse.json({ received: true });
-      }
-
-      // Get service details
-      const service = await prisma.service.findUnique({
-        where: { id: serviceId },
-      });
-
-      if (!service) {
-        console.error('Service not found:', serviceId);
-        return NextResponse.json({ received: true });
-      }
-
-      // ============================================
-      // CREATE BOOKING DIRECTLY (skip availability check)
-      // ============================================
-      const isRegisteredUser = metadata.userId && metadata.userType && 
-        (metadata.userType === 'local' || metadata.userType === 'oauth');
-
-      const booking = await prisma.booking.create({
-        data: {
-          customerName: metadata.customerName || 'Guest',
-          customerEmail: metadata.customerEmail || '',
-          customerPhone: metadata.customerPhone || undefined,
-          serviceId: service.id,
-          staffUserId: staffUserId,
-          serviceType: service.name,
-          durationMinutes: service.durationMinutes,
-          price: service.price,
-          paymentStatus: 'paid',
-          stripeCheckoutSessionId: session.id,
-          date: metadata.date,
-          time: metadata.time,
-          notes: metadata.notes || undefined,
-          userId: metadata.userId ? parseInt(metadata.userId) : undefined,
-          userType: isRegisteredUser 
-            ? (metadata.userType as 'local' | 'oauth')
-            : 'guest',
-          status: 'pending',
-        },
-      });
-
-      console.log(`Booking created: ${booking.id} (userType: ${isRegisteredUser ? metadata.userType : 'guest'})`);
-
-      // ============================================
-      // SEND INVOICE EMAIL
-      // ============================================
+    // ============================================
+    // HANDLE ORDER CHECKOUT (New)
+    // ============================================
+    if (metadata.type === 'order') {
       try {
-        const staff = await prisma.staffProfile.findUnique({
-          where: { id: staffUserId },
-          select: { displayName: true },
+        // Check if order already exists (idempotency)
+        const existingOrder = await prisma.order.findFirst({
+          where: { stripePaymentIntent: session.payment_intent as string },
         });
 
-        if (staff) {
-          let selectedAddons: Array<{ name: string; price: number; quantity: number }> = [];
-          if (metadata.selectedAddons) {
-            try { selectedAddons = JSON.parse(metadata.selectedAddons); } catch {}
+        if (existingOrder) {
+          console.log(`Order already exists for session ${session.id}`);
+          return NextResponse.json({ received: true });
+        }
+
+        // Parse items from metadata
+        let items: Array<{ productId: number; quantity: number; price: number; name: string }> = [];
+        if (metadata.items) {
+          try {
+            items = JSON.parse(metadata.items);
+          } catch (e) {
+            console.error('Failed to parse items from metadata');
           }
+        }
 
-          const totalAmount = session.amount_total || 
-            (service.price + selectedAddons.reduce((sum, a) => sum + (a.price * a.quantity), 0));
-          
-          const depositAmount = session.amount_subtotal || 
-            service.depositAmount || Math.round(totalAmount * 0.3);
+        // Create the order with items
+        const order = await prisma.order.create({
+          data: {
+            customerName: metadata.customerName || 'Guest',
+            customerEmail: metadata.customerEmail || '',
+            customerPhone: metadata.customerPhone || undefined,
+            total: parseInt(metadata.totalAmount || '0'),
+            status: 'paid',
+            shippingStatus: 'pending',
+            stripePaymentIntent: session.payment_intent as string,
+            userId: metadata.userId ? parseInt(metadata.userId) : undefined,
+            userType: metadata.userType || undefined,
+            items: {
+              create: items.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+                price: item.price,
+              })),
+            },
+          },
+        });
 
-          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-invoice`, {
+        console.log(`Order created: ${order.id} for session ${session.id}`);
+
+        // Send order confirmation email
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-order-confirmation`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              customerName: metadata.customerName || 'Guest',
-              customerEmail: metadata.customerEmail || '',
-              serviceName: service.name,
-              servicePrice: service.price,
-              depositAmount: depositAmount,
-              selectedAddons: selectedAddons,
-              totalAmount: totalAmount,
-              bookingDate: metadata.date,
-              bookingTime: metadata.time,
-              braiderName: staff.displayName,
+              customerName: metadata.customerName,
+              customerEmail: metadata.customerEmail,
+              orderId: order.id,
+              total: order.total,
+              items: items,
             }),
           });
-
-          console.log(`Invoice email sent for booking ${booking.id}`);
+          console.log(`Order confirmation email sent for order ${order.id}`);
+        } catch (emailError) {
+          console.error('Failed to send order confirmation email:', emailError);
         }
-      } catch (invoiceError: any) {
-        console.error('Failed to send invoice:', invoiceError);
+
+      } catch (error: any) {
+        console.error('Error creating order from webhook:', error);
+      }
+    }
+
+    // ============================================
+    // HANDLE BOOKING CHECKOUT (Existing)
+    // ============================================
+    else {
+      // Check if booking already exists (idempotency)
+      const existingBooking = await prisma.booking.findFirst({
+        where: { stripeCheckoutSessionId: session.id },
+      });
+
+      if (existingBooking) {
+        console.log(`Booking already exists for session ${session.id}`);
+        return NextResponse.json({ received: true });
       }
 
-    } catch (error: any) {
-      console.error('Error creating booking from webhook:', error);
+      try {
+        if (!metadata.serviceId || !metadata.staffUserId || !metadata.date || !metadata.time) {
+          console.error('Missing required metadata', metadata);
+          return NextResponse.json({ received: true });
+        }
+
+        const serviceId = parseInt(metadata.serviceId);
+        const staffUserId = parseInt(metadata.staffUserId);
+
+        if (isNaN(serviceId) || isNaN(staffUserId)) {
+          console.error('Invalid serviceId or staffUserId', metadata);
+          return NextResponse.json({ received: true });
+        }
+
+        // Get service details
+        const service = await prisma.service.findUnique({
+          where: { id: serviceId },
+        });
+
+        if (!service) {
+          console.error('Service not found:', serviceId);
+          return NextResponse.json({ received: true });
+        }
+
+        // Create booking directly
+        const isRegisteredUser = metadata.userId && metadata.userType &&
+          (metadata.userType === 'local' || metadata.userType === 'oauth');
+
+        const booking = await prisma.booking.create({
+          data: {
+            customerName: metadata.customerName || 'Guest',
+            customerEmail: metadata.customerEmail || '',
+            customerPhone: metadata.customerPhone || undefined,
+            serviceId: service.id,
+            staffUserId: staffUserId,
+            serviceType: service.name,
+            durationMinutes: service.durationMinutes,
+            price: service.price,
+            paymentStatus: 'paid',
+            stripeCheckoutSessionId: session.id,
+            date: metadata.date,
+            time: metadata.time,
+            notes: metadata.notes || undefined,
+            userId: metadata.userId ? parseInt(metadata.userId) : undefined,
+            userType: isRegisteredUser
+              ? (metadata.userType as 'local' | 'oauth')
+              : 'guest',
+            status: 'pending',
+          },
+        });
+
+        console.log(`Booking created: ${booking.id} (userType: ${isRegisteredUser ? metadata.userType : 'guest'})`);
+
+        // Send invoice email
+        try {
+          const staff = await prisma.staffProfile.findUnique({
+            where: { id: staffUserId },
+            select: { displayName: true },
+          });
+
+          if (staff) {
+            let selectedAddons: Array<{ name: string; price: number; quantity: number }> = [];
+            if (metadata.selectedAddons) {
+              try { selectedAddons = JSON.parse(metadata.selectedAddons); } catch {}
+            }
+
+            const totalAmount = session.amount_total ||
+              (service.price + selectedAddons.reduce((sum, a) => sum + (a.price * a.quantity), 0));
+            
+            const depositAmount = session.amount_subtotal ||
+              service.depositAmount || Math.round(totalAmount * 0.3);
+
+            await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/send-invoice`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                customerName: metadata.customerName || 'Guest',
+                customerEmail: metadata.customerEmail || '',
+                serviceName: service.name,
+                servicePrice: service.price,
+                depositAmount: depositAmount,
+                selectedAddons: selectedAddons,
+                totalAmount: totalAmount,
+                bookingDate: metadata.date,
+                bookingTime: metadata.time,
+                braiderName: staff.displayName,
+              }),
+            });
+
+            console.log(`Invoice email sent for booking ${booking.id}`);
+          }
+        } catch (invoiceError: any) {
+          console.error('Failed to send invoice:', invoiceError);
+        }
+
+      } catch (error: any) {
+        console.error('Error creating booking from webhook:', error);
+      }
     }
   }
 
