@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-// GET - Fetch user's wishlist
+// GET - Fetch user's wishlist (returns `items` to match your component)
 export async function GET(request: NextRequest) {
   try {
-    // Get user from session (adjust based on your auth system)
     const userId = request.cookies.get('userId')?.value || 
                    request.headers.get('x-user-id');
     
     if (!userId) {
-      return NextResponse.json({ wishlist: [] });
+      return NextResponse.json({ items: [] });
     }
 
     const wishlist = await prisma.wishlist.findMany({
@@ -22,15 +21,18 @@ export async function GET(request: NextRequest) {
             price: true,
             image: true,
             description: true,
+            category: true,
           },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
 
-    return NextResponse.json({ wishlist });
+    // Return as `items` to match your WishlistSection component
+    return NextResponse.json({ items: wishlist });
   } catch (error) {
     console.error('Wishlist fetch error:', error);
-    return NextResponse.json({ wishlist: [] }, { status: 500 });
+    return NextResponse.json({ items: [] }, { status: 500 });
   }
 }
 
