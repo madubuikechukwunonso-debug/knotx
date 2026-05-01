@@ -13,7 +13,6 @@ export default function Navigation() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { totalItems } = useCart();
-
   const isHome = pathname === '/';
 
   useEffect(() => {
@@ -26,20 +25,22 @@ export default function Navigation() {
     setMobileOpen(false);
   }, [pathname]);
 
-  const bgClass = scrolled || !isHome 
-    ? 'bg-white/90 backdrop-blur-md border-b border-black/5' 
+  const bgClass = scrolled || !isHome
+    ? 'bg-white/90 backdrop-blur-md border-b border-black/5'
     : 'bg-transparent';
 
   return (
     <>
       <header className={`fixed left-0 right-0 top-0 z-50 transition-all duration-300 ${bgClass}`}>
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6 md:px-10 lg:px-16">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 md:px-8 lg:px-16">
           
-          {/* Desktop Navigation Links */}
-          <nav className="hidden items-center gap-8 md:flex">
-            <Link href="/shop" className="nav-link">Shop</Link>
-            <Link href="/booking" className="nav-link">Book</Link>
-            <Link href="/gallery" className="nav-link">Gallery</Link>
+          {/* Desktop Navigation Links - LEFT SIDE */}
+          <nav className="hidden items-center gap-5 lg:gap-8 md:flex">
+            <Link href="/" className="nav-link text-sm lg:text-base">Home</Link>
+            <Link href="/shop" className="nav-link text-sm lg:text-base">Shop</Link>
+            <Link href="/booking" className="nav-link text-sm lg:text-base">Book</Link>
+            <Link href="/gallery" className="nav-link text-sm lg:text-base">Gallery</Link>
+            <Link href="/rateus" className="nav-link text-sm lg:text-base">Rate Us</Link>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -52,42 +53,38 @@ export default function Navigation() {
             {mobileOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
-          {/* Logo */}
+          {/* Logo - CENTERED */}
           <Link
             href="/"
-            className="absolute left-1/2 -translate-x-1/2 font-serif text-lg tracking-[0.25em] text-black md:text-xl"
+            className="absolute left-1/2 -translate-x-1/2 font-serif text-base md:text-lg lg:text-xl tracking-[0.2em] text-black"
           >
             KNOTXANDKRAFTS
           </Link>
 
           {/* Desktop Right Side */}
-          <div className="hidden items-center gap-6 md:flex">
-            {/* Dashboard link (replaces old Account link) */}
+          <div className="hidden items-center gap-4 md:gap-6 lg:flex">
             {user ? (
               <>
-                <Link
-                  href="/dashboard"
-                  className="nav-link font-medium"
-                >
+                <Link href="/dashboard" className="nav-link text-sm lg:text-base font-medium">
                   Dashboard
                 </Link>
                 <button
                   type="button"
                   onClick={logout}
-                  className="nav-link"
+                  className="nav-link text-sm lg:text-base"
                 >
                   Logout
                 </button>
               </>
             ) : (
-              <Link href="/login" className="nav-link">
+              <Link href="/login" className="nav-link text-sm lg:text-base">
                 Login
               </Link>
             )}
 
             {/* Cart */}
-            <Link href="/cart" className="relative nav-link flex items-center gap-2">
-              <ShoppingBag size={16} />
+            <Link href="/cart" className="relative nav-link flex items-center gap-1.5 text-sm lg:text-base">
+              <ShoppingBag size={15} />
               <span>({totalItems})</span>
             </Link>
           </div>
@@ -107,12 +104,13 @@ export default function Navigation() {
 
         {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="border-t border-black/5 bg-white px-6 py-6 md:hidden">
-            <nav className="flex flex-col gap-5">
+          <div className="border-t border-black/5 bg-white px-5 py-5 md:hidden">
+            <nav className="flex flex-col gap-4 text-sm">
+              <Link href="/" className="nav-link">Home</Link>
               <Link href="/shop" className="nav-link">Shop</Link>
               <Link href="/booking" className="nav-link">Book</Link>
               <Link href="/gallery" className="nav-link">Gallery</Link>
-
+              <Link href="/rateus" className="nav-link">Rate Us</Link>
               {user ? (
                 <>
                   <Link href="/dashboard" className="nav-link">Dashboard</Link>
