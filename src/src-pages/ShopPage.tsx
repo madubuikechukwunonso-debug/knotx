@@ -35,11 +35,31 @@ export default function ShopPage() {
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
+  // Get current user ID from localStorage/sessionStorage
+  const getCurrentUserId = (): number | null => {
+    try {
+      const userData = localStorage.getItem('user') || sessionStorage.getItem('user');
+      if (userData) {
+        const parsed = JSON.parse(userData);
+        return parsed?.id || null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
   // Load wishlist on mount
   useEffect(() => {
     const loadWishlist = async () => {
+      const userId = getCurrentUserId();
+      
       try {
-        const res = await fetch('/api/wishlist');
+        const url = userId 
+          ? `/api/wishlist?userId=${userId}` 
+          : '/api/wishlist';
+        
+        const res = await fetch(url);
         const data = await res.json();
         const wishlistIds = (data.items || []).map((item: any) => item.product?.id || item.productId);
         setWishlist(wishlistIds);
@@ -93,14 +113,16 @@ export default function ShopPage() {
     setSelectedProducts(prev => { const updated = { ...prev }; delete updated[product.id]; return updated; });
   };
 
-  // ATTEMPT TO SAVE FIRST - Show modal only on failure
+  // Toggle wishlist - Pass userId to API
   const toggleWishlist = async (productId: number) => {
+    const userId = getCurrentUserId();
+
     try {
       if (wishlist.includes(productId)) {
         const res = await fetch('/api/wishlist', {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId }),
+          body: JSON.stringify({ productId, userId }),
         });
         
         if (res.ok) {
@@ -112,7 +134,7 @@ export default function ShopPage() {
         const res = await fetch('/api/wishlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productId }),
+          body: JSON.stringify({ productId, userId }),
         });
         
         if (res.ok) {
@@ -147,6 +169,7 @@ export default function ShopPage() {
             <p className="max-w-lg text-sm text-black/50">Premium hair care products curated by our master stylists.</p>
           </div>
 
+          {/* CATEGORY TABS */}
           <div className="mb-12 flex flex-wrap gap-3">
             {allCategories.map((cat) => (
               <button
@@ -159,6 +182,7 @@ export default function ShopPage() {
             ))}
           </div>
 
+          {/* PRODUCTS GRID */}
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 lg:gap-8">
             {products.map((product) => {
               const qty = selectedProducts[product.id] || 0;
@@ -215,9 +239,10 @@ export default function ShopPage() {
         </div>
       </div>
 
+      {/* FLOATING CHECKOUT BUTTON */}
       {cartCount > 0 && (
         <div className="fixed bottom-6 right-6 z-50">
-          <button onClick={() => router.push('/cart')} className="group flex items-center gap-3 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 hover:from-amber-500 hover:via-yellow-600 hover:to-amber-600 text-black font-semibold py-4 px-6 rounded-3xl shadow-2xl active:scale-[0.985] transition-all duration-200">
+          <button onClick={handleCheckout} className="group flex items-center gap-3 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-500 hover:from-amber-500 hover:via-yellow-600 hover:to-amber-600 text-black font-semibold py-4 px-6 rounded-3xl shadow-2xl active:scale-[0.985] transition-all duration-200">
             <div className="flex items-center gap-2">
               <ShoppingBag className="h-5 w-5" />
               <span className="text-base font-semibold">Proceed to Cart</span>
@@ -227,6 +252,7 @@ export default function ShopPage() {
         </div>
       )}
 
+      {/* NICE LOGIN MODAL */}
       {showLoginModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl">
