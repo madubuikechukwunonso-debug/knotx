@@ -5,7 +5,7 @@ import AdminOverviewSection from '@/sections/admin/AdminOverviewSection';
 import AdminServicesSection from '@/sections/admin/AdminServicesSection';
 import AdminProductsSection from '@/sections/admin/AdminProductsSection';
 import AdminGallerySection from '@/sections/admin/AdminGallerySection';
-import AdminOrdersSection from '@/sections/admin/AdminOrdersSection';
+import AdminOrdersSection from '@/sections/admin/AdminOrdersSection.with-emails';
 import AdminNewsletterSection from '@/sections/admin/AdminNewsletterSection';
 import AdminUsersSection from '@/sections/admin/AdminUsersSection';
 import AdminStaffSection from '@/sections/admin/AdminStaffSection';
@@ -42,7 +42,22 @@ export default async function AdminSubPage({ tab }: AdminSubPageProps) {
     case 'newsletter':
       return <AdminNewsletterSection />;
     case 'users':
-      return <AdminUsersSection />;
+      const users = await prisma.localUser.findMany({
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          displayName: true,
+          username: true,
+          email: true,
+          role: true,
+          isActive: true,
+          isBlocked: true,
+          blockedReason: true,
+          createdAt: true,
+          lastSignInAt: true,
+        },
+      });
+      return <AdminUsersSection users={users} />;
     case 'staff':
       return <AdminStaffSection />;
     case 'messages':
