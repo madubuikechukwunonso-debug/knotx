@@ -23,72 +23,74 @@ export default function ReviewsSection({ reviews }: ReviewsSectionProps) {
   }
 
   return (
-    <section className="bg-emerald-950 py-20 sm:py-28">
-      <div className="mx-auto max-w-7xl px-6">
-        {/* Elegant Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-900/80 px-5 py-1.5 text-sm font-medium text-emerald-400 tracking-[2px] mb-6">
-            REAL STORIES • REAL CLIENTS
+    <section className="bg-[#f7f3ee] px-6 py-20 md:px-10 lg:px-16">
+      <div className="mx-auto max-w-7xl">
+        {/* Header - Matching Gallery Style */}
+        <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <p className="mb-3 text-[11px] uppercase tracking-[0.35em] text-black/45">Testimonials</p>
+            <h2 className="font-serif text-4xl leading-tight text-black md:text-5xl">
+              What Our Clients Say
+            </h2>
           </div>
-
-          <h2 className="font-serif text-6xl sm:text-7xl text-white tracking-tight leading-none">
-            Loved by Our<br />Community
-          </h2>
-
-          <p className="mt-6 max-w-lg mx-auto text-xl text-emerald-300 font-light">
-            Real words from clients who trusted us with their hair journey.
-          </p>
+          <a
+            href="/rateus"
+            className="inline-flex items-center gap-2 self-start border border-black px-5 py-3 text-[11px] uppercase tracking-[0.28em] text-black transition-all hover:bg-black hover:text-white"
+          >
+            Share Your Story
+            <span className="text-lg">→</span>
+          </a>
         </div>
 
         {/* Reviews Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {reviews.map((review, index) => (
             <motion.div
               key={review.id}
-              initial={{ opacity: 0, y: 50 }}
+              initial={{ opacity: 0, y: 60 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ 
-                duration: 0.7, 
-                delay: index * 0.07,
+                duration: 0.8, 
+                delay: index * 0.08,
                 ease: [0.21, 0.92, 0, 1]
               }}
               whileHover={{ 
-                y: -12,
-                transition: { duration: 0.4, ease: "easeOut" }
+                y: -10,
+                transition: { duration: 0.4 }
               }}
-              className="group relative bg-white rounded-3xl p-9 shadow-2xl flex flex-col h-full border border-emerald-100/50"
+              className="group relative bg-white rounded-3xl p-9 shadow-xl flex flex-col h-full border border-black/5"
             >
               {/* Quote Icon */}
-              <div className="absolute -top-5 -left-5 bg-emerald-700 text-white p-4 rounded-2xl shadow-lg">
-                <Quote className="h-7 w-7" />
+              <div className="absolute -top-5 -left-5 bg-black text-white p-4 rounded-2xl shadow-lg">
+                <Quote className="h-6 w-6" />
               </div>
 
               {/* Stars */}
-              <div className="flex mb-7 mt-5">
+              <div className="flex mb-8 mt-6">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star 
                     key={i} 
-                    className={`h-5 w-5 ${i < review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}`} 
+                    className={`h-5 w-5 ${i < review.rating ? 'text-amber-500 fill-amber-500' : 'text-black/20'}`} 
                   />
                 ))}
               </div>
 
-              {/* Review Comment */}
-              <p className="text-emerald-950 text-[15px] leading-relaxed flex-1 mb-9 font-light">
+              {/* Comment */}
+              <p className="text-black/80 text-[15px] leading-relaxed flex-1 mb-10 font-light">
                 “{review.comment}”
               </p>
 
               {/* Author Info */}
-              <div className="flex items-center gap-4 pt-6 border-t border-emerald-100">
-                <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center text-3xl flex-shrink-0 ring-4 ring-white">
+              <div className="flex items-center gap-4 pt-6 border-t border-black/10">
+                <div className="h-14 w-14 rounded-full bg-[#f7f3ee] flex items-center justify-center text-3xl flex-shrink-0 ring-4 ring-white">
                   {review.emoji || '👩🏾'}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-emerald-950 text-lg tracking-tight">
+                  <p className="font-semibold text-black text-lg tracking-tight">
                     {review.customerName}
                   </p>
-                  <p className="text-sm text-emerald-600 mt-0.5">
+                  <p className="text-sm text-black/60 mt-0.5">
                     {review.serviceType || 'Hair Service'} • {new Date(review.createdAt).toLocaleDateString('en-CA', { month: 'short', year: 'numeric' })}
                   </p>
                 </div>
@@ -97,17 +99,9 @@ export default function ReviewsSection({ reviews }: ReviewsSectionProps) {
           ))}
         </div>
 
-        {/* Bottom CTA */}
-        <div className="text-center mt-20">
-          <p className="text-emerald-400 text-sm tracking-[3px] mb-4 font-medium">JOIN THOUSANDS OF HAPPY CLIENTS</p>
-          
-          <a 
-            href="/rateus" 
-            className="inline-flex items-center gap-4 text-2xl font-serif text-white hover:text-emerald-300 transition-colors group"
-          >
-            Share Your Experience
-            <span className="group-hover:translate-x-1.5 transition-transform text-3xl">→</span>
-          </a>
+        {/* Bottom Note */}
+        <div className="mt-16 text-center">
+          <p className="text-black/50 text-sm tracking-[2px]">Real reviews from real clients</p>
         </div>
       </div>
     </section>
