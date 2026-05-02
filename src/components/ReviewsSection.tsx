@@ -7,9 +7,9 @@ interface Review {
   id: number;
   customerName: string;
   rating: number;
-  emoji?: string | null;
-  comment: string;
-  serviceType?: string | null;
+  emoji: string | null;
+  comment: string | null;
+  serviceType: string | null;
   createdAt: Date | string;
 }
 
@@ -38,7 +38,7 @@ export default function ReviewsSection({ reviews }: ReviewsSectionProps) {
           </p>
         </div>
 
-        {/* Reviews Grid with Staggered Animations */}
+        {/* Reviews Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reviews.map((review, index) => (
             <motion.div
@@ -48,13 +48,10 @@ export default function ReviewsSection({ reviews }: ReviewsSectionProps) {
               viewport={{ once: true }}
               transition={{ 
                 duration: 0.6, 
-                delay: index * 0.08,           // Different delay for each card
-                ease: [0.23, 1, 0.32, 1]       // Smooth custom ease
+                delay: index * 0.08,
+                ease: [0.23, 1, 0.32, 1]
               }}
-              whileHover={{ 
-                y: -8, 
-                transition: { duration: 0.3 } 
-              }}
+              whileHover={{ y: -8, transition: { duration: 0.3 } }}
               className="group relative bg-white rounded-3xl p-8 shadow-xl flex flex-col h-full"
             >
               {/* Quote Icon */}
