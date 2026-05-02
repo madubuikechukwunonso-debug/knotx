@@ -25,16 +25,18 @@ export default function ReviewsSection({ reviews }: ReviewsSectionProps) {
   return (
     <section className="bg-emerald-950 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6">
-        {/* Header */}
+        {/* Elegant Header */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-900 px-4 py-1 text-sm font-medium text-emerald-400 mb-4">
-            REAL STORIES
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-900/80 px-5 py-1.5 text-sm font-medium text-emerald-400 tracking-[2px] mb-6">
+            REAL STORIES • REAL CLIENTS
           </div>
-          <h2 className="font-serif text-5xl sm:text-6xl text-white tracking-tight">
-            Loved by Our Community
+
+          <h2 className="font-serif text-6xl sm:text-7xl text-white tracking-tight leading-none">
+            Loved by Our<br />Community
           </h2>
-          <p className="mt-4 max-w-md mx-auto text-lg text-emerald-300">
-            Real words from real clients who trusted us with their hair journey.
+
+          <p className="mt-6 max-w-lg mx-auto text-xl text-emerald-300 font-light">
+            Real words from clients who trusted us with their hair journey.
           </p>
         </div>
 
@@ -43,45 +45,50 @@ export default function ReviewsSection({ reviews }: ReviewsSectionProps) {
           {reviews.map((review, index) => (
             <motion.div
               key={review.id}
-              initial={{ opacity: 0, y: 60 }}
+              initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ 
-                duration: 0.6, 
-                delay: index * 0.08,
-                ease: [0.23, 1, 0.32, 1]
+                duration: 0.7, 
+                delay: index * 0.07,
+                ease: [0.21, 0.92, 0, 1]
               }}
-              whileHover={{ y: -8, transition: { duration: 0.3 } }}
-              className="group relative bg-white rounded-3xl p-8 shadow-xl flex flex-col h-full"
+              whileHover={{ 
+                y: -12,
+                transition: { duration: 0.4, ease: "easeOut" }
+              }}
+              className="group relative bg-white rounded-3xl p-9 shadow-2xl flex flex-col h-full border border-emerald-100/50"
             >
               {/* Quote Icon */}
-              <div className="absolute -top-4 -left-4 bg-emerald-600 text-white p-4 rounded-2xl shadow-lg">
-                <Quote className="h-6 w-6" />
+              <div className="absolute -top-5 -left-5 bg-emerald-700 text-white p-4 rounded-2xl shadow-lg">
+                <Quote className="h-7 w-7" />
               </div>
 
-              {/* Rating Stars */}
-              <div className="flex mb-6 mt-4">
+              {/* Stars */}
+              <div className="flex mb-7 mt-5">
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star 
                     key={i} 
-                    className={`h-5 w-5 ${i < review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`} 
+                    className={`h-5 w-5 ${i < review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200'}`} 
                   />
                 ))}
               </div>
 
-              {/* Comment */}
-              <p className="text-emerald-950 text-[15px] leading-relaxed flex-1 mb-8">
+              {/* Review Comment */}
+              <p className="text-emerald-950 text-[15px] leading-relaxed flex-1 mb-9 font-light">
                 “{review.comment}”
               </p>
 
               {/* Author Info */}
               <div className="flex items-center gap-4 pt-6 border-t border-emerald-100">
-                <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center text-2xl flex-shrink-0">
+                <div className="h-14 w-14 rounded-full bg-emerald-100 flex items-center justify-center text-3xl flex-shrink-0 ring-4 ring-white">
                   {review.emoji || '👩🏾'}
                 </div>
-                <div>
-                  <p className="font-semibold text-emerald-950">{review.customerName}</p>
-                  <p className="text-xs text-emerald-600">
+                <div className="min-w-0">
+                  <p className="font-semibold text-emerald-950 text-lg tracking-tight">
+                    {review.customerName}
+                  </p>
+                  <p className="text-sm text-emerald-600 mt-0.5">
                     {review.serviceType || 'Hair Service'} • {new Date(review.createdAt).toLocaleDateString('en-CA', { month: 'short', year: 'numeric' })}
                   </p>
                 </div>
@@ -91,14 +98,15 @@ export default function ReviewsSection({ reviews }: ReviewsSectionProps) {
         </div>
 
         {/* Bottom CTA */}
-        <div className="text-center mt-16">
-          <p className="text-emerald-400 text-sm tracking-[3px] mb-3">JOIN THOUSANDS OF HAPPY CLIENTS</p>
+        <div className="text-center mt-20">
+          <p className="text-emerald-400 text-sm tracking-[3px] mb-4 font-medium">JOIN THOUSANDS OF HAPPY CLIENTS</p>
+          
           <a 
             href="/rateus" 
-            className="inline-flex items-center gap-3 text-lg font-medium text-white hover:text-emerald-300 transition-colors group"
+            className="inline-flex items-center gap-4 text-2xl font-serif text-white hover:text-emerald-300 transition-colors group"
           >
             Share Your Experience
-            <span className="group-hover:translate-x-1 transition-transform">→</span>
+            <span className="group-hover:translate-x-1.5 transition-transform text-3xl">→</span>
           </a>
         </div>
       </div>
