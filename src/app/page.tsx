@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const products = await listProducts();
 
-  // Fetch random reviews (limit to 6 for performance)
+  // Fetch reviews with proper typing
   const reviews = await prisma.review.findMany({
     take: 6,
     orderBy: { createdAt: 'desc' },
@@ -31,8 +31,9 @@ export default async function HomePage() {
     },
   });
 
-  // Shuffle reviews for randomness
-  const shuffledReviews = [...reviews].sort(() => Math.random() - 0.5);
+  // Filter out reviews without comments and shuffle
+  const validReviews = reviews.filter((r) => r.comment !== null);
+  const shuffledReviews = [...validReviews].sort(() => Math.random() - 0.5);
 
   return (
     <LenisProvider>
@@ -41,7 +42,7 @@ export default async function HomePage() {
       <ManifestoSection />
       <HomeGallerySection />
       <ServicesSection />
-      
+
       {/* NEW: Customer Reviews Section */}
       <ReviewsSection reviews={shuffledReviews} />
 
