@@ -1,121 +1,86 @@
-// src/sections/admin/AdminNewsletterSection.tsx
-import { PrismaClient } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
-import { Mail, Plus, Send, Users, TrendingUp, X } from 'lucide-react';
+'use client';
 
-const prisma = new PrismaClient();
+import { useState } from 'react';
+import { Mail, Plus, Send, Users, TrendingUp, X, Eye } from 'lucide-react';
 
-// ====================== SERVER ACTIONS ======================
-async function createCampaign(formData: FormData) {
-  'use server';
-
-  const subject = formData.get('subject') as string;
-  const htmlBody = formData.get('htmlBody') as string;
-
-  if (!subject || !htmlBody) return;
-
-  const campaign = await prisma.newsletterCampaign.create({
-    data: {
-      subject,
-      htmlBody,
-      audienceType: 'all',
-      sendToEveryone: true,
-      createdById: 1,
-    },
-  });
-
-  const activeSubscribers = await prisma.subscriber.findMany({
-    where: { isActive: true },
-    select: { email: true, name: true },
-  });
-
-  await prisma.newsletterRecipient.createMany({
-    data: activeSubscribers.map((sub) => ({
-      campaignId: campaign.id,
-      email: sub.email,
-      name: sub.name || undefined,
-      deliveryStatus: 'pending',
-    })),
-  });
-
-  revalidatePath('/admin/newsletter');
+interface Contact {
+  id: string;
+  email: string;
+  name: string;
+  source: string;
+  isActive: boolean;
+  joined: Date | string;
+  type: 'subscriber' | 'user';
 }
 
-async function addSubscriber(formData: FormData) {
-  'use server';
-
-  const email = formData.get('email') as string;
-  const name = formData.get('name') as string || undefined;
-  const source = (formData.get('source') as string) || 'MANUAL';
-
-  if (!email) return;
-
-  await prisma.subscriber.upsert({
-    where: { email },
-    update: { name, isActive: true, unsubscribedAt: null },
-    create: {
-      email,
-      name,
-      source: source as any,
-      isActive: true,
-    },
-  });
-
-  revalidatePath('/admin/newsletter');
+interface AdminNewsletterSectionProps {
+  subscribers: any[];
+  localUsers: any[];
+  contacts: Contact[];
+  stats: {
+    total: number;
+    active: number;
+    fromHomepage: number;
+  };
 }
 
-export default async function AdminNewsletterSection() {
-  const [subscribers, localUsers] = await Promise.all([
-    prisma.subscriber.findMany({
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        source: true,
-        isActive: true,
-        unsubscribedAt: true,
-        createdAt: true,
-        localUser: { select: { displayName: true } },
-      },
-    }),
-    prisma.localUser.findMany({
-      // No where clause needed - email is required in schema
-      select: {
-        id: true,
-        email: true,
-        displayName: true,
-        createdAt: true,
-      },
-    }),
-  ]);
+export default function AdminNewsletterSection({ 
+  subscribers = [], 
+  localUsers = [], 
+  contacts = [], 
+  stats 
+}: AdminNewsletterSectionProps) {
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [showContactsModal, setShowContactsModal] = useState(false);
+  const [showAddSubscriberModal, setShowAddSubscriberModal] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const contacts = [
-    ...subscribers.map((s) => ({
-      id: `sub-${s.id}`,
-      email: s.email,
-      name: s.name || s.localUser?.displayName || '—',
-      source: s.source,
-      isActive: s.isActive,
-      joined: s.createdAt,
-      type: 'subscriber' as const,
-    })),
-    ...localUsers
-      .filter((u) => !subscribers.some((s) => s.email === u.email))
-      .map((u) => ({
-        id: `user-${u.id}`,
-        email: u.email,
-        name: u.displayName || '—',
-        source: 'REGISTRATION' as const,
-        isActive: true,
-        joined: u.createdAt,
-        type: 'user' as const,
-      })),
-  ].sort((a, b) => b.joined.getTime() - a.joined.getTime());
+  const total = stats?.total || contacts.length;
+  const active = stats?.active || contacts.filter(c => c.isActive).length;
+  const fromHomepage = stats?.fromHomepage || contacts.filter(c => c.source === 'HOMEPAGE').length;
 
-  const total = contacts.length;
-  const active = contacts.filter((c) => c.isActive).length;
-  const fromHomepage = contacts.filter((c) => c.source === 'HOMEPAGE').length;
+  // Filtered contacts for the view modal
+  const filteredContacts = contacts.filter(contact =>
+    contact.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    contact.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleSendCampaign = async (formData: FormData) => {
+    setSending(true);
+    
+    try {
+      const subject = formData.get('subject') as string;
+      const htmlBody = formData.get('htmlBody') as string;
+
+      if (!subject || !htmlBody) {
+        alert('Please fill in subject and message');
+        setSending(false);
+        return;
+      }
+
+      const response = await fetch('/api/admin/newsletter/send-campaign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject, htmlBody }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        alert(`✅ Campaign sent successfully to ${result.recipientCount} recipients!`);
+        setShowCampaignModal(false);
+        window.location.reload(); // Refresh to show updated data
+      } else {
+        const error = await response.json();
+        alert(`Failed to send campaign: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Send campaign error:', error);
+      alert('Failed to send campaign. Please try again.');
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -129,98 +94,32 @@ export default async function AdminNewsletterSection() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* SEND CAMPAIGN BUTTON + MODAL */}
-          <form action={createCampaign} className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                const modal = document.getElementById('campaign-modal') as HTMLDialogElement;
-                modal?.showModal();
-              }}
-              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm"
-            >
-              <Send size={20} />
-              <span className="font-medium">Send New Campaign</span>
-            </button>
+          {/* VIEW CONTACTS BUTTON */}
+          <button
+            onClick={() => setShowContactsModal(true)}
+            className="flex items-center gap-2 bg-white border border-emerald-200 hover:border-emerald-300 text-emerald-700 px-6 py-3 rounded-3xl transition-colors"
+          >
+            <Eye size={20} />
+            <span className="font-medium">View Contacts ({total})</span>
+          </button>
 
-            <dialog id="campaign-modal" className="rounded-3xl p-0 shadow-2xl max-w-lg w-full">
-              <div className="p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-serif">New Campaign</h2>
-                  <button type="button" onClick={() => (document.getElementById('campaign-modal') as HTMLDialogElement)?.close()}>
-                    <X size={20} />
-                  </button>
-                </div>
+          {/* SEND CAMPAIGN BUTTON */}
+          <button
+            onClick={() => setShowCampaignModal(true)}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm"
+          >
+            <Send size={20} />
+            <span className="font-medium">Send New Campaign</span>
+          </button>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Subject</label>
-                    <input name="subject" required className="w-full rounded-2xl border border-emerald-200 px-4 py-3" placeholder="Exciting news from Knotx & Krafts!" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">HTML Body</label>
-                    <textarea name="htmlBody" rows={8} required className="w-full rounded-2xl border border-emerald-200 px-4 py-3 font-mono text-sm" placeholder="<h1>Hello...</h1>" />
-                  </div>
-                </div>
-
-                <div className="flex gap-3 mt-6">
-                  <button type="button" onClick={() => (document.getElementById('campaign-modal') as HTMLDialogElement)?.close()} className="flex-1 py-3 rounded-3xl border">Cancel</button>
-                  <button type="submit" className="flex-1 py-3 rounded-3xl bg-emerald-600 text-white">Send to {active} Subscribers</button>
-                </div>
-              </div>
-            </dialog>
-          </form>
-
-          {/* ADD SUBSCRIBER BUTTON + MODAL */}
-          <form action={addSubscriber} className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                const modal = document.getElementById('add-subscriber-modal') as HTMLDialogElement;
-                modal?.showModal();
-              }}
-              className="flex items-center gap-2 bg-white border border-emerald-200 hover:border-emerald-300 text-emerald-700 px-6 py-3 rounded-3xl transition-colors"
-            >
-              <Plus size={20} />
-              <span className="font-medium">Add Subscriber</span>
-            </button>
-
-            <dialog id="add-subscriber-modal" className="rounded-3xl p-0 shadow-2xl max-w-md w-full">
-              <div className="p-8">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-serif">Add New Subscriber</h2>
-                  <button type="button" onClick={() => (document.getElementById('add-subscriber-modal') as HTMLDialogElement)?.close()}>
-                    <X size={20} />
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Email Address</label>
-                    <input name="email" type="email" required className="w-full rounded-2xl border border-emerald-200 px-4 py-3" placeholder="hello@example.com" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Name (optional)</label>
-                    <input name="name" className="w-full rounded-2xl border border-emerald-200 px-4 py-3" placeholder="Jane Doe" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Source</label>
-                    <select name="source" className="w-full rounded-2xl border border-emerald-200 px-4 py-3">
-                      <option value="MANUAL">Manual Entry</option>
-                      <option value="HOMEPAGE">Homepage</option>
-                      <option value="REGISTRATION">Registration</option>
-                      <option value="CHECKOUT">Checkout</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex gap-3 mt-6">
-                  <button type="button" onClick={() => (document.getElementById('add-subscriber-modal') as HTMLDialogElement)?.close()} className="flex-1 py-3 rounded-3xl border">Cancel</button>
-                  <button type="submit" className="flex-1 py-3 rounded-3xl bg-emerald-600 text-white">Add Subscriber</button>
-                </div>
-              </div>
-            </dialog>
-          </form>
+          {/* ADD SUBSCRIBER BUTTON */}
+          <button
+            onClick={() => setShowAddSubscriberModal(true)}
+            className="flex items-center gap-2 bg-white border border-emerald-200 hover:border-emerald-300 text-emerald-700 px-6 py-3 rounded-3xl transition-colors"
+          >
+            <Plus size={20} />
+            <span className="font-medium">Add Subscriber</span>
+          </button>
         </div>
       </div>
 
@@ -269,7 +168,7 @@ export default async function AdminNewsletterSection() {
               </tr>
             </thead>
             <tbody className="divide-y divide-emerald-100">
-              {contacts.map((contact) => (
+              {contacts.slice(0, 20).map((contact) => (
                 <tr key={contact.id} className="hover:bg-emerald-50 transition-colors">
                   <td className="px-6 py-5 font-medium text-emerald-950">{contact.name}</td>
                   <td className="px-6 py-5 text-emerald-600">{contact.email}</td>
@@ -300,6 +199,195 @@ export default async function AdminNewsletterSection() {
           </div>
         )}
       </div>
+
+      {/* SEND CAMPAIGN MODAL */}
+      {showCampaignModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100">
+              <div>
+                <h2 className="text-2xl font-serif">New Campaign</h2>
+                <p className="text-sm text-emerald-600">Sending to {active} active contacts</p>
+              </div>
+              <button onClick={() => setShowCampaignModal(false)} className="p-2 hover:bg-emerald-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form action={handleSendCampaign} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-emerald-700 mb-1">Subject</label>
+                <input 
+                  name="subject" 
+                  required 
+                  className="w-full rounded-2xl border border-emerald-200 px-4 py-3 focus:outline-none focus:border-emerald-500" 
+                  placeholder="Exciting news from Knotx & Krafts!" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-emerald-700 mb-1">Message (HTML supported)</label>
+                <textarea 
+                  name="htmlBody" 
+                  rows={10} 
+                  required 
+                  className="w-full rounded-2xl border border-emerald-200 px-4 py-3 font-mono text-sm focus:outline-none focus:border-emerald-500" 
+                  placeholder="<h1>Hello from Knotx & Krafts!</h1><p>We're excited to share...</p>"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCampaignModal(false)} 
+                  className="flex-1 py-3 rounded-3xl border border-emerald-200 text-emerald-700 font-medium"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={sending}
+                  className="flex-1 py-3 rounded-3xl bg-emerald-600 text-white font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {sending ? (
+                    <>Sending to {active} contacts...</>
+                  ) : (
+                    <>Send Campaign to {active} Recipients</>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW CONTACTS MODAL */}
+      {showContactsModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100">
+              <div>
+                <h2 className="text-2xl font-serif">All Contacts ({total})</h2>
+                <p className="text-sm text-emerald-600">Subscribers + Registered Users</p>
+              </div>
+              <button onClick={() => setShowContactsModal(false)} className="p-2 hover:bg-emerald-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 border-b border-emerald-100">
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-2xl border border-emerald-200 px-4 py-3 focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {filteredContacts.map((contact) => (
+                  <div key={contact.id} className="flex items-center justify-between p-4 border border-emerald-100 rounded-2xl">
+                    <div>
+                      <p className="font-medium text-emerald-950">{contact.name}</p>
+                      <p className="text-sm text-emerald-600">{contact.email}</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">
+                        {contact.source}
+                      </span>
+                      <p className="text-xs text-emerald-500 mt-1">
+                        {new Date(contact.joined).toLocaleDateString('en-CA')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {filteredContacts.length === 0 && (
+                <div className="text-center py-12 text-emerald-500">
+                  No contacts match your search
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-emerald-100 flex justify-end">
+              <button 
+                onClick={() => setShowContactsModal(false)}
+                className="px-8 py-3 rounded-3xl border border-emerald-200 text-emerald-700 font-medium"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ADD SUBSCRIBER MODAL */}
+      {showAddSubscriberModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100">
+              <h2 className="text-2xl font-serif">Add New Subscriber</h2>
+              <button onClick={() => setShowAddSubscriberModal(false)} className="p-2 hover:bg-emerald-100 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form action="/api/admin/newsletter/add-subscriber" method="POST" className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-emerald-700 mb-1">Email Address</label>
+                <input 
+                  name="email" 
+                  type="email" 
+                  required 
+                  className="w-full rounded-2xl border border-emerald-200 px-4 py-3 focus:outline-none focus:border-emerald-500" 
+                  placeholder="hello@example.com" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-emerald-700 mb-1">Name (optional)</label>
+                <input 
+                  name="name" 
+                  className="w-full rounded-2xl border border-emerald-200 px-4 py-3 focus:outline-none focus:border-emerald-500" 
+                  placeholder="Jane Doe" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-emerald-700 mb-1">Source</label>
+                <select 
+                  name="source" 
+                  className="w-full rounded-2xl border border-emerald-200 px-4 py-3 focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="MANUAL">Manual Entry</option>
+                  <option value="HOMEPAGE">Homepage</option>
+                  <option value="REGISTRATION">Registration</option>
+                  <option value="CHECKOUT">Checkout</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button" 
+                  onClick={() => setShowAddSubscriberModal(false)} 
+                  className="flex-1 py-3 rounded-3xl border border-emerald-200 text-emerald-700 font-medium"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-1 py-3 rounded-3xl bg-emerald-600 text-white font-medium"
+                >
+                  Add Subscriber
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
