@@ -54,29 +54,35 @@ export default function AdminBookingTable({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
 
-  // State for auto-filling duration & price when selecting a service
+  // Controlled state for service selection
   const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [price, setPrice] = useState(0);
 
   const handleServiceChange = (serviceId: string) => {
     const id = parseInt(serviceId);
-    const selectedService = services.find((s) => s.id === id);
+    const selected = services.find((s) => s.id === id);
 
-    if (selectedService) {
+    if (selected) {
       setSelectedServiceId(id);
-      setDurationMinutes(selectedService.durationMinutes);
-      setPrice(selectedService.price);
+      setDurationMinutes(selected.durationMinutes);
+      setPrice(selected.price);
     }
   };
 
   const handleSubmit = async (formData: FormData) => {
+    // Append controlled values (duration & price)
+    formData.append('durationMinutes', durationMinutes.toString());
+    formData.append('price', price.toString());
+
     if (editingBooking) {
       formData.append('id', editingBooking.id.toString());
       await onUpdate(formData);
     } else {
       await onCreate(formData);
     }
+
+    // Reset state
     setModalOpen(false);
     setEditingBooking(null);
     setSelectedServiceId(null);
@@ -147,11 +153,7 @@ export default function AdminBookingTable({
                     ${(booking.price / 100).toFixed(2)} CAD
                   </td>
                   <td className="px-4 py-4">
-                    <span
-                      className={`inline-block rounded-2xl px-3 py-1 text-xs font-medium ${
-                        statusColors[booking.status] || 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
+                    <span className={`inline-block rounded-2xl px-3 py-1 text-xs font-medium ${statusColors[booking.status] || 'bg-gray-100 text-gray-800'}`}>
                       {booking.status}
                     </span>
                   </td>
@@ -165,10 +167,7 @@ export default function AdminBookingTable({
                     >
                       <Pencil className="h-4 w-4" />
                     </button>
-                    <button
-                      onClick={() => handleDelete(booking.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
+                    <button onClick={() => handleDelete(booking.id)} className="text-red-500 hover:text-red-700">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </td>
@@ -193,36 +192,21 @@ export default function AdminBookingTable({
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-medium mb-1">Customer Name</label>
-                  <input
-                    name="customerName"
-                    defaultValue={editingBooking?.customerName}
-                    required
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
+                  <input name="customerName" defaultValue={editingBooking?.customerName} required className="w-full rounded-2xl border border-black/10 px-4 py-3" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1">Email</label>
-                  <input
-                    name="customerEmail"
-                    type="email"
-                    defaultValue={editingBooking?.customerEmail}
-                    required
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
+                  <input name="customerEmail" type="email" defaultValue={editingBooking?.customerEmail} required className="w-full rounded-2xl border border-black/10 px-4 py-3" />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-xs font-medium mb-1">Phone (optional)</label>
-                  <input
-                    name="customerPhone"
-                    defaultValue={editingBooking?.customerPhone || ''}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
+                  <input name="customerPhone" defaultValue={editingBooking?.customerPhone || ''} className="w-full rounded-2xl border border-black/10 px-4 py-3" />
                 </div>
 
-                {/* === SERVICE DROPDOWN === */}
+                {/* SERVICE DROPDOWN */}
                 <div>
                   <label className="block text-xs font-medium mb-1">Service</label>
                   <select
@@ -245,23 +229,11 @@ export default function AdminBookingTable({
               <div className="grid grid-cols-3 gap-6">
                 <div>
                   <label className="block text-xs font-medium mb-1">Date</label>
-                  <input
-                    name="date"
-                    type="date"
-                    defaultValue={editingBooking?.date}
-                    required
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
+                  <input name="date" type="date" defaultValue={editingBooking?.date} required className="w-full rounded-2xl border border-black/10 px-4 py-3" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1">Time</label>
-                  <input
-                    name="time"
-                    type="time"
-                    defaultValue={editingBooking?.time}
-                    required
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
+                  <input name="time" type="time" defaultValue={editingBooking?.time} required className="w-full rounded-2xl border border-black/10 px-4 py-3" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1">Duration (min)</label>
@@ -290,11 +262,7 @@ export default function AdminBookingTable({
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1">Payment Status</label>
-                  <select
-                    name="paymentStatus"
-                    defaultValue={editingBooking?.paymentStatus || 'unpaid'}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  >
+                  <select name="paymentStatus" defaultValue={editingBooking?.paymentStatus || 'unpaid'} className="w-full rounded-2xl border border-black/10 px-4 py-3">
                     <option value="unpaid">Unpaid</option>
                     <option value="paid">Paid</option>
                     <option value="refunded">Refunded</option>
@@ -304,11 +272,7 @@ export default function AdminBookingTable({
 
               <div>
                 <label className="block text-xs font-medium mb-1">Booking Status</label>
-                <select
-                  name="status"
-                  defaultValue={editingBooking?.status || 'pending'}
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                >
+                <select name="status" defaultValue={editingBooking?.status || 'pending'} className="w-full rounded-2xl border border-black/10 px-4 py-3">
                   <option value="pending">Pending</option>
                   <option value="confirmed">Confirmed</option>
                   <option value="completed">Completed</option>
@@ -318,12 +282,7 @@ export default function AdminBookingTable({
 
               <div>
                 <label className="block text-xs font-medium mb-1">Notes</label>
-                <textarea
-                  name="notes"
-                  defaultValue={editingBooking?.notes || ''}
-                  rows={3}
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                />
+                <textarea name="notes" defaultValue={editingBooking?.notes || ''} rows={3} className="w-full rounded-2xl border border-black/10 px-4 py-3" />
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -338,10 +297,7 @@ export default function AdminBookingTable({
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-4 rounded-2xl bg-black text-white font-medium"
-                >
+                <button type="submit" className="flex-1 py-4 rounded-2xl bg-black text-white font-medium">
                   {editingBooking ? 'Save Changes' : 'Create Booking'}
                 </button>
               </div>
