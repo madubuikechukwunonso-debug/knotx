@@ -242,7 +242,7 @@ export default async function AdminBookingsSection() {
 
       <AdminBookingTable
         bookings={bookings}
-        services={services}                    {/* ← NEW: Pass services to the table */}
+        services={services}                   
         onCreate={createBooking}
         onUpdate={updateBooking}
         onDelete={deleteBooking}
