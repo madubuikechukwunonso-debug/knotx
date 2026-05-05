@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     );
 
     const sender = {
-      address: "hello@demomailtrap.co",
+      address: "admin@knotxandkrafts.com",
       name: "Knotx & Krafts",
     };
 
