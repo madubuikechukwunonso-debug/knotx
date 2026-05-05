@@ -14,6 +14,7 @@ async function createBooking(formData: FormData) {
   const customerName = formData.get('customerName') as string;
   const customerEmail = formData.get('customerEmail') as string;
   const customerPhone = (formData.get('customerPhone') as string) || undefined;
+  const serviceId = parseInt(formData.get('serviceId') as string);
   const serviceType = formData.get('serviceType') as string;
   const durationMinutes = parseInt(formData.get('durationMinutes') as string);
   const price = parseInt(formData.get('price') as string);
@@ -29,6 +30,7 @@ async function createBooking(formData: FormData) {
       customerName,
       customerEmail,
       customerPhone,
+      serviceId: serviceId || undefined,
       serviceType,
       durationMinutes,
       price,
@@ -48,9 +50,8 @@ async function createBooking(formData: FormData) {
   if (paymentStatus === 'unpaid') {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-      const depositAmount = Math.round(price * 0.3); // 30% deposit
+      const depositAmount = Math.round(price * 0.3);
 
-      // Create Stripe Checkout Session
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         mode: 'payment',
@@ -76,7 +77,6 @@ async function createBooking(formData: FormData) {
         },
       });
 
-      // Send email with payment link
       await fetch(`${baseUrl}/api/send-payment-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -95,7 +95,6 @@ async function createBooking(formData: FormData) {
       console.log(`Payment link sent for booking #${booking.id}`);
     } catch (error) {
       console.error('Failed to create/send payment link:', error);
-      // Do not block booking creation if email fails
     }
   }
 }
@@ -123,10 +122,10 @@ async function updateBooking(formData: FormData) {
     },
   });
 
-  // Send email based on status change (existing logic)
+  // Existing email logic (kept as is)
   if (oldBooking && oldBooking.status !== newStatus) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    
+
     if (newStatus === 'confirmed') {
       await fetch(`${baseUrl}/api/send-booking-confirmed`, {
         method: 'POST',
@@ -207,8 +206,26 @@ async function getBookings() {
   });
 }
 
+// Fetch active services for the dropdown
+async function getServices() {
+  return prisma.service.findMany({
+    where: { active: true },
+    orderBy: { name: 'asc' },
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      durationMinutes: true,
+    },
+  });
+}
+
 export default async function AdminBookingsSection() {
-  const bookings = await getBookings();
+  const [bookings, services] = await Promise.all([
+    getBookings(),
+    getServices(),
+  ]);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -225,6 +242,7 @@ export default async function AdminBookingsSection() {
 
       <AdminBookingTable
         bookings={bookings}
+        services={services}                    {/* ← NEW: Pass services to the table */}
         onCreate={createBooking}
         onUpdate={updateBooking}
         onDelete={deleteBooking}
