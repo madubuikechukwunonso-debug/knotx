@@ -19,52 +19,54 @@ interface ReviewsSectionProps {
 }
 
 export default function ReviewsSection({ reviews }: ReviewsSectionProps) {
-  const [currentReviews, setCurrentReviews] = useState<Review[]>([]);
+  const [displayedReviews, setDisplayedReviews] = useState<Review[]>([]);
 
   // Initialize with first 3 reviews
   useEffect(() => {
     if (reviews.length > 0) {
-      setCurrentReviews(reviews.slice(0, 3));
+      setDisplayedReviews(reviews.slice(0, 3));
     }
   }, [reviews]);
 
-  // Individual cycling for each review with different timings
+  // Individual cycling for each review position with different timings
   useEffect(() => {
-    if (!reviews || reviews.length === 0) return;
+    if (!reviews || reviews.length === 0 || displayedReviews.length === 0) return;
 
     const intervals: NodeJS.Timeout[] = [];
 
-    // Different timings for each of the 3 positions (in milliseconds)
-    const timings = [6500, 8200, 7400]; // Slightly different speeds
+    // Different timings for each position (in ms)
+    const timings = [7000, 8500, 6200]; // Slightly different speeds
 
-    currentReviews.forEach((_, index) => {
+    displayedReviews.forEach((currentReview, positionIndex) => {
       const interval = setInterval(() => {
-        setCurrentReviews((prev) => {
+        setDisplayedReviews((prev) => {
           const newReviews = [...prev];
-          const currentReview = newReviews[index];
+          const current = newReviews[positionIndex];
 
-          // Find next review in the full list (avoid showing same review twice if possible)
-          let nextIndex = (reviews.findIndex(r => r.id === currentReview.id) + 1) % reviews.length;
-
-          // Make sure we don't pick a review already displayed
+          // Find next review (avoid showing one that's already displayed)
+          let nextIndex = (reviews.findIndex(r => r.id === current.id) + 1) % reviews.length;
           let attempts = 0;
-          while (newReviews.some(r => r.id === reviews[nextIndex].id) && attempts < reviews.length) {
+
+          while (
+            newReviews.some(r => r.id === reviews[nextIndex].id) && 
+            attempts < reviews.length
+          ) {
             nextIndex = (nextIndex + 1) % reviews.length;
             attempts++;
           }
 
-          newReviews[index] = reviews[nextIndex];
+          newReviews[positionIndex] = reviews[nextIndex];
           return newReviews;
         });
-      }, timings[index]);
+      }, timings[positionIndex]);
 
       intervals.push(interval);
     });
 
     return () => intervals.forEach(clearInterval);
-  }, [reviews, currentReviews]);
+  }, [reviews, displayedReviews]);
 
-  if (!reviews || reviews.length === 0 || currentReviews.length === 0) {
+  if (!reviews || reviews.length === 0 || displayedReviews.length === 0) {
     return null;
   }
 
@@ -88,16 +90,16 @@ export default function ReviewsSection({ reviews }: ReviewsSectionProps) {
           </a>
         </div>
 
-        {/* Reviews with Individual Fade Transitions */}
+        {/* Reviews Grid */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {currentReviews.map((review, index) => (
+          {displayedReviews.map((review, index) => (
             <AnimatePresence mode="wait" key={review.id}>
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -30 }}
+                exit={{ opacity: 0, y: -40 }}
                 transition={{ 
-                  duration: 0.6, 
+                  duration: 0.9,                    // ← Slow, smooth fade
                   ease: [0.21, 0.92, 0, 1] 
                 }}
                 whileHover={{ y: -8 }}
