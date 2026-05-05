@@ -21,8 +21,16 @@ type Booking = {
   createdAt: Date;
 };
 
+type Service = {
+  id: number;
+  name: string;
+  price: number;
+  durationMinutes: number;
+};
+
 type Props = {
   bookings: Booking[];
+  services?: Service[];
   onCreate: (formData: FormData) => Promise<void>;
   onUpdate: (formData: FormData) => Promise<void>;
   onDelete: (formData: FormData) => Promise<void>;
@@ -37,6 +45,7 @@ const statusColors: Record<string, string> = {
 
 export default function AdminBookingTable({
   bookings,
+  services = [],
   onCreate,
   onUpdate,
   onDelete,
@@ -44,6 +53,22 @@ export default function AdminBookingTable({
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+
+  // State for auto-filling duration & price when selecting a service
+  const [selectedServiceId, setSelectedServiceId] = useState<number | null>(null);
+  const [durationMinutes, setDurationMinutes] = useState(60);
+  const [price, setPrice] = useState(0);
+
+  const handleServiceChange = (serviceId: string) => {
+    const id = parseInt(serviceId);
+    const selectedService = services.find((s) => s.id === id);
+
+    if (selectedService) {
+      setSelectedServiceId(id);
+      setDurationMinutes(selectedService.durationMinutes);
+      setPrice(selectedService.price);
+    }
+  };
 
   const handleSubmit = async (formData: FormData) => {
     if (editingBooking) {
@@ -54,6 +79,9 @@ export default function AdminBookingTable({
     }
     setModalOpen(false);
     setEditingBooking(null);
+    setSelectedServiceId(null);
+    setDurationMinutes(60);
+    setPrice(0);
     router.refresh();
   };
 
@@ -66,20 +94,25 @@ export default function AdminBookingTable({
     }
   };
 
+  const openNewBooking = () => {
+    setEditingBooking(null);
+    setSelectedServiceId(null);
+    setDurationMinutes(60);
+    setPrice(0);
+    setModalOpen(true);
+  };
+
   return (
     <>
       <button
-        onClick={() => {
-          setEditingBooking(null);
-          setModalOpen(true);
-        }}
+        onClick={openNewBooking}
         className="flex items-center gap-2 rounded-2xl bg-black px-6 py-3 text-sm font-medium text-white hover:bg-black/90"
       >
         <Plus className="h-4 w-4" />
         New Booking
       </button>
 
-      {/* Table - Mobile friendly with horizontal scroll */}
+      {/* Table */}
       <div className="rounded-3xl border border-black/10 bg-white">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[850px]">
@@ -188,14 +221,24 @@ export default function AdminBookingTable({
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
                   />
                 </div>
+
+                {/* === SERVICE DROPDOWN === */}
                 <div>
-                  <label className="block text-xs font-medium mb-1">Service Type</label>
-                  <input
+                  <label className="block text-xs font-medium mb-1">Service</label>
+                  <select
                     name="serviceType"
-                    defaultValue={editingBooking?.serviceType}
                     required
+                    defaultValue={editingBooking?.serviceType || ''}
+                    onChange={(e) => handleServiceChange(e.target.value)}
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
-                  />
+                  >
+                    <option value="">Select a service</option>
+                    {services.map((service) => (
+                      <option key={service.id} value={service.name}>
+                        {service.name} — ${(service.price / 100).toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -225,7 +268,8 @@ export default function AdminBookingTable({
                   <input
                     name="durationMinutes"
                     type="number"
-                    defaultValue={editingBooking?.durationMinutes || 60}
+                    value={durationMinutes}
+                    onChange={(e) => setDurationMinutes(parseInt(e.target.value))}
                     required
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
                   />
@@ -238,7 +282,8 @@ export default function AdminBookingTable({
                   <input
                     name="price"
                     type="number"
-                    defaultValue={editingBooking?.price || 0}
+                    value={price}
+                    onChange={(e) => setPrice(parseInt(e.target.value))}
                     required
                     className="w-full rounded-2xl border border-black/10 px-4 py-3"
                   />
@@ -287,6 +332,7 @@ export default function AdminBookingTable({
                   onClick={() => {
                     setModalOpen(false);
                     setEditingBooking(null);
+                    setSelectedServiceId(null);
                   }}
                   className="flex-1 py-4 rounded-2xl border border-black/10 font-medium"
                 >
