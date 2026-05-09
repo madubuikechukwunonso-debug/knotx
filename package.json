@@ -88,6 +88,12 @@
     "tsx": "^4.20.5",
     "typescript": "~5.9.3"
   },
+  "overrides": {
+    "react-simple-maps": {
+      "react": "19.2.0",
+      "react-dom": "19.2.0"
+    }
+  },
   "engines": {
     "node": "20.x"
   }
