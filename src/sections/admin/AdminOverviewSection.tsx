@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  DollarSign, Package, Users, Calendar, TrendingUp, 
-  UserPlus, ShoppingCart, RefreshCw, MapPin 
+import {
+  DollarSign, Package, Users, Calendar, TrendingUp,
+  UserPlus, ShoppingCart, RefreshCw, MapPin
 } from 'lucide-react';
 import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 
@@ -39,7 +39,7 @@ export default function AdminOverviewSection() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 15000); // Refresh every 15s
+    const interval = setInterval(fetchData, 15000);
     return () => clearInterval(interval);
   }, []);
 
@@ -51,13 +51,13 @@ export default function AdminOverviewSection() {
 
   const { stats, recentUsers, recentOrders, recentBookings } = data;
 
-  // Demo locations for the map (you can replace with real IP data later)
+  // Demo locations (replace with real user locations later)
   const activeLocations = [
-    { name: "Toronto", coordinates: [-79.3832, 43.6532] },
-    { name: "New York", coordinates: [-74.0060, 40.7128] },
-    { name: "London", coordinates: [-0.1276, 51.5074] },
-    { name: "Dubai", coordinates: [55.2708, 25.2048] },
-    { name: "Lagos", coordinates: [3.3792, 6.5244] },
+    { name: "Toronto", coordinates: [-79.3832, 43.6532] as [number, number] },
+    { name: "New York", coordinates: [-74.0060, 40.7128] as [number, number] },
+    { name: "London", coordinates: [-0.1276, 51.5074] as [number, number] },
+    { name: "Dubai", coordinates: [55.2708, 25.2048] as [number, number] },
+    { name: "Lagos", coordinates: [3.3792, 6.5244] as [number, number] },
   ];
 
   return (
@@ -94,7 +94,7 @@ export default function AdminOverviewSection() {
         ))}
       </div>
 
-      {/* WORLD MAP + ACTIVITY */}
+      {/* WORLD MAP + ACTIVITY CONSOLE */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         
         {/* WORLD MAP CARD */}
@@ -128,15 +128,12 @@ export default function AdminOverviewSection() {
                 }
               </Geographies>
 
-              {/* Glowing dots for active users */}
+              {/* Glowing Active User Dots */}
               {activeLocations.map((location, index) => (
-                <Marker key={index} coordinates={location.coordinates as [number, number]}>
+                <Marker key={index} coordinates={location.coordinates}>
                   <g>
-                    {/* Outer glow */}
                     <circle r={12} fill="#10b981" opacity="0.15" />
-                    {/* Inner dot */}
                     <circle r={5} fill="#10b981" />
-                    {/* Pulse animation */}
                     <circle r={5} fill="#10b981" opacity="0.6">
                       <animate attributeName="r" values="5;14;5" dur="2s" repeatCount="indefinite" />
                       <animate attributeName="opacity" values="0.6;0;0.6" dur="2s" repeatCount="indefinite" />
@@ -166,7 +163,7 @@ export default function AdminOverviewSection() {
             {recentUsers.length > 0 && (
               <div>
                 <p className="text-emerald-400 text-xs tracking-widest mb-3">NEW USERS</p>
-                {recentUsers.map((user) => (
+                {recentUsers.map((user: any) => (
                   <div key={user.id} className="flex justify-between py-2 border-b border-zinc-800 last:border-0">
                     <div>
                       <p className="text-white">{user.displayName || 'New User'}</p>
@@ -184,7 +181,7 @@ export default function AdminOverviewSection() {
             {recentOrders.length > 0 && (
               <div>
                 <p className="text-emerald-400 text-xs tracking-widest mb-3 mt-4">RECENT ORDERS</p>
-                {recentOrders.map((order) => (
+                {recentOrders.map((order: any) => (
                   <div key={order.id} className="flex justify-between py-2 border-b border-zinc-800 last:border-0">
                     <div>
                       <p className="text-white">{order.customerName}</p>
@@ -202,7 +199,7 @@ export default function AdminOverviewSection() {
             {recentBookings.length > 0 && (
               <div>
                 <p className="text-emerald-400 text-xs tracking-widest mb-3 mt-4">RECENT BOOKINGS</p>
-                {recentBookings.map((booking) => (
+                {recentBookings.map((booking: any) => (
                   <div key={booking.id} className="flex justify-between py-2 border-b border-zinc-800 last:border-0">
                     <div>
                       <p className="text-white">{booking.customerName}</p>
