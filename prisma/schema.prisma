@@ -2,316 +2,337 @@
 generator client {
   provider = "prisma-client-js"
 }
+
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 // ====================== USERS ======================
 model User {
-  id Int @id @default(autoincrement())
-  unionId String @unique
-  name String?
-  email String?
-  avatar String?
-  role String @default("user")
-  isBlocked Boolean @default(false)
+  id            Int       @id @default(autoincrement())
+  unionId       String    @unique
+  name          String?
+  email         String?
+  avatar        String?
+  role          String    @default("user")
+  isBlocked     Boolean   @default(false)
   blockedReason String?
-  blockedAt DateTime?
-  createdById Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  lastSignInAt DateTime @default(now())
+  blockedAt     DateTime?
+  createdById   Int?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastSignInAt  DateTime  @default(now())
 }
 
 model LocalUser {
-  id Int @id @default(autoincrement())
-  username String @unique
-  email String @unique
-  displayName String?
-  passwordHash String
-  role String @default("user")
-  isActive Boolean @default(true)
-  isBlocked Boolean @default(false)
-  blockedReason String?
-  blockedAt DateTime?
-  invitedById Int?
-  lastSignInAt DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                     Int       @id @default(autoincrement())
+  username               String    @unique
+  email                  String    @unique
+  displayName            String?
+  passwordHash           String
+  role                   String    @default("user")
+  isActive               Boolean   @default(true)
+  isBlocked              Boolean   @default(false)
+  blockedReason          String?
+  blockedAt              DateTime?
+  invitedById            Int?
+  lastSignInAt           DateTime  @default(now())
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
   // SHIPPING ADDRESS FIELDS
-  shippingAddressLine1 String?
-  shippingAddressLine2 String?
-  shippingCity String?
-  shippingState String?
-  shippingPostalCode String?
-  shippingCountry String? @default("Canada")
+  shippingAddressLine1   String?
+  shippingAddressLine2   String?
+  shippingCity           String?
+  shippingState          String?
+  shippingPostalCode     String?
+  shippingCountry        String?   @default("Canada")
+
   // Relations
-  bookings Booking[]
-  orders Order[]
-  wishlist Wishlist[]
-  subscribers Subscriber[]
+  bookings               Booking[]
+  orders                 Order[]
+  wishlist               Wishlist[]
+  subscribers            Subscriber[]
 }
 
 // ====================== PRODUCTS & SERVICES ======================
 model ProductCategory {
-  id Int @id @default(autoincrement())
-  name String @unique
-  slug String @unique
-  image String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  products Product[]
+  id         Int       @id @default(autoincrement())
+  name       String    @unique
+  slug       String    @unique
+  image      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  products   Product[]
 }
 
 model Product {
-  id Int @id @default(autoincrement())
-  name String
-  slug String @unique
-  description String?
-  price Int
-  priceCurrency String @default("cad")
-  image String?
-  category String @default("general")
-  productCategoryId Int? // ← NEW: Link to ProductCategory
-  inventory Int @default(0)
-  featured Boolean @default(false)
-  active Boolean @default(true)
-  sortOrder Int @default(0)
-  stripeProductId String?
-  stripePriceId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  productCategory ProductCategory? @relation(fields: [productCategoryId], references: [id]) // ← NEW
-  wishlistItems Wishlist[]
-  orderItems OrderItem[]
+  id                Int               @id @default(autoincrement())
+  name              String
+  slug              String            @unique
+  description       String?
+  price             Int
+  priceCurrency     String            @default("cad")
+  image             String?
+  category          String            @default("general")
+  productCategoryId Int?              // Link to ProductCategory
+  inventory         Int               @default(0)
+  featured          Boolean           @default(false)
+  active            Boolean           @default(true)
+  sortOrder         Int               @default(0)
+  stripeProductId   String?
+  stripePriceId     String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  productCategory   ProductCategory?  @relation(fields: [productCategoryId], references: [id])
+  wishlistItems     Wishlist[]
+  orderItems        OrderItem[]
 }
 
 model Category {
-  id Int @id @default(autoincrement())
-  name String @unique
-  slug String @unique
-  image String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  services Service[]
-  addons Addon[]
-  // NOTE: Products now use ProductCategory (separate from booking categories)
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  image     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  services  Service[]
+  addons    Addon[]
 }
 
 model Addon {
-  id Int @id @default(autoincrement())
-  name String @unique
-  price Int
+  id          Int       @id @default(autoincrement())
+  name        String    @unique
+  price       Int
   description String?
-  active Boolean @default(true)
-  categoryId Int?
-  category Category? @relation(fields: [categoryId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  active      Boolean   @default(true)
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model Service {
-  id Int @id @default(autoincrement())
-  name String
-  slug String @unique
-  description String?
-  price Int
-  depositAmount Int @default(0)
-  priceCurrency String @default("cad")
-  durationMinutes Int
-  slotDurationMinutes Int @default(60)
-  image String?
-  featured Boolean @default(false)
-  active Boolean @default(true)
-  sortOrder Int @default(0)
-  stripeProductId String?
-  stripePriceId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  Int                      @id @default(autoincrement())
+  name                String
+  slug                String                   @unique
+  description         String?
+  price               Int
+  depositAmount       Int                      @default(0)
+  priceCurrency       String                   @default("cad")
+  durationMinutes     Int
+  slotDurationMinutes Int                      @default(60)
+  image               String?
+  featured            Boolean                  @default(false)
+  active              Boolean                  @default(true)
+  sortOrder           Int                      @default(0)
+  stripeProductId     String?
+  stripePriceId       String?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
   // NEW FIELDS
-  hairRequirement String?
-  categoryId Int?
-  category Category? @relation(fields: [categoryId], references: [id])
-  // Opposite relation for ServiceStaffAssignment
-  assignments ServiceStaffAssignment[]
+  hairRequirement     String?
+  categoryId          Int?
+  category            Category?                @relation(fields: [categoryId], references: [id])
+  assignments         ServiceStaffAssignment[]
 }
 
 model ServiceStaffAssignment {
-  id Int @id @default(autoincrement())
-  serviceId Int
+  id          Int          @id @default(autoincrement())
+  serviceId   Int
   staffUserId Int
-  createdAt DateTime @default(now())
-  service Service @relation(fields: [serviceId], references: [id])
-  staff StaffProfile @relation(fields: [staffUserId], references: [id])
+  createdAt   DateTime     @default(now())
+  service     Service      @relation(fields: [serviceId], references: [id])
+  staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
 // ====================== GALLERY & HERO ======================
 model GalleryItem {
-  id Int @id @default(autoincrement())
-  type String
-  url String
+  id           Int      @id @default(autoincrement())
+  type         String
+  url          String
   thumbnailUrl String?
-  title String?
-  caption String?
-  description String?
-  category String @default("general")
-  isFeatured Boolean @default(false)
-  isActive Boolean @default(true)
-  sortOrder Int @default(0)
-  createdById Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  title        String?
+  caption      String?
+  description  String?
+  category     String   @default("general")
+  isFeatured   Boolean  @default(false)
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdById  Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model HeroImage {
-  id Int @id @default(autoincrement())
-  url String
-  alt String?
-  sortOrder Int @default(0)
-  active Boolean @default(true)
+  id        Int      @id @default(autoincrement())
+  url       String
+  alt       String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
 
 // ====================== STAFF ======================
 model StaffProfile {
-  id Int @id @default(autoincrement())
-  userId Int
-  displayName String
-  bio String?
-  bookingEnabled Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  // Relations
-  workingHours StaffWorkingHour[]
-  timeOffs StaffTimeOff[]
-  blockedSlots BlockedSlot[]
-  assignments ServiceStaffAssignment[]
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  displayName     String
+  bio             String?
+  bookingEnabled  Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  workingHours    StaffWorkingHour[]
+  timeOffs        StaffTimeOff[]
+  blockedSlots    BlockedSlot[]
+  assignments     ServiceStaffAssignment[]
 }
 
 model StaffWorkingHour {
-  id Int @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   staffUserId Int
-  dayOfWeek Int
-  startTime String
-  endTime String
-  isWorking Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  staff StaffProfile @relation(fields: [staffUserId], references: [id])
+  dayOfWeek   Int
+  startTime   String
+  endTime     String
+  isWorking   Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
 model StaffTimeOff {
-  id Int @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   staffUserId Int
-  startAt DateTime
-  endAt DateTime
-  reason String?
-  createdAt DateTime @default(now())
-  staff StaffProfile @relation(fields: [staffUserId], references: [id])
+  startAt     DateTime
+  endAt       DateTime
+  reason      String?
+  createdAt   DateTime     @default(now())
+  staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
 model BlockedSlot {
-  id Int @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   staffUserId Int
-  date String
-  startTime String
-  endTime String
-  reason String?
-  createdAt DateTime @default(now())
-  staff StaffProfile @relation(fields: [staffUserId], references: [id])
+  date        String
+  startTime   String
+  endTime     String
+  reason      String?
+  createdAt   DateTime     @default(now())
+  staff       StaffProfile @relation(fields: [staffUserId], references: [id])
 }
 
 // ====================== ORDERS ======================
 model Order {
-  id Int @id @default(autoincrement())
-  userId Int?
-  userType String?
-  customerName String
-  customerEmail String
-  customerPhone String?
-  // SHIPPING ADDRESS FIELDS (for shipping orders)
+  id                   Int        @id @default(autoincrement())
+  userId               Int?
+  userType             String?
+  customerName         String
+  customerEmail        String
+  customerPhone        String?
   shippingAddressLine1 String?
   shippingAddressLine2 String?
-  shippingCity String?
-  shippingState String?
-  shippingPostalCode String?
-  shippingCountry String? @default("Canada")
-  total Int
-  status String @default("pending")
-  shippingStatus String @default("pending")
-  shippingCarrier String?
-  trackingNumber String?
-  fulfilledAt DateTime?
-  fulfilledById Int?
-  stripePaymentIntent String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user LocalUser? @relation(fields: [userId], references: [id])
-  items OrderItem[]
+  shippingCity         String?
+  shippingState        String?
+  shippingPostalCode   String?
+  shippingCountry      String?    @default("Canada")
+  total                Int
+  status               String     @default("pending")
+  shippingStatus       String     @default("pending")
+  shippingCarrier      String?
+  trackingNumber       String?
+  fulfilledAt          DateTime?
+  fulfilledById        Int?
+  stripePaymentIntent  String?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  user                 LocalUser? @relation(fields: [userId], references: [id])
+  items                OrderItem[]
 }
 
 model OrderItem {
-  id Int @id @default(autoincrement())
-  orderId Int
+  id        Int     @id @default(autoincrement())
+  orderId   Int
   productId Int
-  quantity Int
-  price Int
-  order Order @relation(fields: [orderId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 }
 
 // ====================== BOOKINGS ======================
 model Booking {
-  id Int @id @default(autoincrement())
-  userId Int?
-  userType String?
-  customerName String
-  customerEmail String
-  customerPhone String?
-  serviceId Int?
-  staffUserId Int?
-  serviceType String
-  durationMinutes Int @default(60)
-  price Int @default(0)
-  paymentStatus String @default("unpaid")
+  id                     Int      @id @default(autoincrement())
+  userId                 Int?
+  userType               String?
+  customerName           String
+  customerEmail          String
+  customerPhone          String?
+  serviceId              Int?
+  staffUserId            Int?
+  serviceType            String
+  durationMinutes        Int      @default(60)
+  price                  Int      @default(0)
+  paymentStatus          String   @default("unpaid")
   stripeCheckoutSessionId String?
-  date String
-  time String
-  status String @default("pending")
-  notes String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user LocalUser? @relation(fields: [userId], references: [id])
-  // NEW: Store selected addons as JSON
-  selectedAddons Json?
+  date                   String
+  time                   String
+  status                 String   @default("pending")
+  notes                  String?
+  selectedAddons         Json?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  user                   LocalUser? @relation(fields: [userId], references: [id])
 }
 
 // ====================== WISHLIST ======================
 model Wishlist {
-  id Int @id @default(autoincrement())
-  userId Int
+  id        Int       @id @default(autoincrement())
+  userId    Int
   productId Int
-  createdAt DateTime @default(now())
-  user LocalUser @relation(fields: [userId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
+  createdAt DateTime  @default(now())
+  user      LocalUser @relation(fields: [userId], references: [id])
+  product   Product   @relation(fields: [productId], references: [id])
+
   @@unique([userId, productId])
 }
 
 // ====================== REVIEWS (RATE US PAGE) ======================
 model Review {
-  id Int @id @default(autoincrement())
-  customerName String
+  id            Int      @id @default(autoincrement())
+  customerName  String
   customerEmail String
   customerPhone String?
-  rating Int // 1-5 stars
-  emoji String? // 😍 😊 🙂 😐 😕 etc.
-  comment String?
-  image String? // Optional photo upload
-  serviceType String // "Hair Braiding Service", "Hair Product Purchase", etc.
-  isApproved Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  rating        Int
+  emoji         String?
+  comment       String?
+  image         String?
+  serviceType   String
+  isApproved    Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ====================== VISITOR TRACKING ======================
+model VisitorLog {
+  id          Int      @id @default(autoincrement())
+  ip          String
+  userAgent   String?
+  page        String
+  userId      Int?
+  userType    String   @default("guest") // "guest" | "registered"
+  displayName String?
+  country     String?
+  city        String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userType])
 }
 
 // ====================== NEWSLETTER & CONTACT ======================
@@ -323,62 +344,63 @@ enum SubscriberSource {
 }
 
 model Subscriber {
-  id Int @id @default(autoincrement())
-  email String @unique
-  name String?
-  source SubscriberSource @default(HOMEPAGE)
-  localUserId Int?
-  localUser LocalUser? @relation(fields: [localUserId], references: [id], onDelete: Cascade)
-  isActive Boolean @default(true)
+  id             Int               @id @default(autoincrement())
+  email          String            @unique
+  name           String?
+  source         SubscriberSource  @default(HOMEPAGE)
+  localUserId    Int?
+  localUser      LocalUser?        @relation(fields: [localUserId], references: [id], onDelete: Cascade)
+  isActive       Boolean           @default(true)
   unsubscribedAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
   @@index([source])
   @@index([isActive])
 }
 
 model NewsletterCampaign {
-  id Int @id @default(autoincrement())
-  subject String
-  htmlBody String
-  audienceType String @default("selected")
-  sendToEveryone Boolean @default(false)
-  createdById Int?
-  sentAt DateTime?
-  createdAt DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  subject       String
+  htmlBody      String
+  audienceType  String   @default("selected")
+  sendToEveryone Boolean  @default(false)
+  createdById   Int?
+  sentAt        DateTime?
+  createdAt     DateTime @default(now())
 }
 
 model NewsletterRecipient {
-  id Int @id @default(autoincrement())
-  campaignId Int
-  email String
-  name String?
-  deliveryStatus String @default("pending")
-  createdAt DateTime @default(now())
+  id             Int      @id @default(autoincrement())
+  campaignId     Int
+  email          String
+  name           String?
+  deliveryStatus String   @default("pending")
+  createdAt      DateTime @default(now())
 }
 
 model ContactMessage {
-  id Int @id @default(autoincrement())
-  name String
-  email String
-  subject String?
-  message String
-  read Boolean @default(false)
-  status String @default("new")
-  assignedToId Int?
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String
+  subject       String?
+  message       String
+  read          Boolean  @default(false)
+  status        String   @default("new")
+  assignedToId  Int?
   lastRepliedAt DateTime?
-  followUpAt DateTime?
+  followUpAt    DateTime?
   followUpNotes String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  replies ContactReply[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  replies       ContactReply[]
 }
 
 model ContactReply {
-  id Int @id @default(autoincrement())
+  id        Int            @id @default(autoincrement())
   messageId Int
-  sentById Int
-  body String
-  sentAt DateTime @default(now())
-  message ContactMessage @relation(fields: [messageId], references: [id])
+  sentById  Int
+  body      String
+  sentAt    DateTime       @default(now())
+  message   ContactMessage @relation(fields: [messageId], references: [id])
 }
