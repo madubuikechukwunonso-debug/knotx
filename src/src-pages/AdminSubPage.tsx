@@ -1,6 +1,7 @@
 // src/src-pages/AdminSubPage.tsx
 import type { AdminTabId } from '@/components/admin/AdminSidebar';
 import { prisma } from '@/lib/prisma';
+import AdminOverviewSection from '@/sections/admin/AdminOverviewSection';
 import AdminServicesSection from '@/sections/admin/AdminServicesSection';
 import AdminProductsSection from '@/sections/admin/AdminProductsSection';
 import AdminGallerySection from '@/sections/admin/AdminGallerySection';
