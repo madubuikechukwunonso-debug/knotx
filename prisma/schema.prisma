@@ -26,45 +26,43 @@ model User {
 }
 
 model LocalUser {
-  id                     Int       @id @default(autoincrement())
-  username               String    @unique
-  email                  String    @unique
-  displayName            String?
-  passwordHash           String
-  role                   String    @default("user")
-  isActive               Boolean   @default(true)
-  isBlocked              Boolean   @default(false)
-  blockedReason          String?
-  blockedAt              DateTime?
-  invitedById            Int?
-  lastSignInAt           DateTime  @default(now())
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  id                   Int       @id @default(autoincrement())
+  username             String    @unique
+  email                String    @unique
+  displayName          String?
+  passwordHash         String
+  role                 String    @default("user")
+  isActive             Boolean   @default(true)
+  isBlocked            Boolean   @default(false)
+  blockedReason        String?
+  blockedAt            DateTime?
+  invitedById          Int?
+  lastSignInAt         DateTime  @default(now())
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  // SHIPPING ADDRESS FIELDS
-  shippingAddressLine1   String?
-  shippingAddressLine2   String?
-  shippingCity           String?
-  shippingState          String?
-  shippingPostalCode     String?
-  shippingCountry        String?   @default("Canada")
+  shippingAddressLine1 String?
+  shippingAddressLine2 String?
+  shippingCity         String?
+  shippingState        String?
+  shippingPostalCode   String?
+  shippingCountry      String?   @default("Canada")
 
-  // Relations
-  bookings               Booking[]
-  orders                 Order[]
-  wishlist               Wishlist[]
-  subscribers            Subscriber[]
+  bookings             Booking[]
+  orders               Order[]
+  wishlist             Wishlist[]
+  subscribers          Subscriber[]
 }
 
 // ====================== PRODUCTS & SERVICES ======================
 model ProductCategory {
-  id         Int       @id @default(autoincrement())
-  name       String    @unique
-  slug       String    @unique
-  image      String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  products   Product[]
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  slug      String    @unique
+  image     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
 }
 
 model Product {
@@ -76,7 +74,7 @@ model Product {
   priceCurrency     String            @default("cad")
   image             String?
   category          String            @default("general")
-  productCategoryId Int?              // Link to ProductCategory
+  productCategoryId Int?
   inventory         Int               @default(0)
   featured          Boolean           @default(false)
   active            Boolean           @default(true)
@@ -86,9 +84,9 @@ model Product {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
-  productCategory   ProductCategory?  @relation(fields: [productCategoryId], references: [id])
-  wishlistItems     Wishlist[]
-  orderItems        OrderItem[]
+  productCategory ProductCategory? @relation(fields: [productCategoryId], references: [id])
+  wishlistItems   Wishlist[]
+  orderItems      OrderItem[]
 }
 
 model Category {
@@ -130,14 +128,13 @@ model Service {
   sortOrder           Int                      @default(0)
   stripeProductId     String?
   stripePriceId       String?
+  hairRequirement     String?
+  categoryId          Int?
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
 
-  // NEW FIELDS
-  hairRequirement     String?
-  categoryId          Int?
-  category            Category?                @relation(fields: [categoryId], references: [id])
-  assignments         ServiceStaffAssignment[]
+  category    Category?                @relation(fields: [categoryId], references: [id])
+  assignments ServiceStaffAssignment[]
 }
 
 model ServiceStaffAssignment {
@@ -178,18 +175,18 @@ model HeroImage {
 
 // ====================== STAFF ======================
 model StaffProfile {
-  id              Int       @id @default(autoincrement())
-  userId          Int
-  displayName     String
-  bio             String?
-  bookingEnabled  Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  displayName    String
+  bio            String?
+  bookingEnabled Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  workingHours    StaffWorkingHour[]
-  timeOffs        StaffTimeOff[]
-  blockedSlots    BlockedSlot[]
-  assignments     ServiceStaffAssignment[]
+  workingHours StaffWorkingHour[]
+  timeOffs     StaffTimeOff[]
+  blockedSlots BlockedSlot[]
+  assignments  ServiceStaffAssignment[]
 }
 
 model StaffWorkingHour {
@@ -250,8 +247,8 @@ model Order {
   createdAt            DateTime   @default(now())
   updatedAt            DateTime   @updatedAt
 
-  user                 LocalUser? @relation(fields: [userId], references: [id])
-  items                OrderItem[]
+  user  LocalUser?  @relation(fields: [userId], references: [id])
+  items OrderItem[]
 }
 
 model OrderItem {
@@ -287,7 +284,7 @@ model Booking {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  user                   LocalUser? @relation(fields: [userId], references: [id])
+  user LocalUser? @relation(fields: [userId], references: [id])
 }
 
 // ====================== WISHLIST ======================
@@ -302,7 +299,7 @@ model Wishlist {
   @@unique([userId, productId])
 }
 
-// ====================== REVIEWS (RATE US PAGE) ======================
+// ====================== REVIEWS ======================
 model Review {
   id            Int      @id @default(autoincrement())
   customerName  String
@@ -318,14 +315,14 @@ model Review {
   updatedAt     DateTime @updatedAt
 }
 
-// ====================== VISITOR TRACKING ======================
+// ====================== VISITOR LOG (NEW) ======================
 model VisitorLog {
   id          Int      @id @default(autoincrement())
   ip          String
   userAgent   String?
   page        String
   userId      Int?
-  userType    String   @default("guest") // "guest" | "registered"
+  userType    String   @default("guest")
   displayName String?
   country     String?
   city        String?
