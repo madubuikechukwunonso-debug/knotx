@@ -1,7 +1,7 @@
 // src/src-pages/AdminSubPage.tsx
 import type { AdminTabId } from '@/components/admin/AdminSidebar';
 import { prisma } from '@/lib/prisma';
-import AdminOverviewSection from '@/sections/admin/AdminOverviewSection';
+import AdminOverviewSection from '@/sections/admin/AdminOverviewSectionNew';   // ← UPDATED
 import AdminServicesSection from '@/sections/admin/AdminServicesSection';
 import AdminProductsSection from '@/sections/admin/AdminProductsSection';
 import AdminGallerySection from '@/sections/admin/AdminGallerySection';
@@ -45,9 +45,6 @@ export default async function AdminSubPage({ tab }: AdminSubPageProps) {
       return <AdminOrdersSection orders={orders} />;
 
     case 'newsletter':
-      // ============================================
-      // FETCH DATA FOR NEWSLETTER SECTION
-      // ============================================
       const [subscribers, localUsers] = await Promise.all([
         prisma.subscriber.findMany({
           orderBy: { createdAt: 'desc' },
@@ -72,7 +69,6 @@ export default async function AdminSubPage({ tab }: AdminSubPageProps) {
         }),
       ]);
 
-      // Build combined contacts list (subscribers + registered users)
       const contacts = [
         ...subscribers.map((s) => ({
           id: `sub-${s.id}`,
@@ -96,7 +92,6 @@ export default async function AdminSubPage({ tab }: AdminSubPageProps) {
           })),
       ].sort((a, b) => new Date(b.joined).getTime() - new Date(a.joined).getTime());
 
-      // Calculate stats
       const total = contacts.length;
       const active = contacts.filter((c) => c.isActive).length;
       const fromHomepage = contacts.filter((c) => c.source === 'HOMEPAGE').length;
