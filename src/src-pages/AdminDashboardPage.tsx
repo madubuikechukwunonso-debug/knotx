@@ -7,7 +7,7 @@ import {
 import { put } from '@vercel/blob';
 
 interface MediaItem {
-  id: number;
+  id?: number;
   url: string;
   name: string;
 }
@@ -35,7 +35,14 @@ export default function AdminOverviewSection() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Fetch all data
+  // Default videos from your HeroSection.tsx
+  const defaultVideos = [
+    { url: "/videos/1.webm", name: "Hero Video 1" },
+    { url: "/videos/2.webm", name: "Hero Video 2" },
+    { url: "/videos/3.webm", name: "Hero Video 3" },
+    { url: "/videos/4.webm", name: "Hero Video 4" },
+  ];
+
   async function fetchData(isManual = false) {
     if (!isManual) setLoading(true);
     try {
@@ -48,7 +55,17 @@ export default function AdminOverviewSection() {
       const mediaData = await mediaRes.json();
 
       setData(overviewData);
-      setHeroVideos(mediaData.heroVideos || []);
+
+      // Merge DB videos with default slots
+      const dbVideos = mediaData.heroVideos || [];
+      const mergedVideos = defaultVideos.map((defaultVideo, index) => {
+        const dbVideo = dbVideos[index];
+        return dbVideo 
+          ? { id: dbVideo.id, url: dbVideo.url, name: dbVideo.name || defaultVideo.name }
+          : defaultVideo;
+      });
+
+      setHeroVideos(mergedVideos);
       setGalleryImages(mediaData.galleryImages || []);
       setLastUpdated(new Date());
     } catch (error) {
@@ -64,14 +81,14 @@ export default function AdminOverviewSection() {
     return () => clearInterval(interval);
   }, []);
 
-  // Upload Handler
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'hero' | 'gallery', itemId?: number) => {
+  // Upload handler for a specific slot
+  const handleHeroVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
-      const blob = await put(`${type}/${file.name}`, file, {
+      const blob = await put(`hero/${file.name}`, file, {
         access: 'public',
         token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
       });
@@ -81,14 +98,45 @@ export default function AdminOverviewSection() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type,
+          type: 'hero',
           url: blob.url,
           name: file.name,
         }),
       });
 
-      alert(`${type === 'hero' ? 'Video' : 'Image'} uploaded successfully!`);
-      await fetchData(true); // Refresh data
+      alert(`Hero Video ${index + 1} updated successfully!`);
+      await fetchData(true);
+    } catch (error) {
+      alert('Upload failed');
+      console.error(error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const blob = await put(`gallery/${file.name}`, file, {
+        access: 'public',
+        token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
+      });
+
+      await fetch('/api/admin/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'gallery',
+          url: blob.url,
+          name: file.name,
+        }),
+      });
+
+      alert(`Gallery Image ${index + 1} updated successfully!`);
+      await fetchData(true);
     } catch (error) {
       alert('Upload failed');
       console.error(error);
@@ -215,40 +263,36 @@ export default function AdminOverviewSection() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Hero Videos */}
+          {/* Hero Videos - 4 Fixed Slots */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <Video className="text-pink-400" />
-              <h4 className="font-semibold text-lg">Hero Section Videos</h4>
+              <h4 className="font-semibold text-lg">Hero Section Videos (4 Slots)</h4>
             </div>
             
             <div className="space-y-4">
-              {heroVideos.length > 0 ? (
-                heroVideos.map((video, index) => (
-                  <div key={index} className="border border-slate-600 rounded-2xl p-4">
-                    <div className="flex justify-between items-center mb-3">
-                      <div>
-                        <p className="font-medium">{video.name}</p>
-                        <p className="text-xs text-slate-400 truncate max-w-[280px]">{video.url}</p>
-                      </div>
-                      <label className="cursor-pointer">
-                        <div className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-xl text-sm font-medium">
-                          Change
-                        </div>
-                        <input
-                          type="file"
-                          accept="video/*"
-                          onChange={(e) => handleUpload(e, 'hero', video.id)}
-                          className="hidden"
-                          disabled={uploading}
-                        />
-                      </label>
+              {heroVideos.map((video, index) => (
+                <div key={index} className="border border-slate-600 rounded-2xl p-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{video.name}</p>
+                      <p className="text-xs text-slate-400 truncate">{video.url}</p>
                     </div>
+                    <label className="cursor-pointer ml-3 flex-shrink-0">
+                      <div className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-xl text-sm font-medium whitespace-nowrap">
+                        Change
+                      </div>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={(e) => handleHeroVideoUpload(e, index)}
+                        className="hidden"
+                        disabled={uploading}
+                      />
+                    </label>
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-400">No hero videos found. Default videos from public folder will be used.</p>
-              )}
+                </div>
+              ))}
             </div>
           </div>
 
@@ -275,7 +319,7 @@ export default function AdminOverviewSection() {
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => handleUpload(e, 'gallery', img.id)}
+                          onChange={(e) => handleGalleryImageUpload(e, index)}
                           className="hidden"
                           disabled={uploading}
                         />
@@ -284,14 +328,14 @@ export default function AdminOverviewSection() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-slate-400 col-span-2">No gallery images found. Default images from public folder will be used.</p>
+                <p className="text-sm text-slate-400 col-span-2">No gallery images found in database.</p>
               )}
             </div>
           </div>
         </div>
 
         <p className="text-xs text-slate-500 mt-6 text-center">
-          Current assets from public folder will remain as defaults until replaced.
+          Default videos from public folder will be used until replaced.
         </p>
       </div>
     </div>
