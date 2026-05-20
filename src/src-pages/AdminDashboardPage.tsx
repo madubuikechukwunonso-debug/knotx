@@ -36,7 +36,6 @@ export default function AdminOverviewSection() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Pending files for batch save
   const [pendingVideos, setPendingVideos] = useState<(File | null)[]>([null, null, null, null]);
   const [pendingImages, setPendingImages] = useState<(File | null)[]>([null, null, null]);
 
@@ -98,7 +97,6 @@ export default function AdminOverviewSection() {
     return () => clearInterval(interval);
   }, []);
 
-  // Handle file selection for a specific slot (does NOT upload yet)
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'hero' | 'gallery', index: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -114,20 +112,20 @@ export default function AdminOverviewSection() {
     }
   };
 
-  // Save ALL pending files at once
-  const handleSaveAll = async () => {
+  // Save Videos (with overwrite)
+  const handleSaveVideos = async () => {
     const hasAllVideos = pendingVideos.every(f => f !== null);
-    const hasAllImages = pendingImages.every(f => f !== null);
-
-    if (!hasAllVideos || !hasAllImages) {
-      alert("Please upload all 4 videos AND all 3 images before saving.");
+    if (!hasAllVideos) {
+      alert("Please select all 4 videos before saving.");
       return;
     }
 
     setUploading(true);
-
     try {
-      // Upload all videos
+      // 1. Delete old videos
+      await fetch('/api/admin/media/clear?type=hero', { method: 'DELETE' });
+
+      // 2. Upload new videos
       for (let i = 0; i < pendingVideos.length; i++) {
         const file = pendingVideos[i];
         if (file) {
@@ -143,7 +141,30 @@ export default function AdminOverviewSection() {
         }
       }
 
-      // Upload all images
+      alert("All 4 Hero Videos saved successfully! (Old ones replaced)");
+      setPendingVideos([null, null, null, null]);
+      await fetchData(true);
+    } catch (error) {
+      alert("Failed to save videos.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Save Images (with overwrite)
+  const handleSaveImages = async () => {
+    const hasAllImages = pendingImages.every(f => f !== null);
+    if (!hasAllImages) {
+      alert("Please select all 3 images before saving.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // 1. Delete old images
+      await fetch('/api/admin/media/clear?type=gallery', { method: 'DELETE' });
+
+      // 2. Upload new images
       for (let i = 0; i < pendingImages.length; i++) {
         const file = pendingImages[i];
         if (file) {
@@ -159,19 +180,18 @@ export default function AdminOverviewSection() {
         }
       }
 
-      alert("All 4 videos and 3 images saved successfully!");
-      setPendingVideos([null, null, null, null]);
+      alert("All 3 Gallery Images saved successfully! (Old ones replaced)");
       setPendingImages([null, null, null]);
       await fetchData(true);
     } catch (error) {
-      alert("Failed to save all media.");
-      console.error(error);
+      alert("Failed to save images.");
     } finally {
       setUploading(false);
     }
   };
 
-  const canSaveAll = pendingVideos.every(f => f !== null) && pendingImages.every(f => f !== null);
+  const canSaveVideos = pendingVideos.every(f => f !== null);
+  const canSaveImages = pendingImages.every(f => f !== null);
 
   const formatTime = (date: Date) =>
     date.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
@@ -189,41 +209,125 @@ export default function AdminOverviewSection() {
         <p className="text-slate-400 mt-1">Real-time overview • KnotX &amp; Krafts</p>
       </div>
 
-      {/* Stats + Revenue Breakdown (keep your existing code) */}
-      {/* ... (your stats section here) ... */}
+      {/* Stats + Revenue Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-6 md:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs text-slate-400 tracking-widest">TOTAL REVENUE</p>
+              <p className="text-4xl font-semibold tabular-nums mt-1">
+                {loading && !data ? "..." : `$${(data?.stats.totalRevenue || 0) / 100}`}
+              </p>
+            </div>
+            <DollarSign className="text-pink-400" size={28} />
+          </div>
+          <div className="mt-4 space-y-2 text-sm border-t border-slate-700 pt-4">
+            <div className="flex justify-between">
+              <span className="text-slate-400">From Orders</span>
+              <span className="font-medium">${(data?.stats.revenueFromOrders || 0) / 100}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">From Booking Deposits</span>
+              <span className="font-medium">${(data?.stats.revenueFromBookings || 0) / 100}</span>
+            </div>
+          </div>
+        </div>
 
-      {/* Live Visitors + Recent Activity (keep your existing code) */}
-      {/* ... (your live visitors section here) ... */}
+        {[
+          { label: "Total Orders", value: data?.stats.totalOrders ?? "—", icon: ShoppingCart },
+          { label: "Customers", value: data?.stats.totalCustomers ?? "—", icon: Users },
+          { label: "Bookings", value: data?.stats.totalBookings ?? "—", icon: Calendar },
+        ].map((stat, i) => (
+          <div key={i} className="bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-xs text-slate-400 tracking-widest">{stat.label}</p>
+                <p className="text-4xl font-semibold mt-3 tabular-nums">
+                  {loading && !data ? "..." : stat.value}
+                </p>
+              </div>
+              <stat.icon className="text-pink-400 mt-1" size={24} />
+            </div>
+          </div>
+        ))}
+      </div>
 
-      {/* === MEDIA MANAGEMENT (BATCH MODE) === */}
-      <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h3 className="text-xl font-semibold flex items-center gap-2">
-              <Upload className="text-pink-400" /> Media Management
-            </h3>
-            <p className="text-sm text-slate-400 mt-1">
-              Upload all 4 videos + all 3 images, then click "Save All Changes"
-            </p>
+      {/* Live Visitors + Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <p className="text-pink-400 text-xs tracking-[3px]">LIVE VISITORS</p>
+              <p className="text-xl font-medium">Website Activity Log</p>
+            </div>
+            <button onClick={() => fetchData(true)} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700">
+              <RefreshCw size={16} /> Refresh
+            </button>
           </div>
 
-          <button
-            onClick={handleSaveAll}
-            disabled={!canSaveAll || uploading}
-            className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:cursor-not-allowed rounded-2xl font-medium text-sm transition-all"
-          >
-            {uploading ? "Saving..." : "Save All Changes"}
-          </button>
+          <div className="max-h-[380px] overflow-auto pr-2 space-y-3 text-sm">
+            {data?.liveVisitors && data.liveVisitors.length > 0 ? (
+              data.liveVisitors.map((visitor, index) => (
+                <div key={index} className="flex justify-between items-center bg-[#0f172a] p-4 rounded-2xl">
+                  <div>
+                    <p className="font-medium">{visitor.displayName || 'Guest Visitor'}</p>
+                    <p className="text-xs text-slate-400">{visitor.page} • {visitor.ip}</p>
+                  </div>
+                  <div className="text-right text-xs">
+                    <span className={`px-2 py-0.5 rounded text-[10px] ${visitor.userType === 'registered' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20'}`}>
+                      {visitor.userType}
+                    </span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-center py-8 text-slate-400 text-sm">
+                No live visitors logged yet.<br />
+                <span className="text-xs">(Tracking is active via middleware)</span>
+              </p>
+            )}
+          </div>
         </div>
+
+        <div className="lg:col-span-2 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
+          <p className="text-pink-400 text-xs tracking-[3px] mb-4">RECENT ACTIVITY</p>
+          <div className="space-y-4 text-sm">
+            <div>
+              <p className="text-xs text-slate-400 mb-2">NEW USERS</p>
+              {data?.recentUsers?.length ? data.recentUsers.map((u, i) => (
+                <div key={i} className="flex justify-between py-1 border-b border-slate-700 last:border-0">
+                  <span>{u.displayName || u.email}</span>
+                </div>
+              )) : <p className="text-xs text-slate-500">No recent users</p>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* === MEDIA MANAGEMENT (TWO SEPARATE SAVE BUTTONS + OVERWRITE) === */}
+      <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-8">
+        <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
+          <Upload className="text-pink-400" /> Media Management
+        </h3>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Hero Videos - 4 Slots */}
+          {/* Hero Videos */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <Video className="text-pink-400" />
-              <h4 className="font-semibold text-lg">Hero Section Videos (4 Required)</h4>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Video className="text-pink-400" />
+                <h4 className="font-semibold text-lg">Hero Section Videos (4 Required)</h4>
+              </div>
+              <button
+                onClick={handleSaveVideos}
+                disabled={!canSaveVideos || uploading}
+                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:cursor-not-allowed rounded-xl text-sm font-medium transition-all"
+              >
+                {uploading ? "Saving..." : "Save All Videos"}
+              </button>
             </div>
+
             <div className="space-y-4">
               {heroVideos.map((video, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl p-4">
@@ -249,12 +353,22 @@ export default function AdminOverviewSection() {
             </div>
           </div>
 
-          {/* Gallery Images - 3 Slots */}
+          {/* Gallery Images */}
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <ImageIcon className="text-pink-400" />
-              <h4 className="font-semibold text-lg">Home Gallery Images (3 Required)</h4>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <ImageIcon className="text-pink-400" />
+                <h4 className="font-semibold text-lg">Home Gallery Images (3 Required)</h4>
+              </div>
+              <button
+                onClick={handleSaveImages}
+                disabled={!canSaveImages || uploading}
+                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:cursor-not-allowed rounded-xl text-sm font-medium transition-all"
+              >
+                {uploading ? "Saving..." : "Save All Images"}
+              </button>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
               {galleryImagesState.map((img, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl overflow-hidden">
@@ -282,7 +396,7 @@ export default function AdminOverviewSection() {
         </div>
 
         <p className="text-xs text-slate-500 mt-6 text-center">
-          You must select all 4 videos + all 3 images before saving.
+          Uploading a new set will replace the previous one.
         </p>
       </div>
     </div>
