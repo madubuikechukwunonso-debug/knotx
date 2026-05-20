@@ -5,7 +5,7 @@ import {
   Users, DollarSign, ShoppingCart, Calendar, RefreshCw, Upload, Video, Image as ImageIcon
 } from 'lucide-react';
 import { put } from '@vercel/blob';
-import { galleryImages } from '@/lib/galleryImages';
+import { galleryImages as defaultGalleryImages } from '@/lib/galleryImages';
 
 interface MediaItem {
   id?: number;
@@ -67,15 +67,14 @@ export default function AdminOverviewSection() {
       });
       setHeroVideos(mergedVideos);
 
-      // Use real gallery images from lib/galleryImages.ts
-      const realGallery = galleryImages.slice(0, 3).map((img, index) => ({
+      // Merge Gallery Images (use src from galleryImages.ts)
+      const dbImages = mediaData.galleryImages || [];
+      const realGallery = defaultGalleryImages.slice(0, 3).map((img, index) => ({
         id: img.id,
-        url: img.src,
+        url: img.src,           // ← Use src here
         name: img.alt || `Gallery Image ${index + 1}`,
       }));
 
-      // Merge with DB uploads (if any)
-      const dbImages = mediaData.galleryImages || [];
       const mergedImages = realGallery.map((defaultImg, index) => {
         const dbImg = dbImages[index];
         return dbImg
@@ -263,7 +262,7 @@ export default function AdminOverviewSection() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Hero Videos - 4 Fixed Slots with Preview */}
+          {/* Hero Videos - 4 Fixed Slots */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <Video className="text-pink-400" />
@@ -272,8 +271,8 @@ export default function AdminOverviewSection() {
             <div className="space-y-4">
               {heroVideos.map((video, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div className="flex-1">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{video.name}</p>
                       <p className="text-xs text-slate-400 truncate">{video.url}</p>
                     </div>
@@ -290,18 +289,6 @@ export default function AdminOverviewSection() {
                       />
                     </label>
                   </div>
-                  
-                  {/* Video Preview */}
-                  <div className="mt-2 rounded-xl overflow-hidden bg-black aspect-video">
-                    <video 
-                      src={video.url} 
-                      className="w-full h-full object-cover" 
-                      muted 
-                      loop 
-                      autoPlay 
-                      playsInline
-                    />
-                  </div>
                 </div>
               ))}
             </div>
@@ -314,7 +301,7 @@ export default function AdminOverviewSection() {
               <h4 className="font-semibold text-lg">Home Gallery Images (3 Slots)</h4>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {galleryImages.map((img, index) => (
+              {galleryImagesState.map((img, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl overflow-hidden">
                   <div className="aspect-video bg-slate-800 flex items-center justify-center">
                     <img 
