@@ -2,9 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Users, DollarSign, ShoppingCart, Calendar, RefreshCw, MapPin, Upload, Video, Image as ImageIcon
+  Users, DollarSign, ShoppingCart, Calendar, RefreshCw, Upload, Video, Image as ImageIcon
 } from 'lucide-react';
 import { put } from '@vercel/blob';
+
+interface MediaItem {
+  id: number;
+  url: string;
+  name: string;
+}
 
 interface OverviewData {
   stats: {
@@ -23,20 +29,27 @@ interface OverviewData {
 
 export default function AdminOverviewSection() {
   const [data, setData] = useState<OverviewData | null>(null);
+  const [heroVideos, setHeroVideos] = useState<MediaItem[]>([]);
+  const [galleryImages, setGalleryImages] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [uploading, setUploading] = useState(false);
 
+  // Fetch all data
   async function fetchData(isManual = false) {
     if (!isManual) setLoading(true);
     try {
-      const res = await fetch('/api/admin/overview', {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' }
-      });
-      if (!res.ok) throw new Error('Failed to fetch');
-      const json = await res.json();
-      setData(json);
+      const [overviewRes, mediaRes] = await Promise.all([
+        fetch('/api/admin/overview', { cache: 'no-store' }),
+        fetch('/api/admin/media', { cache: 'no-store' }),
+      ]);
+
+      const overviewData = await overviewRes.json();
+      const mediaData = await mediaRes.json();
+
+      setData(overviewData);
+      setHeroVideos(mediaData.heroVideos || []);
+      setGalleryImages(mediaData.galleryImages || []);
       setLastUpdated(new Date());
     } catch (error) {
       console.error(error);
@@ -51,42 +64,31 @@ export default function AdminOverviewSection() {
     return () => clearInterval(interval);
   }, []);
 
-  // === MEDIA UPLOAD HANDLERS ===
-  const handleHeroVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload Handler
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'hero' | 'gallery', itemId?: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setUploading(true);
     try {
-      const blob = await put(`hero/${file.name}`, file, {
+      const blob = await put(`${type}/${file.name}`, file, {
         access: 'public',
         token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
       });
 
-      // TODO: Save blob.url to database or env (for now just alert)
-      alert(`Hero video uploaded successfully!\nURL: ${blob.url}\n\nUpdate HeroSection.tsx to use this URL.`);
-      console.log('New Hero Video URL:', blob.url);
-    } catch (error) {
-      alert('Upload failed');
-      console.error(error);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    try {
-      const blob = await put(`gallery/${file.name}`, file, {
-        access: 'public',
-        token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
+      // Save to database
+      await fetch('/api/admin/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          url: blob.url,
+          name: file.name,
+        }),
       });
 
-      alert(`Gallery image uploaded!\nURL: ${blob.url}\n\nYou can now add this to HomeGallerySection.tsx`);
-      console.log('New Gallery Image URL:', blob.url);
+      alert(`${type === 'hero' ? 'Video' : 'Image'} uploaded successfully!`);
+      await fetchData(true); // Refresh data
     } catch (error) {
       alert('Upload failed');
       console.error(error);
@@ -100,7 +102,6 @@ export default function AdminOverviewSection() {
 
   return (
     <div className="space-y-8 bg-[#0f172a] min-h-screen p-6 text-white">
-      
       {/* Version Badge */}
       <div className="bg-[#1e2937] border border-pink-500/30 rounded-2xl p-4 text-center">
         <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 7 — FINAL</span>
@@ -111,10 +112,8 @@ export default function AdminOverviewSection() {
         <p className="text-slate-400 mt-1">Real-time overview • KnotX &amp; Krafts</p>
       </div>
 
-      {/* === STATS WITH REVENUE BREAKDOWN === */}
+      {/* Stats + Revenue Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Revenue Card */}
         <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-6 md:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -125,7 +124,6 @@ export default function AdminOverviewSection() {
             </div>
             <DollarSign className="text-pink-400" size={28} />
           </div>
-
           <div className="mt-4 space-y-2 text-sm border-t border-slate-700 pt-4">
             <div className="flex justify-between">
               <span className="text-slate-400">From Orders</span>
@@ -135,13 +133,9 @@ export default function AdminOverviewSection() {
               <span className="text-slate-400">From Booking Deposits</span>
               <span className="font-medium">${(data?.stats.revenueFromBookings || 0) / 100}</span>
             </div>
-            <p className="text-[10px] text-slate-500 pt-2">
-              Revenue = Completed Orders + Paid Booking Deposits
-            </p>
           </div>
         </div>
 
-        {/* Other Stats */}
         {[
           { label: "Total Orders", value: data?.stats.totalOrders ?? "—", icon: ShoppingCart },
           { label: "Customers", value: data?.stats.totalCustomers ?? "—", icon: Users },
@@ -161,14 +155,13 @@ export default function AdminOverviewSection() {
         ))}
       </div>
 
-      {/* Live Visitors + Activity */}
+      {/* Live Visitors + Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Live Visitors Console */}
         <div className="lg:col-span-3 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
               <p className="text-pink-400 text-xs tracking-[3px]">LIVE VISITORS</p>
-              <p className="text-xl font-medium">Website Activity</p>
+              <p className="text-xl font-medium">Website Activity Log</p>
             </div>
             <button onClick={() => fetchData(true)} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700">
               <RefreshCw size={16} /> Refresh
@@ -180,8 +173,8 @@ export default function AdminOverviewSection() {
               data.liveVisitors.map((visitor, index) => (
                 <div key={index} className="flex justify-between items-center bg-[#0f172a] p-4 rounded-2xl">
                   <div>
-                    <p className="font-medium">{visitor.displayName || 'Guest'}</p>
-                    <p className="text-xs text-slate-400">{visitor.page}</p>
+                    <p className="font-medium">{visitor.displayName || 'Guest Visitor'}</p>
+                    <p className="text-xs text-slate-400">{visitor.page} • {visitor.ip}</p>
                   </div>
                   <div className="text-right text-xs">
                     <span className={`px-2 py-0.5 rounded text-[10px] ${visitor.userType === 'registered' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20'}`}>
@@ -192,14 +185,13 @@ export default function AdminOverviewSection() {
               ))
             ) : (
               <p className="text-center py-8 text-slate-400 text-sm">
-                No live visitors tracked yet.<br />
-                <span className="text-xs">(Visitor tracking needs to be implemented)</span>
+                No live visitors logged yet.<br />
+                <span className="text-xs">(Tracking is active via middleware)</span>
               </p>
             )}
           </div>
         </div>
 
-        {/* Recent Activity */}
         <div className="lg:col-span-2 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
           <p className="text-pink-400 text-xs tracking-[3px] mb-4">RECENT ACTIVITY</p>
           <div className="space-y-4 text-sm">
@@ -215,62 +207,92 @@ export default function AdminOverviewSection() {
         </div>
       </div>
 
-      {/* === FUNCTIONAL MEDIA MANAGEMENT === */}
+      {/* === MEDIA MANAGEMENT === */}
       <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-8">
-        <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
+        <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
           <Upload className="text-pink-400" /> Media Management
         </h3>
-        <p className="text-sm text-slate-400 mb-6">
-          Current videos and images will remain as placeholders until you upload new ones.
-        </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Hero Video Upload */}
-          <div className="border border-slate-600 rounded-2xl p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          {/* Hero Videos */}
+          <div>
             <div className="flex items-center gap-3 mb-4">
               <Video className="text-pink-400" />
-              <div>
-                <p className="font-medium">Hero Section Video</p>
-                <p className="text-xs text-slate-400">Current video stays until replaced</p>
-              </div>
+              <h4 className="font-semibold text-lg">Hero Section Videos</h4>
             </div>
-            <label className="cursor-pointer">
-              <div className="w-full py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-center text-sm font-medium">
-                {uploading ? "Uploading..." : "Upload New Hero Video"}
-              </div>
-              <input 
-                type="file" 
-                accept="video/*" 
-                onChange={handleHeroVideoUpload} 
-                className="hidden" 
-                disabled={uploading}
-              />
-            </label>
+            
+            <div className="space-y-4">
+              {heroVideos.length > 0 ? (
+                heroVideos.map((video, index) => (
+                  <div key={index} className="border border-slate-600 rounded-2xl p-4">
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <p className="font-medium">{video.name}</p>
+                        <p className="text-xs text-slate-400 truncate max-w-[280px]">{video.url}</p>
+                      </div>
+                      <label className="cursor-pointer">
+                        <div className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-xl text-sm font-medium">
+                          Change
+                        </div>
+                        <input
+                          type="file"
+                          accept="video/*"
+                          onChange={(e) => handleUpload(e, 'hero', video.id)}
+                          className="hidden"
+                          disabled={uploading}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-400">No hero videos found. Default videos from public folder will be used.</p>
+              )}
+            </div>
           </div>
 
-          {/* Gallery Image Upload */}
-          <div className="border border-slate-600 rounded-2xl p-6">
+          {/* Gallery Images */}
+          <div>
             <div className="flex items-center gap-3 mb-4">
               <ImageIcon className="text-pink-400" />
-              <div>
-                <p className="font-medium">Home Gallery Images</p>
-                <p className="text-xs text-slate-400">Current images stay until replaced</p>
-              </div>
+              <h4 className="font-semibold text-lg">Home Gallery Images</h4>
             </div>
-            <label className="cursor-pointer">
-              <div className="w-full py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-center text-sm font-medium">
-                {uploading ? "Uploading..." : "Upload New Gallery Image"}
-              </div>
-              <input 
-                type="file" 
-                accept="image/*" 
-                onChange={handleGalleryImageUpload} 
-                className="hidden" 
-                disabled={uploading}
-              />
-            </label>
+            
+            <div className="grid grid-cols-2 gap-4">
+              {galleryImages.length > 0 ? (
+                galleryImages.map((img, index) => (
+                  <div key={index} className="border border-slate-600 rounded-2xl overflow-hidden">
+                    <div className="aspect-video bg-slate-800 flex items-center justify-center">
+                      <img src={img.url} alt={img.name} className="max-h-full object-cover" />
+                    </div>
+                    <div className="p-3 flex justify-between items-center">
+                      <p className="text-sm truncate">{img.name}</p>
+                      <label className="cursor-pointer">
+                        <div className="px-3 py-1 bg-pink-600 hover:bg-pink-700 rounded-lg text-xs font-medium">
+                          Change
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleUpload(e, 'gallery', img.id)}
+                          className="hidden"
+                          disabled={uploading}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-slate-400 col-span-2">No gallery images found. Default images from public folder will be used.</p>
+              )}
+            </div>
           </div>
         </div>
+
+        <p className="text-xs text-slate-500 mt-6 text-center">
+          Current assets from public folder will remain as defaults until replaced.
+        </p>
       </div>
     </div>
   );
