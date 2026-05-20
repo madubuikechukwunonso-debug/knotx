@@ -35,12 +35,19 @@ export default function AdminOverviewSection() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Default videos from your HeroSection.tsx
+  // Default 4 Hero Videos
   const defaultVideos = [
     { url: "/videos/1.webm", name: "Hero Video 1" },
     { url: "/videos/2.webm", name: "Hero Video 2" },
     { url: "/videos/3.webm", name: "Hero Video 3" },
     { url: "/videos/4.webm", name: "Hero Video 4" },
+  ];
+
+  // Default 3 Gallery Images
+  const defaultGallery = [
+    { url: "/images/gallery1.jpg", name: "Gallery Image 1" },
+    { url: "/images/gallery2.jpg", name: "Gallery Image 2" },
+    { url: "/images/gallery3.jpg", name: "Gallery Image 3" },
   ];
 
   async function fetchData(isManual = false) {
@@ -56,17 +63,26 @@ export default function AdminOverviewSection() {
 
       setData(overviewData);
 
-      // Merge DB videos with default slots
+      // Merge Hero Videos
       const dbVideos = mediaData.heroVideos || [];
       const mergedVideos = defaultVideos.map((defaultVideo, index) => {
         const dbVideo = dbVideos[index];
-        return dbVideo 
+        return dbVideo
           ? { id: dbVideo.id, url: dbVideo.url, name: dbVideo.name || defaultVideo.name }
           : defaultVideo;
       });
-
       setHeroVideos(mergedVideos);
-      setGalleryImages(mediaData.galleryImages || []);
+
+      // Merge Gallery Images
+      const dbImages = mediaData.galleryImages || [];
+      const mergedImages = defaultGallery.map((defaultImg, index) => {
+        const dbImg = dbImages[index];
+        return dbImg
+          ? { id: dbImg.id, url: dbImg.url, name: dbImg.name || defaultImg.name }
+          : defaultImg;
+      });
+      setGalleryImages(mergedImages);
+
       setLastUpdated(new Date());
     } catch (error) {
       console.error(error);
@@ -81,34 +97,24 @@ export default function AdminOverviewSection() {
     return () => clearInterval(interval);
   }, []);
 
-  // Upload handler for a specific slot
   const handleHeroVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
       const blob = await put(`hero/${file.name}`, file, {
         access: 'public',
         token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
       });
-
-      // Save to database
       await fetch('/api/admin/media', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'hero',
-          url: blob.url,
-          name: file.name,
-        }),
+        body: JSON.stringify({ type: 'hero', url: blob.url, name: file.name }),
       });
-
       alert(`Hero Video ${index + 1} updated successfully!`);
       await fetchData(true);
     } catch (error) {
       alert('Upload failed');
-      console.error(error);
     } finally {
       setUploading(false);
     }
@@ -117,29 +123,21 @@ export default function AdminOverviewSection() {
   const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
       const blob = await put(`gallery/${file.name}`, file, {
         access: 'public',
         token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
       });
-
       await fetch('/api/admin/media', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'gallery',
-          url: blob.url,
-          name: file.name,
-        }),
+        body: JSON.stringify({ type: 'gallery', url: blob.url, name: file.name }),
       });
-
       alert(`Gallery Image ${index + 1} updated successfully!`);
       await fetchData(true);
     } catch (error) {
       alert('Upload failed');
-      console.error(error);
     } finally {
       setUploading(false);
     }
@@ -150,6 +148,7 @@ export default function AdminOverviewSection() {
 
   return (
     <div className="space-y-8 bg-[#0f172a] min-h-screen p-6 text-white">
+      
       {/* Version Badge */}
       <div className="bg-[#1e2937] border border-pink-500/30 rounded-2xl p-4 text-center">
         <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 7 — FINAL</span>
@@ -203,8 +202,10 @@ export default function AdminOverviewSection() {
         ))}
       </div>
 
-      {/* Live Visitors + Recent Activity */}
+      {/* LIVE VISITORS + RECENT ACTIVITY */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        
+        {/* Live Visitors Console */}
         <div className="lg:col-span-3 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -240,6 +241,7 @@ export default function AdminOverviewSection() {
           </div>
         </div>
 
+        {/* Recent Activity */}
         <div className="lg:col-span-2 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
           <p className="text-pink-400 text-xs tracking-[3px] mb-4">RECENT ACTIVITY</p>
           <div className="space-y-4 text-sm">
@@ -269,7 +271,6 @@ export default function AdminOverviewSection() {
               <Video className="text-pink-400" />
               <h4 className="font-semibold text-lg">Hero Section Videos (4 Slots)</h4>
             </div>
-            
             <div className="space-y-4">
               {heroVideos.map((video, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl p-4">
@@ -296,46 +297,41 @@ export default function AdminOverviewSection() {
             </div>
           </div>
 
-          {/* Gallery Images */}
+          {/* Gallery Images - 3 Slots */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <ImageIcon className="text-pink-400" />
-              <h4 className="font-semibold text-lg">Home Gallery Images</h4>
+              <h4 className="font-semibold text-lg">Home Gallery Images (3 Slots)</h4>
             </div>
-            
             <div className="grid grid-cols-2 gap-4">
-              {galleryImages.length > 0 ? (
-                galleryImages.map((img, index) => (
-                  <div key={index} className="border border-slate-600 rounded-2xl overflow-hidden">
-                    <div className="aspect-video bg-slate-800 flex items-center justify-center">
-                      <img src={img.url} alt={img.name} className="max-h-full object-cover" />
-                    </div>
-                    <div className="p-3 flex justify-between items-center">
-                      <p className="text-sm truncate">{img.name}</p>
-                      <label className="cursor-pointer">
-                        <div className="px-3 py-1 bg-pink-600 hover:bg-pink-700 rounded-lg text-xs font-medium">
-                          Change
-                        </div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleGalleryImageUpload(e, index)}
-                          className="hidden"
-                          disabled={uploading}
-                        />
-                      </label>
-                    </div>
+              {galleryImages.map((img, index) => (
+                <div key={index} className="border border-slate-600 rounded-2xl overflow-hidden">
+                  <div className="aspect-video bg-slate-800 flex items-center justify-center">
+                    <img src={img.url} alt={img.name} className="max-h-full object-cover" />
                   </div>
-                ))
-              ) : (
-                <p className="text-sm text-slate-400 col-span-2">No gallery images found in database.</p>
-              )}
+                  <div className="p-3 flex justify-between items-center">
+                    <p className="text-sm truncate">{img.name}</p>
+                    <label className="cursor-pointer">
+                      <div className="px-3 py-1 bg-pink-600 hover:bg-pink-700 rounded-lg text-xs font-medium">
+                        Change
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleGalleryImageUpload(e, index)}
+                        className="hidden"
+                        disabled={uploading}
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
 
         <p className="text-xs text-slate-500 mt-6 text-center">
-          Default videos from public folder will be used until replaced.
+          Default assets from public folder will be used until replaced.
         </p>
       </div>
     </div>
