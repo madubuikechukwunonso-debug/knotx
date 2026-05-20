@@ -1,7 +1,7 @@
 // src/src-pages/AdminSubPage.tsx
 import type { AdminTabId } from '@/components/admin/AdminSidebar';
 import { prisma } from '@/lib/prisma';
-import AdminOverviewSection from '@/sections/admin/AdminOverviewSectionNew';   // ← UPDATED
+
 import AdminServicesSection from '@/sections/admin/AdminServicesSection';
 import AdminProductsSection from '@/sections/admin/AdminProductsSection';
 import AdminGallerySection from '@/sections/admin/AdminGallerySection';
@@ -19,9 +19,6 @@ type AdminSubPageProps = {
 
 export default async function AdminSubPage({ tab }: AdminSubPageProps) {
   switch (tab) {
-    case 'overview':
-      return <AdminOverviewSection />;
-
     case 'services':
       return <AdminServicesSection />;
 
@@ -140,6 +137,12 @@ export default async function AdminSubPage({ tab }: AdminSubPageProps) {
       return <AdminAvailabilitySection />;
 
     default:
-      return <AdminOverviewSection />;
+      // Overview has been removed — showing a fallback message
+      return (
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-semibold text-emerald-950">Select a section from the sidebar</h2>
+          <p className="mt-2 text-emerald-600">Overview section has been temporarily disabled.</p>
+        </div>
+      );
   }
 }
