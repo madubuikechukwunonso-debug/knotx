@@ -1,3 +1,4 @@
+// src/app/api/admin/media/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
@@ -10,7 +11,8 @@ export async function GET() {
 
     return NextResponse.json({ heroVideos, galleryImages });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch media' }, { status: 500 });
+    console.error('Media API error:', error);
+    return NextResponse.json({ heroVideos: [], galleryImages: [] }, { status: 500 });
   }
 }
 
@@ -24,7 +26,9 @@ export async function POST(request: NextRequest) {
         data: { url, name: name || 'Hero Video' },
       });
       return NextResponse.json(video);
-    } else if (type === 'gallery') {
+    }
+
+    if (type === 'gallery') {
       const image = await prisma.galleryImage.create({
         data: { url, name: name || 'Gallery Image' },
       });
@@ -33,6 +37,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
   } catch (error) {
+    console.error('Media upload error:', error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }
