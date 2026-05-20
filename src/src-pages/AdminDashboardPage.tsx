@@ -1,61 +1,93 @@
 // src/src-pages/AdminDashboardPage.tsx
-'use client';
+import { PrismaClient } from '@prisma/client';
+import AdminStatCard from '@/components/admin/AdminStatCard';
+import { Calendar, ShoppingCart, DollarSign, Users, Briefcase, Package } from 'lucide-react';
 
-import { useState } from 'react';
-import AdminSidebar, { AdminTabId, AdminTab } from '@/components/admin/AdminSidebar';
-import AdminSubPage from './AdminSubPage';
+const prisma = new PrismaClient();
 
-// ✅ Import the NEW Overview design
-import AdminOverviewSectionNew from '@/sections/admin/AdminOverviewSectionNew';
+async function getDashboardStats() {
+  const [
+    totalBookings,
+    totalOrders,
+    revenueOrders,
+    revenueBookings,
+    activeServices,
+    activeProducts,
+    totalCustomers,
+  ] = await Promise.all([
+    prisma.booking.count(),
+    prisma.order.count(),
+    prisma.order.aggregate({ _sum: { total: true } }),
+    prisma.booking.aggregate({ _sum: { price: true } }),
+    prisma.service.count({ where: { active: true } }),
+    prisma.product.count({ where: { active: true } }),
+    prisma.localUser.count(),
+  ]);
 
-import { 
-  LayoutDashboard, Scissors, Package, Image, ShoppingCart, 
-  Mail, Users, UserCheck, MessageCircle, Calendar, Clock 
-} from 'lucide-react';
+  const totalRevenue = (revenueOrders._sum.total || 0) + (revenueBookings._sum.price || 0);
 
-const tabs: AdminTab[] = [
-  { id: 'overview', label: 'Overview', description: 'Business dashboard & metrics', icon: LayoutDashboard },
-  { id: 'services', label: 'Services', description: 'Manage offerings & pricing', icon: Scissors },
-  { id: 'products', label: 'Products', description: 'Inventory & catalog', icon: Package },
-  { id: 'gallery', label: 'Gallery', description: 'Photos & media', icon: Image },
-  { id: 'orders', label: 'Orders', description: 'Customer orders', icon: ShoppingCart },
-  { id: 'newsletter', label: 'Newsletter', description: 'Campaigns & subscribers', icon: Mail },
-  { id: 'users', label: 'Users', description: 'Customer accounts', icon: Users },
-  { id: 'staff', label: 'Staff', description: 'Team & permissions', icon: UserCheck },
-  { id: 'messages', label: 'Messages', description: 'Inquiries & replies', icon: MessageCircle },
-  { id: 'bookings', label: 'Bookings', description: 'Appointments', icon: Calendar },
-  { id: 'availability', label: 'Availability', description: 'Staff schedules', icon: Clock },
-];
+  return {
+    totalBookings,
+    totalOrders,
+    totalRevenue,
+    activeServices,
+    activeProducts,
+    totalCustomers,
+  };
+}
 
-export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<AdminTabId>('overview');
+export default async function AdminDashboardPage() {
+  const stats = await getDashboardStats();
 
   return (
-    <div className="flex min-h-screen bg-[#f8f7f4]">
-      <AdminSidebar 
-        activeTab={activeTab} 
-        onChange={setActiveTab} 
-        tabs={tabs} 
-      />
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-4xl font-serif tracking-tight">Overview</h1>
+        <p className="text-black/60 mt-1">Here&apos;s what&apos;s happening with your business today</p>
+      </div>
 
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-7xl mx-auto p-6 md:p-10">
-          <div className="mb-8">
-            <h1 className="text-3xl font-semibold text-emerald-950">
-              {tabs.find(t => t.id === activeTab)?.label}
-            </h1>
-            <p className="text-emerald-600 text-sm mt-1">
-              {tabs.find(t => t.id === activeTab)?.description}
-            </p>
-          </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <AdminStatCard
+          label="Total Bookings"
+          value={stats.totalBookings.toLocaleString()}
+          icon={<Calendar className="h-6 w-6" />}
+        />
+        <AdminStatCard
+          label="Total Orders"
+          value={stats.totalOrders.toLocaleString()}
+          icon={<ShoppingCart className="h-6 w-6" />}
+        />
+        <AdminStatCard
+          label="Total Revenue"
+          value={`$${(stats.totalRevenue / 100).toLocaleString()}`}
+          helper="CAD • All time"
+          icon={<DollarSign className="h-6 w-6" />}
+        />
+        <AdminStatCard
+          label="Active Services"
+          value={stats.activeServices.toLocaleString()}
+          icon={<Briefcase className="h-6 w-6" />}
+        />
+        <AdminStatCard
+          label="Active Products"
+          value={stats.activeProducts.toLocaleString()}
+          icon={<Package className="h-6 w-6" />}
+        />
+        <AdminStatCard
+          label="Customers"
+          value={stats.totalCustomers.toLocaleString()}
+          icon={<Users className="h-6 w-6" />}
+        />
+      </div>
 
-          {/* ✅ Use NEW Overview design here */}
-          {activeTab === 'overview' ? (
-            <AdminOverviewSectionNew />
-          ) : (
-            <AdminSubPage tab={activeTab} />
-          )}
-        </div>
+      {/* Future expansion area */}
+      <div className="bg-white border border-black/10 rounded-3xl p-8">
+        <h2 className="font-medium mb-4">Recent Activity</h2>
+        <p className="text-black/50 text-sm">
+          Next step: Recent bookings + orders table will go here (coming in the next tab we wire).
+        </p>
       </div>
     </div>
   );
