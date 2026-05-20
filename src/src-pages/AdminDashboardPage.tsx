@@ -5,6 +5,7 @@ import {
   Users, DollarSign, ShoppingCart, Calendar, RefreshCw, Upload, Video, Image as ImageIcon
 } from 'lucide-react';
 import { put } from '@vercel/blob';
+import { galleryImages } from '@/lib/galleryImages';
 
 interface MediaItem {
   id?: number;
@@ -30,7 +31,7 @@ interface OverviewData {
 export default function AdminOverviewSection() {
   const [data, setData] = useState<OverviewData | null>(null);
   const [heroVideos, setHeroVideos] = useState<MediaItem[]>([]);
-  const [galleryImages, setGalleryImages] = useState<MediaItem[]>([]);
+  const [galleryImagesState, setGalleryImagesState] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -41,13 +42,6 @@ export default function AdminOverviewSection() {
     { url: "/videos/2.webm", name: "Hero Video 2" },
     { url: "/videos/3.webm", name: "Hero Video 3" },
     { url: "/videos/4.webm", name: "Hero Video 4" },
-  ];
-
-  // Default 3 Gallery Images
-  const defaultGallery = [
-    { url: "/images/gallery1.jpg", name: "Gallery Image 1" },
-    { url: "/images/gallery2.jpg", name: "Gallery Image 2" },
-    { url: "/images/gallery3.jpg", name: "Gallery Image 3" },
   ];
 
   async function fetchData(isManual = false) {
@@ -73,16 +67,23 @@ export default function AdminOverviewSection() {
       });
       setHeroVideos(mergedVideos);
 
-      // Merge Gallery Images
+      // Use real gallery images from lib/galleryImages.ts
+      const realGallery = galleryImages.slice(0, 3).map((img, index) => ({
+        id: img.id,
+        url: img.src,
+        name: img.alt || `Gallery Image ${index + 1}`,
+      }));
+
+      // Merge with DB uploads (if any)
       const dbImages = mediaData.galleryImages || [];
-      const mergedImages = defaultGallery.map((defaultImg, index) => {
+      const mergedImages = realGallery.map((defaultImg, index) => {
         const dbImg = dbImages[index];
         return dbImg
           ? { id: dbImg.id, url: dbImg.url, name: dbImg.name || defaultImg.name }
           : defaultImg;
       });
-      setGalleryImages(mergedImages);
 
+      setGalleryImagesState(mergedImages);
       setLastUpdated(new Date());
     } catch (error) {
       console.error(error);
@@ -202,10 +203,8 @@ export default function AdminOverviewSection() {
         ))}
       </div>
 
-      {/* LIVE VISITORS + RECENT ACTIVITY */}
+      {/* Live Visitors + Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        
-        {/* Live Visitors Console */}
         <div className="lg:col-span-3 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
@@ -241,7 +240,6 @@ export default function AdminOverviewSection() {
           </div>
         </div>
 
-        {/* Recent Activity */}
         <div className="lg:col-span-2 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
           <p className="text-pink-400 text-xs tracking-[3px] mb-4">RECENT ACTIVITY</p>
           <div className="space-y-4 text-sm">
@@ -265,7 +263,7 @@ export default function AdminOverviewSection() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Hero Videos - 4 Fixed Slots */}
+          {/* Hero Videos - 4 Fixed Slots with Preview */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <Video className="text-pink-400" />
@@ -274,8 +272,8 @@ export default function AdminOverviewSection() {
             <div className="space-y-4">
               {heroVideos.map((video, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl p-4">
-                  <div className="flex justify-between items-center mb-3">
-                    <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
                       <p className="font-medium truncate">{video.name}</p>
                       <p className="text-xs text-slate-400 truncate">{video.url}</p>
                     </div>
@@ -292,12 +290,24 @@ export default function AdminOverviewSection() {
                       />
                     </label>
                   </div>
+                  
+                  {/* Video Preview */}
+                  <div className="mt-2 rounded-xl overflow-hidden bg-black aspect-video">
+                    <video 
+                      src={video.url} 
+                      className="w-full h-full object-cover" 
+                      muted 
+                      loop 
+                      autoPlay 
+                      playsInline
+                    />
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Gallery Images - 3 Slots */}
+          {/* Gallery Images - 3 Slots with Preview */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <ImageIcon className="text-pink-400" />
@@ -307,7 +317,11 @@ export default function AdminOverviewSection() {
               {galleryImages.map((img, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl overflow-hidden">
                   <div className="aspect-video bg-slate-800 flex items-center justify-center">
-                    <img src={img.url} alt={img.name} className="max-h-full object-cover" />
+                    <img 
+                      src={img.url} 
+                      alt={img.name} 
+                      className="max-h-full object-cover" 
+                    />
                   </div>
                   <div className="p-3 flex justify-between items-center">
                     <p className="text-sm truncate">{img.name}</p>
