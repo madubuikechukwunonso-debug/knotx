@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  Users, DollarSign, ShoppingCart, Calendar, RefreshCw, MapPin, AlertTriangle
+import { 
+  Users, DollarSign, ShoppingCart, Calendar, RefreshCw, MapPin 
 } from 'lucide-react';
 import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 
@@ -22,7 +22,6 @@ export default function AdminOverviewSection() {
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [mapError, setMapError] = useState(false);
 
   async function fetchData(isManual = false) {
     if (!isManual) setLoading(true);
@@ -31,12 +30,12 @@ export default function AdminOverviewSection() {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' }
       });
-      if (!res.ok) throw new Error('Failed to fetch overview data');
+      if (!res.ok) throw new Error('Failed to fetch');
       const json = await res.json();
       setData(json);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Overview fetch error:', error);
+      console.error(error);
     } finally {
       if (!isManual) setLoading(false);
     }
@@ -47,6 +46,9 @@ export default function AdminOverviewSection() {
     const interval = setInterval(() => fetchData(), 12000);
     return () => clearInterval(interval);
   }, []);
+
+  // DEBUG LOG - Check your browser console (F12)
+  console.log('%c[AdminOverview] 🔥 v5.0 COMPLETELY NEW DESIGN LOADED', 'color: #22d3ee; font-size: 13px; font-weight: bold');
 
   const formatTime = (date: Date) =>
     date.toLocaleTimeString('en-CA', {
@@ -65,196 +67,172 @@ export default function AdminOverviewSection() {
   ];
 
   return (
-    <div className="space-y-8">
-      {/* === VERY OBVIOUS BANNER - This proves new code is running === */}
-      <div className="bg-emerald-600 text-white text-center py-3 rounded-2xl text-base font-semibold tracking-wider shadow-lg">
-        ✅ NEW DARK TECH VERSION v4.0 — World Map + Live Console + Timestamp + Refresh
+    <div className="space-y-8 bg-[#0f172a] min-h-screen p-6 text-white">
+      
+      {/* === SUPER OBVIOUS VERSION BADGE === */}
+      <div className="bg-[#1e2937] border border-cyan-500/30 rounded-2xl p-4 text-center">
+        <div className="inline-flex items-center gap-3 bg-cyan-500/10 px-6 py-2 rounded-full">
+          <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse" />
+          <span className="font-mono text-cyan-400 text-sm tracking-[4px]">VERSION 5.0 — NEW DESIGN</span>
+        </div>
+        <p className="text-xs text-cyan-400/60 mt-2">If you see this cyan banner, the new code is running</p>
       </div>
 
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-white">Overview</h1>
-        <p className="text-zinc-400 mt-1">Real-time command center for KnotX &amp; Krafts</p>
+        <h1 className="text-4xl font-semibold tracking-tight">Command Center</h1>
+        <p className="text-slate-400 mt-1">Real-time overview • KnotX &amp; Krafts</p>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats Row - Different Style */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Revenue', value: data ? `$${(data.stats.totalRevenue / 100).toFixed(0)}` : '—', icon: DollarSign },
-          { label: 'Orders', value: data?.stats.totalOrders ?? '—', icon: ShoppingCart },
-          { label: 'Customers', value: data?.stats.totalCustomers ?? '—', icon: Users },
-          { label: 'Bookings', value: data?.stats.totalBookings ?? '—', icon: Calendar },
-        ].map((stat, index) => (
-          <div key={index} className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6">
-            <div className="flex items-center justify-between">
+          { label: "Revenue", value: data ? `$${(data.stats.totalRevenue / 100).toFixed(0)}` : "—", icon: DollarSign },
+          { label: "Orders", value: data?.stats.totalOrders ?? "—", icon: ShoppingCart },
+          { label: "Customers", value: data?.stats.totalCustomers ?? "—", icon: Users },
+          { label: "Bookings", value: data?.stats.totalBookings ?? "—", icon: Calendar },
+        ].map((stat, i) => (
+          <div key={i} className="bg-[#1e2937] border border-slate-700 rounded-2xl p-5">
+            <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs uppercase tracking-[2px] text-zinc-500">{stat.label}</p>
-                <p className="text-4xl font-semibold text-white mt-2 tabular-nums">
-                  {loading && !data ? '...' : stat.value}
+                <p className="text-xs text-slate-400 tracking-widest">{stat.label}</p>
+                <p className="text-3xl font-semibold mt-3 tabular-nums text-white">
+                  {loading && !data ? "..." : stat.value}
                 </p>
               </div>
-              <div className="text-emerald-400/80">
-                <stat.icon size={28} />
-              </div>
+              <stat.icon className="text-cyan-400 mt-1" size={22} />
             </div>
           </div>
         ))}
       </div>
 
-      {/* World Map + Activity Console */}
+      {/* Main Content */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         
-        {/* World Map */}
-        <div className="lg:col-span-3 bg-zinc-900 border border-zinc-800 rounded-3xl p-6 overflow-hidden">
-          <div className="flex items-center gap-3 mb-4">
-            <MapPin className="text-emerald-400" size={20} />
+        {/* World Map - Different Container Style */}
+        <div className="lg:col-span-3 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
+          <div className="flex items-center gap-3 mb-5">
+            <MapPin className="text-cyan-400" />
             <div>
-              <p className="text-emerald-400 text-xs tracking-[3px] font-mono">GLOBAL REACH</p>
-              <p className="text-white text-lg font-medium">Active User Locations</p>
+              <p className="text-cyan-400 text-xs tracking-[3px]">GLOBAL ACTIVITY</p>
+              <p className="text-xl font-medium">Live User Locations</p>
             </div>
           </div>
 
-          <div className="relative rounded-2xl overflow-hidden bg-zinc-950 border border-zinc-800 min-h-[420px] flex items-center justify-center">
-            {!mapError ? (
-              <ComposableMap
-                projectionConfig={{ scale: 140 }}
-                width={800}
-                height={420}
-                style={{ width: '100%', height: 'auto', backgroundColor: '#18181b' }}
-              >
-                <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
-                  {({ geographies }) =>
-                    geographies.map((geo) => (
-                      <Geography
-                        key={geo.rsmKey}
-                        geography={geo}
-                        fill="#27272a"
-                        stroke="#3f3f46"
-                        strokeWidth={0.6}
-                      />
-                    ))
-                  }
-                </Geographies>
+          <div className="rounded-2xl overflow-hidden border border-slate-700 bg-[#0f172a]">
+            <ComposableMap
+              projectionConfig={{ scale: 135 }}
+              width={800}
+              height={400}
+              style={{ width: "100%", height: "auto" }}
+            >
+              <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
+                {({ geographies }) =>
+                  geographies.map((geo) => (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      fill="#334155"
+                      stroke="#475569"
+                      strokeWidth={0.5}
+                    />
+                  ))
+                }
+              </Geographies>
 
-                {activeLocations.map((location, index) => (
-                  <Marker key={index} coordinates={location.coordinates}>
-                    <g>
-                      <circle r={14} fill="#10b981" opacity="0.15" />
-                      <circle r={6} fill="#10b981" />
-                      <circle r={6} fill="#10b981" opacity="0.7">
-                        <animate attributeName="r" values="6;18;6" dur="2.2s" repeatCount="indefinite" />
-                        <animate attributeName="opacity" values="0.7;0;0.7" dur="2.2s" repeatCount="indefinite" />
-                      </circle>
-                    </g>
-                  </Marker>
-                ))}
-              </ComposableMap>
-            ) : (
-              <div className="text-center text-zinc-400 p-8">
-                <AlertTriangle className="mx-auto mb-3" />
-                <p>Map failed to load (demo locations active)</p>
-              </div>
-            )}
+              {activeLocations.map((loc, index) => (
+                <Marker key={index} coordinates={loc.coordinates}>
+                  <g>
+                    <circle r={5} fill="#22d3ee" />
+                    <circle r={5} fill="#22d3ee" opacity="0.4">
+                      <animate attributeName="r" values="5;16;5" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                  </g>
+                </Marker>
+              ))}
+            </ComposableMap>
           </div>
-          <p className="text-[10px] text-zinc-500 mt-3 text-center tracking-widest">
-            DEMO LOCATIONS • LIVE USERS
-          </p>
         </div>
 
-        {/* Activity Console */}
-        <div className="lg:col-span-2 bg-zinc-900 border border-zinc-800 rounded-3xl p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-5">
-            <div className="flex items-center gap-3">
-              <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse" />
-              <div>
-                <p className="text-emerald-400 text-xs tracking-[3px] font-mono">LIVE ACTIVITY CONSOLE</p>
-                <p className="text-white text-lg font-medium -mt-0.5">Real-time Feed</p>
-              </div>
+        {/* Activity Console - Different Style */}
+        <div className="lg:col-span-2 bg-[#1e2937] border border-slate-700 rounded-3xl p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <p className="text-cyan-400 text-xs tracking-[3px]">LIVE FEED</p>
+              <p className="text-xl font-medium">Activity Console</p>
             </div>
 
             <div className="flex items-center gap-3 text-xs">
               {lastUpdated && (
                 <div className="text-right">
-                  <div className="text-zinc-500">Last updated</div>
-                  <div className="font-mono text-emerald-400 tabular-nums">
-                    {formatTime(lastUpdated)}
-                  </div>
+                  <div className="text-slate-400 text-[10px]">Updated</div>
+                  <div className="font-mono text-cyan-400">{formatTime(lastUpdated)}</div>
                 </div>
               )}
               <button
                 onClick={() => fetchData(true)}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-zinc-700 hover:bg-zinc-800 active:bg-zinc-950 transition-all disabled:opacity-60 text-sm"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm transition-all"
               >
-                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-                <span>Refresh</span>
+                <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+                Refresh
               </button>
             </div>
           </div>
 
-          <div className="flex-1 space-y-6 overflow-auto pr-1 text-sm">
+          <div className="flex-1 space-y-6 text-sm overflow-auto">
             {/* Recent Users */}
             <div>
-              <p className="text-emerald-400 text-xs tracking-widest mb-3">NEW REGISTRATIONS</p>
+              <p className="text-cyan-400 text-xs mb-3 tracking-widest">NEW USERS</p>
               {data?.recentUsers?.length ? (
                 data.recentUsers.map((user: any) => (
-                  <div key={user.id} className="flex justify-between py-2 border-b border-zinc-800 last:border-0">
+                  <div key={user.id} className="flex justify-between py-2 border-b border-slate-700 last:border-0">
                     <div>
-                      <p className="text-white">{user.displayName || 'New User'}</p>
-                      <p className="text-zinc-500 text-xs">{user.email}</p>
+                      <p>{user.displayName || "New User"}</p>
+                      <p className="text-xs text-slate-400">{user.email}</p>
                     </div>
-                    <span className="text-emerald-400 text-xs self-center tabular-nums">
+                    <span className="text-xs text-cyan-400 self-center">
                       {new Date(user.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
                 ))
-              ) : (
-                <p className="text-zinc-500 text-xs py-2">No recent registrations</p>
-              )}
+              ) : <p className="text-slate-400 text-xs">No recent users</p>}
             </div>
 
             {/* Recent Orders */}
             <div>
-              <p className="text-emerald-400 text-xs tracking-widest mb-3">RECENT ORDERS</p>
+              <p className="text-cyan-400 text-xs mb-3 tracking-widest">RECENT ORDERS</p>
               {data?.recentOrders?.length ? (
                 data.recentOrders.map((order: any) => (
-                  <div key={order.id} className="flex justify-between py-2 border-b border-zinc-800 last:border-0">
+                  <div key={order.id} className="flex justify-between py-2 border-b border-slate-700 last:border-0">
                     <div>
-                      <p className="text-white">{order.customerName}</p>
-                      <p className="text-zinc-500 text-xs">Order #{order.id} • {order.status}</p>
+                      <p>{order.customerName}</p>
+                      <p className="text-xs text-slate-400">#{order.id}</p>
                     </div>
-                    <span className="text-emerald-400 font-medium self-center tabular-nums">
+                    <span className="text-cyan-400 font-medium">
                       ${(order.total / 100).toFixed(2)}
                     </span>
                   </div>
                 ))
-              ) : (
-                <p className="text-zinc-500 text-xs py-2">No recent orders</p>
-              )}
+              ) : <p className="text-slate-400 text-xs">No recent orders</p>}
             </div>
 
             {/* Recent Bookings */}
             <div>
-              <p className="text-emerald-400 text-xs tracking-widest mb-3">RECENT BOOKINGS</p>
+              <p className="text-cyan-400 text-xs mb-3 tracking-widest">BOOKINGS</p>
               {data?.recentBookings?.length ? (
-                data.recentBookings.map((booking: any) => (
-                  <div key={booking.id} className="flex justify-between py-2 border-b border-zinc-800 last:border-0">
+                data.recentBookings.map((b: any) => (
+                  <div key={b.id} className="flex justify-between py-2 border-b border-slate-700 last:border-0">
                     <div>
-                      <p className="text-white">{booking.customerName}</p>
-                      <p className="text-zinc-500 text-xs">{booking.serviceType} • {booking.status}</p>
+                      <p>{b.customerName}</p>
+                      <p className="text-xs text-slate-400">{b.serviceType}</p>
                     </div>
-                    <span className="text-emerald-400 font-medium self-center tabular-nums">
-                      ${(booking.price / 100).toFixed(2)}
+                    <span className="text-cyan-400 font-medium">
+                      ${(b.price / 100).toFixed(2)}
                     </span>
                   </div>
                 ))
-              ) : (
-                <p className="text-zinc-500 text-xs py-2">No recent bookings</p>
-              )}
+              ) : <p className="text-slate-400 text-xs">No recent bookings</p>}
             </div>
-          </div>
-
-          <div className="pt-4 mt-auto border-t border-zinc-800 text-[10px] text-zinc-500 text-center tracking-widest">
-            Auto-refreshes every 12s • Manual refresh available above
           </div>
         </div>
       </div>
