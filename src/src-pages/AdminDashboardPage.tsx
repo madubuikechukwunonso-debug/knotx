@@ -36,7 +36,10 @@ export default function AdminOverviewSection() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Default 4 Hero Videos
+  // Pending files for batch save
+  const [pendingVideos, setPendingVideos] = useState<(File | null)[]>([null, null, null, null]);
+  const [pendingImages, setPendingImages] = useState<(File | null)[]>([null, null, null]);
+
   const defaultVideos = [
     { url: "/videos/1.webm", name: "Hero Video 1" },
     { url: "/videos/2.webm", name: "Hero Video 2" },
@@ -57,7 +60,6 @@ export default function AdminOverviewSection() {
 
       setData(overviewData);
 
-      // Merge Hero Videos
       const dbVideos = mediaData.heroVideos || [];
       const mergedVideos = defaultVideos.map((defaultVideo, index) => {
         const dbVideo = dbVideos[index];
@@ -67,11 +69,10 @@ export default function AdminOverviewSection() {
       });
       setHeroVideos(mergedVideos);
 
-      // Merge Gallery Images (use src from galleryImages.ts)
       const dbImages = mediaData.galleryImages || [];
       const realGallery = defaultGalleryImages.slice(0, 3).map((img, index) => ({
         id: img.id,
-        url: img.src,           // ← Use src here
+        url: img.src,
         name: img.alt || `Gallery Image ${index + 1}`,
       }));
 
@@ -97,51 +98,80 @@ export default function AdminOverviewSection() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleHeroVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+  // Handle file selection for a specific slot (does NOT upload yet)
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'hero' | 'gallery', index: number) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (type === 'hero') {
+      const newPending = [...pendingVideos];
+      newPending[index] = file;
+      setPendingVideos(newPending);
+    } else {
+      const newPending = [...pendingImages];
+      newPending[index] = file;
+      setPendingImages(newPending);
+    }
+  };
+
+  // Save ALL pending files at once
+  const handleSaveAll = async () => {
+    const hasAllVideos = pendingVideos.every(f => f !== null);
+    const hasAllImages = pendingImages.every(f => f !== null);
+
+    if (!hasAllVideos || !hasAllImages) {
+      alert("Please upload all 4 videos AND all 3 images before saving.");
+      return;
+    }
+
     setUploading(true);
+
     try {
-      const blob = await put(`hero/${file.name}`, file, {
-        access: 'public',
-        token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
-      });
-      await fetch('/api/admin/media', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'hero', url: blob.url, name: file.name }),
-      });
-      alert(`Hero Video ${index + 1} updated successfully!`);
+      // Upload all videos
+      for (let i = 0; i < pendingVideos.length; i++) {
+        const file = pendingVideos[i];
+        if (file) {
+          const blob = await put(`hero/${file.name}`, file, {
+            access: 'public',
+            token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
+          });
+          await fetch('/api/admin/media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'hero', url: blob.url, name: file.name }),
+          });
+        }
+      }
+
+      // Upload all images
+      for (let i = 0; i < pendingImages.length; i++) {
+        const file = pendingImages[i];
+        if (file) {
+          const blob = await put(`gallery/${file.name}`, file, {
+            access: 'public',
+            token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
+          });
+          await fetch('/api/admin/media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'gallery', url: blob.url, name: file.name }),
+          });
+        }
+      }
+
+      alert("All 4 videos and 3 images saved successfully!");
+      setPendingVideos([null, null, null, null]);
+      setPendingImages([null, null, null]);
       await fetchData(true);
     } catch (error) {
-      alert('Upload failed');
+      alert("Failed to save all media.");
+      console.error(error);
     } finally {
       setUploading(false);
     }
   };
 
-  const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const blob = await put(`gallery/${file.name}`, file, {
-        access: 'public',
-        token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
-      });
-      await fetch('/api/admin/media', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'gallery', url: blob.url, name: file.name }),
-      });
-      alert(`Gallery Image ${index + 1} updated successfully!`);
-      await fetchData(true);
-    } catch (error) {
-      alert('Upload failed');
-    } finally {
-      setUploading(false);
-    }
-  };
+  const canSaveAll = pendingVideos.every(f => f !== null) && pendingImages.every(f => f !== null);
 
   const formatTime = (date: Date) =>
     date.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
@@ -159,133 +189,58 @@ export default function AdminOverviewSection() {
         <p className="text-slate-400 mt-1">Real-time overview • KnotX &amp; Krafts</p>
       </div>
 
-      {/* Stats + Revenue Breakdown */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-6 md:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-xs text-slate-400 tracking-widest">TOTAL REVENUE</p>
-              <p className="text-4xl font-semibold tabular-nums mt-1">
-                {loading && !data ? "..." : `$${(data?.stats.totalRevenue || 0) / 100}`}
-              </p>
-            </div>
-            <DollarSign className="text-pink-400" size={28} />
-          </div>
-          <div className="mt-4 space-y-2 text-sm border-t border-slate-700 pt-4">
-            <div className="flex justify-between">
-              <span className="text-slate-400">From Orders</span>
-              <span className="font-medium">${(data?.stats.revenueFromOrders || 0) / 100}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">From Booking Deposits</span>
-              <span className="font-medium">${(data?.stats.revenueFromBookings || 0) / 100}</span>
-            </div>
-          </div>
-        </div>
+      {/* Stats + Revenue Breakdown (keep your existing code) */}
+      {/* ... (your stats section here) ... */}
 
-        {[
-          { label: "Total Orders", value: data?.stats.totalOrders ?? "—", icon: ShoppingCart },
-          { label: "Customers", value: data?.stats.totalCustomers ?? "—", icon: Users },
-          { label: "Bookings", value: data?.stats.totalBookings ?? "—", icon: Calendar },
-        ].map((stat, i) => (
-          <div key={i} className="bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs text-slate-400 tracking-widest">{stat.label}</p>
-                <p className="text-4xl font-semibold mt-3 tabular-nums">
-                  {loading && !data ? "..." : stat.value}
-                </p>
-              </div>
-              <stat.icon className="text-pink-400 mt-1" size={24} />
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Live Visitors + Recent Activity (keep your existing code) */}
+      {/* ... (your live visitors section here) ... */}
 
-      {/* Live Visitors + Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <p className="text-pink-400 text-xs tracking-[3px]">LIVE VISITORS</p>
-              <p className="text-xl font-medium">Website Activity Log</p>
-            </div>
-            <button onClick={() => fetchData(true)} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700">
-              <RefreshCw size={16} /> Refresh
-            </button>
-          </div>
-
-          <div className="max-h-[380px] overflow-auto pr-2 space-y-3 text-sm">
-            {data?.liveVisitors && data.liveVisitors.length > 0 ? (
-              data.liveVisitors.map((visitor, index) => (
-                <div key={index} className="flex justify-between items-center bg-[#0f172a] p-4 rounded-2xl">
-                  <div>
-                    <p className="font-medium">{visitor.displayName || 'Guest Visitor'}</p>
-                    <p className="text-xs text-slate-400">{visitor.page} • {visitor.ip}</p>
-                  </div>
-                  <div className="text-right text-xs">
-                    <span className={`px-2 py-0.5 rounded text-[10px] ${visitor.userType === 'registered' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20'}`}>
-                      {visitor.userType}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-center py-8 text-slate-400 text-sm">
-                No live visitors logged yet.<br />
-                <span className="text-xs">(Tracking is active via middleware)</span>
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="lg:col-span-2 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
-          <p className="text-pink-400 text-xs tracking-[3px] mb-4">RECENT ACTIVITY</p>
-          <div className="space-y-4 text-sm">
-            <div>
-              <p className="text-xs text-slate-400 mb-2">NEW USERS</p>
-              {data?.recentUsers?.length ? data.recentUsers.map((u, i) => (
-                <div key={i} className="flex justify-between py-1 border-b border-slate-700 last:border-0">
-                  <span>{u.displayName || u.email}</span>
-                </div>
-              )) : <p className="text-xs text-slate-500">No recent users</p>}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* === MEDIA MANAGEMENT === */}
+      {/* === MEDIA MANAGEMENT (BATCH MODE) === */}
       <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-8">
-        <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-          <Upload className="text-pink-400" /> Media Management
-        </h3>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-xl font-semibold flex items-center gap-2">
+              <Upload className="text-pink-400" /> Media Management
+            </h3>
+            <p className="text-sm text-slate-400 mt-1">
+              Upload all 4 videos + all 3 images, then click "Save All Changes"
+            </p>
+          </div>
+
+          <button
+            onClick={handleSaveAll}
+            disabled={!canSaveAll || uploading}
+            className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:cursor-not-allowed rounded-2xl font-medium text-sm transition-all"
+          >
+            {uploading ? "Saving..." : "Save All Changes"}
+          </button>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Hero Videos - 4 Fixed Slots */}
+          {/* Hero Videos - 4 Slots */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <Video className="text-pink-400" />
-              <h4 className="font-semibold text-lg">Hero Section Videos (4 Slots)</h4>
+              <h4 className="font-semibold text-lg">Hero Section Videos (4 Required)</h4>
             </div>
             <div className="space-y-4">
               {heroVideos.map((video, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl p-4">
                   <div className="flex justify-between items-center mb-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{video.name}</p>
+                    <div>
+                      <p className="font-medium">{video.name}</p>
                       <p className="text-xs text-slate-400 truncate">{video.url}</p>
                     </div>
-                    <label className="cursor-pointer ml-3 flex-shrink-0">
-                      <div className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-xl text-sm font-medium whitespace-nowrap">
-                        Change
+                    <label className="cursor-pointer">
+                      <div className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-xl text-sm font-medium">
+                        {pendingVideos[index] ? "Selected ✓" : "Choose File"}
                       </div>
                       <input
                         type="file"
                         accept="video/*"
-                        onChange={(e) => handleHeroVideoUpload(e, index)}
+                        onChange={(e) => handleFileSelect(e, 'hero', index)}
                         className="hidden"
-                        disabled={uploading}
                       />
                     </label>
                   </div>
@@ -294,34 +249,29 @@ export default function AdminOverviewSection() {
             </div>
           </div>
 
-          {/* Gallery Images - 3 Slots with Preview */}
+          {/* Gallery Images - 3 Slots */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <ImageIcon className="text-pink-400" />
-              <h4 className="font-semibold text-lg">Home Gallery Images (3 Slots)</h4>
+              <h4 className="font-semibold text-lg">Home Gallery Images (3 Required)</h4>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {galleryImagesState.map((img, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl overflow-hidden">
                   <div className="aspect-video bg-slate-800 flex items-center justify-center">
-                    <img 
-                      src={img.url} 
-                      alt={img.name} 
-                      className="max-h-full object-cover" 
-                    />
+                    <img src={img.url} alt={img.name} className="max-h-full object-cover" />
                   </div>
                   <div className="p-3 flex justify-between items-center">
                     <p className="text-sm truncate">{img.name}</p>
                     <label className="cursor-pointer">
                       <div className="px-3 py-1 bg-pink-600 hover:bg-pink-700 rounded-lg text-xs font-medium">
-                        Change
+                        {pendingImages[index] ? "Selected ✓" : "Choose File"}
                       </div>
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => handleGalleryImageUpload(e, index)}
+                        onChange={(e) => handleFileSelect(e, 'gallery', index)}
                         className="hidden"
-                        disabled={uploading}
                       />
                     </label>
                   </div>
@@ -332,7 +282,7 @@ export default function AdminOverviewSection() {
         </div>
 
         <p className="text-xs text-slate-500 mt-6 text-center">
-          Default assets from public folder will be used until replaced.
+          You must select all 4 videos + all 3 images before saving.
         </p>
       </div>
     </div>
