@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Users, DollarSign, ShoppingCart, Calendar, RefreshCw, MapPin 
+import {
+  Users, DollarSign, ShoppingCart, Calendar, RefreshCw, MapPin, Upload, Image as ImageIcon, Video
 } from 'lucide-react';
 import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 
@@ -12,10 +12,23 @@ interface OverviewData {
     totalOrders: number;
     totalCustomers: number;
     totalBookings: number;
+    revenueFromOrders?: number;
+    revenueFromBookings?: number;
   };
   recentUsers: any[];
   recentOrders: any[];
   recentBookings: any[];
+  liveVisitors?: Array<{
+    id: string;
+    ip: string;
+    page: string;
+    userType: 'registered' | 'guest';
+    displayName?: string;
+    timestamp: string;
+    country?: string;
+    city?: string;
+    coordinates?: [number, number];
+  }>;
 }
 
 export default function AdminOverviewSection() {
@@ -30,7 +43,7 @@ export default function AdminOverviewSection() {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' }
       });
-      if (!res.ok) throw new Error('Failed to fetch');
+      if (!res.ok) throw new Error('Failed to fetch overview data');
       const json = await res.json();
       setData(json);
       setLastUpdated(new Date());
@@ -43,196 +56,208 @@ export default function AdminOverviewSection() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(() => fetchData(), 12000);
+    const interval = setInterval(() => fetchData(), 15000);
     return () => clearInterval(interval);
   }, []);
 
-  // DEBUG LOG - Check your browser console (F12)
-  console.log('%c[AdminOverview] 🔥 v5.0 COMPLETELY NEW DESIGN LOADED', 'color: #22d3ee; font-size: 13px; font-weight: bold');
+  console.log('%c[AdminOverview] ✅ VERSION 7 - FINAL UPDATED DESIGN LOADED', 'color: #f472b6; font-size: 13px');
 
   const formatTime = (date: Date) =>
-    date.toLocaleTimeString('en-CA', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false,
-    });
+    date.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
 
-  const activeLocations = [
-    { name: 'Toronto', coordinates: [-79.3832, 43.6532] as [number, number] },
-    { name: 'New York', coordinates: [-74.0060, 40.7128] as [number, number] },
-    { name: 'London', coordinates: [-0.1276, 51.5074] as [number, number] },
-    { name: 'Dubai', coordinates: [55.2708, 25.2048] as [number, number] },
-    { name: 'Lagos', coordinates: [3.3792, 6.5244] as [number, number] },
-  ];
+  // Use real visitor locations if available, otherwise empty
+  const visitorLocations = data?.liveVisitors?.filter(v => v.coordinates) || [];
 
   return (
     <div className="space-y-8 bg-[#0f172a] min-h-screen p-6 text-white">
       
-      {/* === SUPER OBVIOUS VERSION BADGE === */}
-      <div className="bg-[#1e2937] border border-cyan-500/30 rounded-2xl p-4 text-center">
-        <div className="inline-flex items-center gap-3 bg-cyan-500/10 px-6 py-2 rounded-full">
-          <div className="w-3 h-3 bg-cyan-400 rounded-full animate-pulse" />
-          <span className="font-mono text-cyan-400 text-sm tracking-[4px]">VERSION 5.0 — NEW DESIGN</span>
+      {/* Version Badge */}
+      <div className="bg-[#1e2937] border border-pink-500/30 rounded-2xl p-4 text-center">
+        <div className="inline-flex items-center gap-3 bg-pink-500/10 px-6 py-2 rounded-full">
+          <div className="w-3 h-3 bg-pink-400 rounded-full animate-pulse" />
+          <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 7 — FINAL</span>
         </div>
-        <p className="text-xs text-cyan-400/60 mt-2">If you see this cyan banner, the new code is running</p>
       </div>
 
       <div>
         <h1 className="text-4xl font-semibold tracking-tight">Command Center</h1>
-        <p className="text-slate-400 mt-1">Real-time overview • KnotX &amp; Krafts</p>
+        <p className="text-slate-400 mt-1">Real-time business overview • KnotX &amp; Krafts</p>
       </div>
 
-      {/* Stats Row - Different Style */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* === STATS WITH REVENUE BREAKDOWN === */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Revenue Card with Rundown */}
+        <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-6 col-span-1 md:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs text-slate-400 tracking-widest">TOTAL REVENUE</p>
+              <p className="text-4xl font-semibold tabular-nums mt-1">
+                {loading && !data ? "..." : `$${(data?.stats.totalRevenue || 0) / 100}`}
+              </p>
+            </div>
+            <DollarSign className="text-pink-400" size={28} />
+          </div>
+
+          {/* Revenue Breakdown */}
+          <div className="mt-4 space-y-2 text-sm border-t border-slate-700 pt-4">
+            <div className="flex justify-between">
+              <span className="text-slate-400">From Orders</span>
+              <span className="font-medium text-white">
+                ${(data?.stats.revenueFromOrders || 0) / 100}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-400">From Booking Deposits</span>
+              <span className="font-medium text-white">
+                ${(data?.stats.revenueFromBookings || 0) / 100}
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-500 pt-2">
+              Revenue = Completed Orders + Paid Booking Deposits
+            </p>
+          </div>
+        </div>
+
+        {/* Other Stats */}
         {[
-          { label: "Revenue", value: data ? `$${(data.stats.totalRevenue / 100).toFixed(0)}` : "—", icon: DollarSign },
           { label: "Orders", value: data?.stats.totalOrders ?? "—", icon: ShoppingCart },
           { label: "Customers", value: data?.stats.totalCustomers ?? "—", icon: Users },
           { label: "Bookings", value: data?.stats.totalBookings ?? "—", icon: Calendar },
         ].map((stat, i) => (
-          <div key={i} className="bg-[#1e2937] border border-slate-700 rounded-2xl p-5">
+          <div key={i} className="bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-xs text-slate-400 tracking-widest">{stat.label}</p>
-                <p className="text-3xl font-semibold mt-3 tabular-nums text-white">
-                  {loading && !data ? "..." : stat.value}
-                </p>
+                <p className="text-4xl font-semibold mt-3 tabular-nums">{loading && !data ? "..." : stat.value}</p>
               </div>
-              <stat.icon className="text-cyan-400 mt-1" size={22} />
+              <stat.icon className="text-pink-400 mt-1" size={24} />
             </div>
           </div>
         ))}
       </div>
 
-      {/* Main Content */}
+      {/* === LIVE VISITORS + ACTIVITY === */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         
-        {/* World Map - Different Container Style */}
+        {/* Live Visitors Console */}
         <div className="lg:col-span-3 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
-          <div className="flex items-center gap-3 mb-5">
-            <MapPin className="text-cyan-400" />
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-cyan-400 text-xs tracking-[3px]">GLOBAL ACTIVITY</p>
-              <p className="text-xl font-medium">Live User Locations</p>
+              <p className="text-pink-400 text-xs tracking-[3px]">LIVE VISITORS</p>
+              <p className="text-xl font-medium">Website Activity Console</p>
             </div>
+            <button onClick={() => fetchData(true)} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700">
+              <RefreshCw size={16} /> Refresh
+            </button>
           </div>
 
-          <div className="rounded-2xl overflow-hidden border border-slate-700 bg-[#0f172a]">
-            <ComposableMap
-              projectionConfig={{ scale: 135 }}
-              width={800}
-              height={400}
-              style={{ width: "100%", height: "auto" }}
-            >
-              <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
-                {({ geographies }) =>
-                  geographies.map((geo) => (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      fill="#334155"
-                      stroke="#475569"
-                      strokeWidth={0.5}
-                    />
-                  ))
-                }
-              </Geographies>
-
-              {activeLocations.map((loc, index) => (
-                <Marker key={index} coordinates={loc.coordinates}>
-                  <g>
-                    <circle r={5} fill="#22d3ee" />
-                    <circle r={5} fill="#22d3ee" opacity="0.4">
-                      <animate attributeName="r" values="5;16;5" dur="2s" repeatCount="indefinite" />
-                    </circle>
-                  </g>
-                </Marker>
-              ))}
-            </ComposableMap>
+          <div className="max-h-[380px] overflow-auto pr-2 space-y-3 text-sm">
+            {data?.liveVisitors && data.liveVisitors.length > 0 ? (
+              data.liveVisitors.map((visitor, index) => (
+                <div key={index} className="flex justify-between items-center bg-[#0f172a] p-4 rounded-2xl border border-slate-700">
+                  <div>
+                    <p className="font-medium">{visitor.displayName || 'Guest Visitor'}</p>
+                    <p className="text-xs text-slate-400">{visitor.page} • {visitor.ip}</p>
+                  </div>
+                  <div className="text-right text-xs">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] ${visitor.userType === 'registered' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20 text-slate-400'}`}>
+                      {visitor.userType}
+                    </span>
+                    <p className="text-slate-400 mt-1">{new Date(visitor.timestamp).toLocaleTimeString()}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-slate-400 text-sm">
+                No live visitors logged yet.<br />
+                <span className="text-xs">(Implement visitor tracking to populate this section)</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Activity Console - Different Style */}
-        <div className="lg:col-span-2 bg-[#1e2937] border border-slate-700 rounded-3xl p-6 flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <p className="text-cyan-400 text-xs tracking-[3px]">LIVE FEED</p>
-              <p className="text-xl font-medium">Activity Console</p>
-            </div>
-
-            <div className="flex items-center gap-3 text-xs">
-              {lastUpdated && (
-                <div className="text-right">
-                  <div className="text-slate-400 text-[10px]">Updated</div>
-                  <div className="font-mono text-cyan-400">{formatTime(lastUpdated)}</div>
-                </div>
-              )}
-              <button
-                onClick={() => fetchData(true)}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-sm transition-all"
-              >
-                <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
-                Refresh
-              </button>
-            </div>
-          </div>
-
-          <div className="flex-1 space-y-6 text-sm overflow-auto">
+        {/* Recent Activity */}
+        <div className="lg:col-span-2 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
+          <p className="text-pink-400 text-xs tracking-[3px] mb-4">RECENT ACTIVITY</p>
+          
+          <div className="space-y-5 text-sm">
             {/* Recent Users */}
             <div>
-              <p className="text-cyan-400 text-xs mb-3 tracking-widest">NEW USERS</p>
-              {data?.recentUsers?.length ? (
-                data.recentUsers.map((user: any) => (
-                  <div key={user.id} className="flex justify-between py-2 border-b border-slate-700 last:border-0">
-                    <div>
-                      <p>{user.displayName || "New User"}</p>
-                      <p className="text-xs text-slate-400">{user.email}</p>
-                    </div>
-                    <span className="text-xs text-cyan-400 self-center">
-                      {new Date(user.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ))
-              ) : <p className="text-slate-400 text-xs">No recent users</p>}
+              <p className="text-xs text-slate-400 mb-2">NEW USERS</p>
+              {data?.recentUsers?.length ? data.recentUsers.map((u, i) => (
+                <div key={i} className="flex justify-between py-1.5 border-b border-slate-700 last:border-0">
+                  <span>{u.displayName || u.email}</span>
+                  <span className="text-xs text-slate-400">{new Date(u.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                </div>
+              )) : <p className="text-xs text-slate-500">No recent users</p>}
             </div>
 
-            {/* Recent Orders */}
+            {/* Recent Orders & Bookings */}
             <div>
-              <p className="text-cyan-400 text-xs mb-3 tracking-widest">RECENT ORDERS</p>
-              {data?.recentOrders?.length ? (
-                data.recentOrders.map((order: any) => (
-                  <div key={order.id} className="flex justify-between py-2 border-b border-slate-700 last:border-0">
-                    <div>
-                      <p>{order.customerName}</p>
-                      <p className="text-xs text-slate-400">#{order.id}</p>
-                    </div>
-                    <span className="text-cyan-400 font-medium">
-                      ${(order.total / 100).toFixed(2)}
-                    </span>
+              <p className="text-xs text-slate-400 mb-2">RECENT ORDERS &amp; BOOKINGS</p>
+              {[...(data?.recentOrders || []), ...(data?.recentBookings || [])]
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .slice(0, 5)
+                .map((item, i) => (
+                  <div key={i} className="flex justify-between py-1.5 border-b border-slate-700 last:border-0 text-xs">
+                    <span>{item.customerName}</span>
+                    <span className="text-pink-400">${(item.total || item.price || 0) / 100}</span>
                   </div>
-                ))
-              ) : <p className="text-slate-400 text-xs">No recent orders</p>}
+                ))}
             </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Recent Bookings */}
-            <div>
-              <p className="text-cyan-400 text-xs mb-3 tracking-widest">BOOKINGS</p>
-              {data?.recentBookings?.length ? (
-                data.recentBookings.map((b: any) => (
-                  <div key={b.id} className="flex justify-between py-2 border-b border-slate-700 last:border-0">
-                    <div>
-                      <p>{b.customerName}</p>
-                      <p className="text-xs text-slate-400">{b.serviceType}</p>
-                    </div>
-                    <span className="text-cyan-400 font-medium">
-                      ${(b.price / 100).toFixed(2)}
-                    </span>
-                  </div>
-                ))
-              ) : <p className="text-slate-400 text-xs">No recent bookings</p>}
+      {/* === MEDIA MANAGEMENT (Hero + Gallery) === */}
+      <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-8">
+        <h3 className="text-xl font-semibold mb-2 flex items-center gap-2">
+          <Upload className="text-pink-400" /> Media Management
+        </h3>
+        <p className="text-sm text-slate-400 mb-6">
+          Current Hero videos and Gallery images will remain as placeholders until you upload new ones.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Hero Section Control */}
+          <div className="border border-slate-600 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Video className="text-pink-400" />
+              <div>
+                <p className="font-medium">Hero Section</p>
+                <p className="text-xs text-slate-400">Video Background</p>
+              </div>
             </div>
+            <p className="text-sm text-slate-400 mb-4">
+              Current video will stay until you upload a new one.
+            </p>
+            <button 
+              onClick={() => alert("Hero upload modal coming soon. Current video remains as placeholder.")}
+              className="w-full py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-sm font-medium"
+            >
+              Upload New Hero Video
+            </button>
+          </div>
+
+          {/* Gallery Control */}
+          <div className="border border-slate-600 rounded-2xl p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <ImageIcon className="text-pink-400" />
+              <div>
+                <p className="font-medium">Home Gallery</p>
+                <p className="text-xs text-slate-400">Image Collection</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-400 mb-4">
+              Existing images in <code>HomeGallerySection.tsx</code> will remain until replaced.
+            </p>
+            <button 
+              onClick={() => alert("Gallery upload coming soon. Current images remain as placeholders.")}
+              className="w-full py-3 rounded-xl bg-pink-600 hover:bg-pink-700 text-sm font-medium"
+            >
+              Manage Gallery Images
+            </button>
           </div>
         </div>
       </div>
