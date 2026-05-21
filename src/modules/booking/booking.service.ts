@@ -54,7 +54,6 @@ function isSlotAvailable(
       return false;
     }
   }
-
   return true;
 }
 
@@ -72,28 +71,30 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
   if (!service) return [];
 
   const dayOfWeek = dayOfWeekFromDate(input.date);
+
   const profiles = await prisma.staffProfile.findMany();
   const hours = await prisma.staffWorkingHour.findMany();
   const timeOffs = await prisma.staffTimeOff.findMany();
-  
+
   // Get ALL bookings for this date (not cancelled)
   const bookings = await prisma.booking.findMany({
-    where: { 
+    where: {
       date: input.date,
       status: { not: "cancelled" },
     },
     select: { staffUserId: true, time: true, durationMinutes: true },
   });
 
-  const bookingEnabledProfiles = profiles.filter((p) => p.bookingEnabled);
+  // ✅ Fixed: Explicit any on filter parameter
+  const bookingEnabledProfiles = profiles.filter((p: any) => p.bookingEnabled);
 
-  const availableByStaff = bookingEnabledProfiles.flatMap((profile) => {
+  const availableByStaff = bookingEnabledProfiles.flatMap((profile: any) => {
     const working = hours.find(
-      (h) => h.staffUserId === profile.userId && h.dayOfWeek === dayOfWeek && h.isWorking
+      (h: any) => h.staffUserId === profile.userId && h.dayOfWeek === dayOfWeek && h.isWorking
     );
     if (!working) return [];
 
-    const hasTimeOff = timeOffs.some((t) => {
+    const hasTimeOff = timeOffs.some((t: any) => {
       if (t.staffUserId !== profile.userId) return false;
       const start = new Date(t.startAt);
       const end = new Date(t.endAt);
@@ -103,13 +104,13 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
     if (hasTimeOff) return [];
 
     // Get bookings for THIS braider only
-    const braiderBookings = bookings.filter((b) => b.staffUserId === profile.userId);
+    const braiderBookings = bookings.filter((b: any) => b.staffUserId === profile.userId);
 
     // Generate all possible start times
     const allSlots = buildSlots(working.startTime, working.endTime, service.durationMinutes);
 
     // Filter out overlapping slots
-    const availableSlots = allSlots.filter((slot) => 
+    const availableSlots = allSlots.filter((slot) =>
       isSlotAvailable(slot, service.durationMinutes, braiderBookings)
     );
 
@@ -135,7 +136,7 @@ export async function createBooking(input: CreateBookingInput) {
   const bookingDate = new Date(`${input.date}T00:00:00`);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   if (bookingDate < today) {
     throw new Error("Cannot book appointments in the past");
   }
@@ -148,7 +149,6 @@ export async function createBooking(input: CreateBookingInput) {
   const validSlot = available.find(
     (slot) => slot.staffUserId === input.staffUserId && slot.time === input.time
   );
-
   if (!validSlot) throw new Error("Selected booking slot is no longer available");
 
   const newBooking = await prisma.booking.create({
@@ -176,12 +176,14 @@ export async function createBooking(input: CreateBookingInput) {
 
 export async function listMyBookings(user?: BookingSessionUser) {
   if (!user) return [];
+
   if (user.userType === "local") {
     return prisma.booking.findMany({
       where: { customerEmail: user.email || "" },
       orderBy: { createdAt: "desc" },
     });
   }
+
   return prisma.booking.findMany({
     where: {
       userId: user.userId,
