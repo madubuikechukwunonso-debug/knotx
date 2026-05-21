@@ -34,10 +34,7 @@ export default function AdminOverviewSection() {
   const [galleryImagesState, setGalleryImagesState] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const [pendingVideos, setPendingVideos] = useState<(File | null)[]>([null, null, null, null]);
-  const [pendingImages, setPendingImages] = useState<(File | null)[]>([null, null, null]);
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
 
   const defaultVideos = [
     { url: "/videos/1.webm", name: "Hero Video 1" },
@@ -59,6 +56,7 @@ export default function AdminOverviewSection() {
 
       setData(overviewData);
 
+      // Merge DB videos with defaults
       const dbVideos = mediaData.heroVideos || [];
       const mergedVideos = defaultVideos.map((defaultVideo, index) => {
         const dbVideo = dbVideos[index];
@@ -68,6 +66,7 @@ export default function AdminOverviewSection() {
       });
       setHeroVideos(mergedVideos);
 
+      // Merge DB images with defaults
       const dbImages = mediaData.galleryImages || [];
       const realGallery = defaultGalleryImages.slice(0, 3).map((img, index) => ({
         id: img.id,
@@ -81,8 +80,8 @@ export default function AdminOverviewSection() {
           ? { id: dbImg.id, url: dbImg.url, name: dbImg.name || defaultImg.name }
           : defaultImg;
       });
-
       setGalleryImagesState(mergedImages);
+
       setLastUpdated(new Date());
     } catch (error) {
       console.error(error);
@@ -97,101 +96,49 @@ export default function AdminOverviewSection() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'hero' | 'gallery', index: number) => {
+  // Individual upload handler
+  const handleIndividualUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: 'hero' | 'gallery',
+    index: number
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (type === 'hero') {
-      const newPending = [...pendingVideos];
-      newPending[index] = file;
-      setPendingVideos(newPending);
-    } else {
-      const newPending = [...pendingImages];
-      newPending[index] = file;
-      setPendingImages(newPending);
-    }
-  };
+    setUploadingIndex(index);
 
-  // Save Videos (with overwrite)
-  const handleSaveVideos = async () => {
-    const hasAllVideos = pendingVideos.every(f => f !== null);
-    if (!hasAllVideos) {
-      alert("Please select all 4 videos before saving.");
-      return;
-    }
-
-    setUploading(true);
     try {
-      // 1. Delete old videos
-      await fetch('/api/admin/media/clear?type=hero', { method: 'DELETE' });
-
-      // 2. Upload new videos
-      for (let i = 0; i < pendingVideos.length; i++) {
-        const file = pendingVideos[i];
-        if (file) {
-          const blob = await put(`hero/${file.name}`, file, {
-            access: 'public',
-            token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
-          });
-          await fetch('/api/admin/media', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'hero', url: blob.url, name: file.name }),
-          });
+      const blob = await put(
+        `${type}/${Date.now()}-${file.name}`,
+        file,
+        {
+          access: 'public',
+          token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
         }
-      }
+      );
 
-      alert("All 4 Hero Videos saved successfully! (Old ones replaced)");
-      setPendingVideos([null, null, null, null]);
+      const response = await fetch('/api/admin/media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          url: blob.url,
+          name: file.name,
+          position: index,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save media');
+
+      alert(`${type === 'hero' ? 'Video' : 'Image'} ${index + 1} updated successfully!`);
       await fetchData(true);
     } catch (error) {
-      alert("Failed to save videos.");
+      console.error(error);
+      alert('Upload failed. Please try again.');
     } finally {
-      setUploading(false);
+      setUploadingIndex(null);
     }
   };
-
-  // Save Images (with overwrite)
-  const handleSaveImages = async () => {
-    const hasAllImages = pendingImages.every(f => f !== null);
-    if (!hasAllImages) {
-      alert("Please select all 3 images before saving.");
-      return;
-    }
-
-    setUploading(true);
-    try {
-      // 1. Delete old images
-      await fetch('/api/admin/media/clear?type=gallery', { method: 'DELETE' });
-
-      // 2. Upload new images
-      for (let i = 0; i < pendingImages.length; i++) {
-        const file = pendingImages[i];
-        if (file) {
-          const blob = await put(`gallery/${file.name}`, file, {
-            access: 'public',
-            token: process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN,
-          });
-          await fetch('/api/admin/media', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'gallery', url: blob.url, name: file.name }),
-          });
-        }
-      }
-
-      alert("All 3 Gallery Images saved successfully! (Old ones replaced)");
-      setPendingImages([null, null, null]);
-      await fetchData(true);
-    } catch (error) {
-      alert("Failed to save images.");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const canSaveVideos = pendingVideos.every(f => f !== null);
-  const canSaveImages = pendingImages.every(f => f !== null);
 
   const formatTime = (date: Date) =>
     date.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
@@ -201,7 +148,7 @@ export default function AdminOverviewSection() {
       
       {/* Version Badge */}
       <div className="bg-[#1e2937] border border-pink-500/30 rounded-2xl p-4 text-center">
-        <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 7 — FINAL</span>
+        <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 8 — INDIVIDUAL UPLOADS</span>
       </div>
 
       <div>
@@ -304,47 +251,42 @@ export default function AdminOverviewSection() {
         </div>
       </div>
 
-      {/* === MEDIA MANAGEMENT (TWO SEPARATE SAVE BUTTONS + OVERWRITE) === */}
+      {/* === MEDIA MANAGEMENT - INDIVIDUAL UPLOADS === */}
       <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-8">
         <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
           <Upload className="text-pink-400" /> Media Management
         </h3>
+        <p className="text-sm text-slate-400 mb-6">
+          Upload or replace videos and images individually. Only the selected slot will be updated.
+        </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Hero Videos */}
+          {/* Hero Videos - Individual Upload */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <Video className="text-pink-400" />
-                <h4 className="font-semibold text-lg">Hero Section Videos (4 Required)</h4>
-              </div>
-              <button
-                onClick={handleSaveVideos}
-                disabled={!canSaveVideos || uploading}
-                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:cursor-not-allowed rounded-xl text-sm font-medium transition-all"
-              >
-                {uploading ? "Saving..." : "Save All Videos"}
-              </button>
+            <div className="flex items-center gap-3 mb-4">
+              <Video className="text-pink-400" />
+              <h4 className="font-semibold text-lg">Hero Section Videos</h4>
             </div>
 
             <div className="space-y-4">
               {heroVideos.map((video, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl p-4">
-                  <div className="flex justify-between items-center mb-3">
+                  <div className="flex justify-between items-center">
                     <div>
                       <p className="font-medium">{video.name}</p>
-                      <p className="text-xs text-slate-400 truncate">{video.url}</p>
+                      <p className="text-xs text-slate-400 truncate max-w-[220px]">{video.url}</p>
                     </div>
                     <label className="cursor-pointer">
-                      <div className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-xl text-sm font-medium">
-                        {pendingVideos[index] ? "Selected ✓" : "Choose File"}
+                      <div className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-xl text-sm font-medium transition-all">
+                        {uploadingIndex === index ? "Uploading..." : "Change"}
                       </div>
                       <input
                         type="file"
                         accept="video/*"
-                        onChange={(e) => handleFileSelect(e, 'hero', index)}
+                        onChange={(e) => handleIndividualUpload(e, 'hero', index)}
                         className="hidden"
+                        disabled={uploadingIndex !== null}
                       />
                     </label>
                   </div>
@@ -353,20 +295,11 @@ export default function AdminOverviewSection() {
             </div>
           </div>
 
-          {/* Gallery Images */}
+          {/* Gallery Images - Individual Upload */}
           <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <ImageIcon className="text-pink-400" />
-                <h4 className="font-semibold text-lg">Home Gallery Images (3 Required)</h4>
-              </div>
-              <button
-                onClick={handleSaveImages}
-                disabled={!canSaveImages || uploading}
-                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:cursor-not-allowed rounded-xl text-sm font-medium transition-all"
-              >
-                {uploading ? "Saving..." : "Save All Images"}
-              </button>
+            <div className="flex items-center gap-3 mb-4">
+              <ImageIcon className="text-pink-400" />
+              <h4 className="font-semibold text-lg">Home Gallery Images</h4>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -375,17 +308,18 @@ export default function AdminOverviewSection() {
                   <div className="aspect-video bg-slate-800 flex items-center justify-center">
                     <img src={img.url} alt={img.name} className="max-h-full object-cover" />
                   </div>
-                  <div className="p-3 flex justify-between items-center">
+                  <div className="p-3 flex justify-between items-center bg-[#0f172a]">
                     <p className="text-sm truncate">{img.name}</p>
                     <label className="cursor-pointer">
-                      <div className="px-3 py-1 bg-pink-600 hover:bg-pink-700 rounded-lg text-xs font-medium">
-                        {pendingImages[index] ? "Selected ✓" : "Choose File"}
+                      <div className="px-3 py-1.5 bg-pink-600 hover:bg-pink-700 rounded-lg text-xs font-medium transition-all">
+                        {uploadingIndex === index ? "..." : "Change"}
                       </div>
                       <input
                         type="file"
                         accept="image/*"
-                        onChange={(e) => handleFileSelect(e, 'gallery', index)}
+                        onChange={(e) => handleIndividualUpload(e, 'gallery', index)}
                         className="hidden"
+                        disabled={uploadingIndex !== null}
                       />
                     </label>
                   </div>
@@ -394,10 +328,6 @@ export default function AdminOverviewSection() {
             </div>
           </div>
         </div>
-
-        <p className="text-xs text-slate-500 mt-6 text-center">
-          Uploading a new set will replace the previous one.
-        </p>
       </div>
     </div>
   );
