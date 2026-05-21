@@ -30,11 +30,11 @@ export default function HomeGallerySection() {
           const data = await res.json();
           const dbImages: GalleryImage[] = data.galleryImages || [];
 
-          // Create final array of exactly 3 images
+          // Create final array of exactly 3 images using position
           const finalImages: any[] = [];
 
           for (let i = 0; i < 3; i++) {
-            // Try to find a DB image that matches this position
+            // Find image that has this exact position
             const dbImage = dbImages.find((img) => img.position === i);
 
             if (dbImage) {
