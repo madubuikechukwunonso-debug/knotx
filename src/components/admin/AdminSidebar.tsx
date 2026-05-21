@@ -173,7 +173,7 @@ export default function AdminSidebar(props: AdminSidebarProps) {
             <SidebarContent {...props} />
           </aside>
         </div>
-      </>
+      )}
     </>
   );
 }
