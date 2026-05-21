@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Users, DollarSign, ShoppingCart, Calendar, RefreshCw, Upload, Video, Image as ImageIcon, LogOut, Sun, Moon
+  Users, DollarSign, ShoppingCart, Calendar, RefreshCw, Upload, Video, Image as ImageIcon, LogOut
 } from 'lucide-react';
 import Link from 'next/link';
 import { galleryImages as defaultGalleryImages } from '@/lib/galleryImages';
 import { uploadMediaAction } from '@/app/actions/upload-media';
-import { useTheme } from 'next-themes';
 
 interface MediaItem {
   id?: number;
@@ -37,7 +36,6 @@ export default function AdminOverviewSection() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
-  const { theme, setTheme } = useTheme();
 
   const defaultVideos = [
     { url: "/videos/1.webm", name: "Hero Video 1" },
@@ -59,7 +57,6 @@ export default function AdminOverviewSection() {
 
       setData(overviewData);
 
-      // Merge DB videos with defaults using position
       const dbVideos = mediaData.heroVideos || [];
       const mergedVideos = defaultVideos.map((defaultVideo, index) => {
         const dbVideo = dbVideos.find((v: any) => v.position === index);
@@ -69,7 +66,6 @@ export default function AdminOverviewSection() {
       });
       setHeroVideos(mergedVideos);
 
-      // Merge DB images with defaults using position
       const dbImages = mediaData.galleryImages || [];
       const realGallery = defaultGalleryImages.slice(0, 3).map((img, index) => ({
         id: img.id,
@@ -99,7 +95,6 @@ export default function AdminOverviewSection() {
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ Cleaned up upload handler
   const handleIndividualUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     type: 'hero' | 'gallery',
@@ -148,7 +143,7 @@ export default function AdminOverviewSection() {
   return (
     <div className="space-y-8 bg-[#0f172a] min-h-screen p-6 text-white">
       
-      {/* Top Bar with Theme Toggle + Return Button */}
+      {/* Top Bar */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-semibold tracking-tight">Command Center</h1>
@@ -156,22 +151,13 @@ export default function AdminOverviewSection() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Theme Selector */}
-          <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1e2937] border border-slate-700 rounded-xl hover:bg-slate-800 transition-all"
-          >
-            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
-            <span className="text-sm">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-          </button>
-
           {/* Return to User Dashboard Button */}
           <Link
-            href="/"
+            href="/dashboard"
             className="flex items-center gap-2 px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-xl text-sm font-medium transition-all"
           >
             <LogOut size={18} />
-            Return to Site
+            Return to User Dashboard
           </Link>
         </div>
       </div>
@@ -181,7 +167,7 @@ export default function AdminOverviewSection() {
         <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 10 — CLEAN OVERWRITE</span>
       </div>
 
-      {/* Stats + Revenue Breakdown */}
+      {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-6 md:col-span-2">
           <div className="flex items-center justify-between mb-4">
@@ -276,7 +262,7 @@ export default function AdminOverviewSection() {
         </div>
       </div>
 
-      {/* === MEDIA MANAGEMENT - INDIVIDUAL UPLOADS === */}
+      {/* Media Management */}
       <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-8">
         <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
           <Upload className="text-pink-400" /> Media Management
@@ -286,14 +272,12 @@ export default function AdminOverviewSection() {
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
           {/* Hero Videos */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <Video className="text-pink-400" />
               <h4 className="font-semibold text-lg">Hero Section Videos</h4>
             </div>
-
             <div className="space-y-4">
               {heroVideos.map((video, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl p-4">
@@ -326,7 +310,6 @@ export default function AdminOverviewSection() {
               <ImageIcon className="text-pink-400" />
               <h4 className="font-semibold text-lg">Home Gallery Images</h4>
             </div>
-
             <div className="grid grid-cols-2 gap-4">
               {galleryImagesState.map((img, index) => (
                 <div key={index} className="border border-slate-600 rounded-2xl overflow-hidden">
