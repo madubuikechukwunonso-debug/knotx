@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
@@ -15,7 +16,7 @@ import {
   UserCog,
   MessageCircle,
   Calendar,
-  Clock,          // ← NEW icon for availability
+  Clock,
 } from "lucide-react";
 
 import AdminSidebar, { type AdminTabId, type AdminTab } from "./AdminSidebar";
@@ -33,7 +34,7 @@ const fullTabs: AdminTab[] = [
   { id: "staff", label: "Staff", description: "Team & permissions", icon: UserCog },
   { id: "messages", label: "Messages", description: "Inquiries & replies", icon: MessageCircle },
   { id: "bookings", label: "Bookings", description: "Appointments", icon: Calendar },
-  { id: "availability", label: "Availability", description: "Staff schedules & slots", icon: Clock }, // ← NEW
+  { id: "availability", label: "Availability", description: "Staff schedules & slots", icon: Clock },
 ];
 
 // ====================== STAFF-ONLY TABS ======================
@@ -55,6 +56,9 @@ export default function AdminUI({
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Theme integration from root layout.tsx
+  const { theme } = useTheme();
 
   const isStaff = role === "staff";
   const tabs: AdminTab[] = isStaff ? staffTabs : fullTabs;
@@ -78,8 +82,26 @@ export default function AdminUI({
 
   const { title, description } = getHeaderContent(activeTab);
 
+  // Theme-aware background for the main content area
+  // This prepares the admin UI for the multi-theme system (dark, midnight, ocean, rose, light)
+  const getContentBackground = () => {
+    switch (theme) {
+      case "dark":
+      case "midnight":
+      case "ocean":
+        return "bg-slate-950"; // Dark content area for dark themes
+      case "rose":
+        return "bg-rose-50"; // Soft rose tint
+      case "light":
+      default:
+        return "bg-emerald-50"; // Default light emerald (current design)
+    }
+  };
+
+  const contentBg = getContentBackground();
+
   return (
-    <div className="flex h-dvh bg-emerald-50 overflow-hidden">
+    <div className={`flex h-dvh ${contentBg} overflow-hidden`}>
       <AdminSidebar
         tabs={tabs}
         activeTab={activeTab}
@@ -96,7 +118,7 @@ export default function AdminUI({
           onMenuClick={handleMenuClick}
         />
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6 bg-emerald-50">
+        <main className={`flex-1 overflow-auto p-4 sm:p-6 ${contentBg}`}>
           {children}
         </main>
       </div>
@@ -117,7 +139,7 @@ const getHeaderContent = (tab: AdminTabId): { title: string; description: string
     staff: { title: "Staff", description: "Team & permissions" },
     messages: { title: "Messages", description: "Customer support inbox" },
     bookings: { title: "Bookings", description: "Manage appointments" },
-    availability: { title: "Availability", description: "Staff schedules & blocked slots" }, // ← NEW
+    availability: { title: "Availability", description: "Staff schedules & blocked slots" },
   };
   return map[tab] || { title: "Dashboard", description: "Knotx & Krafts" };
 };
