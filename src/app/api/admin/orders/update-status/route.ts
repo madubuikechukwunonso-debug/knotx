@@ -1,5 +1,15 @@
+// src/app/api/admin/orders/update-status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+
+interface OrderItemWithProduct {
+  id: number;
+  quantity: number;
+  price: number;
+  product: {
+    name: string;
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const updatedOrder = await prisma.order.update({
       where: { id },
-      data: { 
+      data: {
         status,
         shippingStatus: status === 'fulfilled' ? 'shipped' : 'pending',
         fulfilledAt: status === 'fulfilled' ? new Date() : null,
@@ -32,7 +42,7 @@ export async function POST(request: NextRequest) {
     });
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    
+
     try {
       if (status === 'paid') {
         await fetch(`${baseUrl}/api/send-order-confirmation`, {
@@ -43,7 +53,7 @@ export async function POST(request: NextRequest) {
             customerEmail: order.customerEmail,
             orderId: order.id,
             total: order.total,
-            items: order.items.map(item => ({
+            items: (order.items as OrderItemWithProduct[]).map((item) => ({
               name: item.product.name,
               quantity: item.quantity,
               price: item.price,
@@ -109,12 +119,11 @@ export async function POST(request: NextRequest) {
       console.error('Failed to send email notification:', emailError);
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       order: updatedOrder,
-      message: `Order status updated to ${status} and notification email sent` 
+      message: `Order status updated to ${status} and notification email sent`,
     });
-
   } catch (error) {
     console.error('Update status error:', error);
     return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });
