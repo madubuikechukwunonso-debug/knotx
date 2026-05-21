@@ -24,14 +24,18 @@ const REQUIRED_TABLES = [
   "ContactReply",
 ] as const;
 
+interface TableRow {
+  table_name: string;
+}
+
 async function verifyTables() {
-  const tables = await prisma.$queryRaw<Array<{ table_name: string }>>`
+  const tables = await prisma.$queryRaw<TableRow[]>`
     SELECT table_name
     FROM information_schema.tables
     WHERE table_schema = 'public'
   `;
 
-  const tableNames = new Set(tables.map((row) => row.table_name));
+  const tableNames = new Set(tables.map((row: TableRow) => row.table_name));
 
   const missing = REQUIRED_TABLES.filter((name) => !tableNames.has(name));
 
@@ -79,7 +83,6 @@ async function bootstrapAdmin() {
         isBlocked: false,
       },
     });
-
     console.log(`✅ Admin user updated: ${email}`);
     return;
   }
@@ -102,10 +105,8 @@ async function bootstrapAdmin() {
 async function main() {
   try {
     console.log("🚀 Starting admin seed...");
-
     await verifyTables();
     await bootstrapAdmin();
-
     console.log("🎉 Admin seed completed successfully!");
   } catch (error) {
     console.error("❌ Admin seed failed:", error);
