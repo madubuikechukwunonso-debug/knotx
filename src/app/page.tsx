@@ -1,3 +1,4 @@
+// src/app/page.tsx
 import Navigation from "@/components/Navigation";
 import HeroSection from "@/components/HeroSection";
 import ManifestoSection from "@/components/ManifestoSection";
@@ -13,13 +14,23 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+interface Review {
+  id: number;
+  customerName: string;
+  rating: number;
+  emoji: string | null;
+  comment: string | null;
+  serviceType: string | null;
+  createdAt: Date;
+}
+
 export default async function HomePage() {
   const products = await listProducts();
 
   // Fetch reviews with proper typing
-  const reviews = await prisma.review.findMany({
+  const reviews = (await prisma.review.findMany({
     take: 6,
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     select: {
       id: true,
       customerName: true,
@@ -29,10 +40,10 @@ export default async function HomePage() {
       serviceType: true,
       createdAt: true,
     },
-  });
+  })) as Review[];
 
   // Filter out reviews without comments and shuffle
-  const validReviews = reviews.filter((r) => r.comment !== null);
+  const validReviews = reviews.filter((r: Review) => r.comment !== null);
   const shuffledReviews = [...validReviews].sort(() => Math.random() - 0.5);
 
   return (
@@ -42,10 +53,8 @@ export default async function HomePage() {
       <ManifestoSection />
       <HomeGallerySection />
       <ServicesSection />
-
       {/* NEW: Customer Reviews Section */}
       <ReviewsSection reviews={shuffledReviews} />
-
       <ProductsSection products={products} />
       <NewsletterSection />
       <Footer />
