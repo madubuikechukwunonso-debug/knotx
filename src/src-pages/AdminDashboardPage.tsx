@@ -56,17 +56,17 @@ export default function AdminOverviewSection() {
 
       setData(overviewData);
 
-      // Merge DB videos with defaults
+      // Merge DB videos with defaults using position
       const dbVideos = mediaData.heroVideos || [];
       const mergedVideos = defaultVideos.map((defaultVideo, index) => {
-        const dbVideo = dbVideos.find((v: any) => v.position === index) || dbVideos[index];
+        const dbVideo = dbVideos.find((v: any) => v.position === index);
         return dbVideo
           ? { id: dbVideo.id, url: dbVideo.url, name: dbVideo.name || defaultVideo.name }
           : defaultVideo;
       });
       setHeroVideos(mergedVideos);
 
-      // Merge DB images with defaults
+      // Merge DB images with defaults using position
       const dbImages = mediaData.galleryImages || [];
       const realGallery = defaultGalleryImages.slice(0, 3).map((img, index) => ({
         id: img.id,
@@ -75,7 +75,7 @@ export default function AdminOverviewSection() {
       }));
 
       const mergedImages = realGallery.map((defaultImg, index) => {
-        const dbImg = dbImages.find((img: any) => img.position === index) || dbImages[index];
+        const dbImg = dbImages.find((img: any) => img.position === index);
         return dbImg
           ? { id: dbImg.id, url: dbImg.url, name: dbImg.name || defaultImg.name }
           : defaultImg;
@@ -96,7 +96,7 @@ export default function AdminOverviewSection() {
     return () => clearInterval(interval);
   }, []);
 
-  // ✅ Updated to use Server Action
+  // ✅ Cleaned up upload handler (no manual clear needed)
   const handleIndividualUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     type: 'hero' | 'gallery',
@@ -108,7 +108,6 @@ export default function AdminOverviewSection() {
     setUploadingIndex(index);
 
     try {
-      // 1. Create FormData and call Server Action
       const formData = new FormData();
       formData.append('file', file);
       formData.append('type', type);
@@ -120,12 +119,7 @@ export default function AdminOverviewSection() {
         throw new Error(result.error || 'Upload failed');
       }
 
-      // 2. Clear the specific position first (important for clean overwrite)
-      await fetch(`/api/admin/media/clear?type=${type}&position=${index}`, {
-        method: 'DELETE',
-      });
-
-      // 3. Create new record in database with position
+      // Save to database with position (route now handles replacement automatically)
       const response = await fetch('/api/admin/media', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -151,10 +145,10 @@ export default function AdminOverviewSection() {
 
   return (
     <div className="space-y-8 bg-[#0f172a] min-h-screen p-6 text-white">
-     
+      
       {/* Version Badge */}
       <div className="bg-[#1e2937] border border-pink-500/30 rounded-2xl p-4 text-center">
-        <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 9 — PROPER OVERWRITE</span>
+        <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 10 — CLEAN OVERWRITE</span>
       </div>
 
       <div>
@@ -267,7 +261,7 @@ export default function AdminOverviewSection() {
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-         
+          
           {/* Hero Videos */}
           <div>
             <div className="flex items-center gap-3 mb-4">
