@@ -2,7 +2,8 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { X, DollarSign, Calendar } from "lucide-react";   // ← added Calendar icon
+import { X, DollarSign, Calendar } from "lucide-react";
+import { useTheme } from "next-themes"; // ← Added for theme logic
 
 export type AdminTabId =
   | "overview"
@@ -15,7 +16,7 @@ export type AdminTabId =
   | "staff"
   | "messages"
   | "bookings"
-  | "availability";   // ← NEW: Added availability tab
+  | "availability";
 
 export type AdminTab = {
   id: AdminTabId;
@@ -33,6 +34,14 @@ type AdminSidebarProps = {
   role: string;
 };
 
+const THEMES = [
+  { id: "dark", label: "Dark (Emerald)", color: "#064e3b" },
+  { id: "midnight", label: "Midnight", color: "#1e293b" },
+  { id: "ocean", label: "Ocean", color: "#164e63" },
+  { id: "rose", label: "Rose", color: "#9f1239" },
+  { id: "light", label: "Light", color: "#f1e7d2" },
+] as const;
+
 function SidebarContent({
   tabs,
   activeTab,
@@ -41,6 +50,7 @@ function SidebarContent({
   role,
 }: Omit<AdminSidebarProps, "mobileOpen">) {
   const isStaff = role === "staff";
+  const { theme, setTheme } = useTheme();
 
   return (
     <div className="flex h-full flex-col bg-emerald-950 text-white">
@@ -104,17 +114,40 @@ function SidebarContent({
         </nav>
       </div>
 
-      {/* BOTTOM FOOTER */}
+      {/* BOTTOM FOOTER — Theme switcher added to match layout.tsx logic */}
       <div className="border-t border-emerald-800 p-5 text-xs text-emerald-400">
         <div className="rounded-3xl bg-emerald-900/40 p-4">
           <p className="uppercase text-[10px] tracking-widest mb-1">
             {isStaff ? "💼 My Tasks" : "💰 Money moves"}
           </p>
-          <p className="text-emerald-200 text-sm">
+          <p className="text-emerald-200 text-sm mb-3">
             {isStaff
               ? "Handle bookings, messages, and services efficiently."
               : "All your business tools in one beautiful place."}
           </p>
+
+          {/* Theme Switcher — consumes the ThemeProvider from layout.tsx */}
+          <div>
+            <p className="uppercase text-[10px] tracking-widest mb-2 text-emerald-300">Theme</p>
+            <div className="flex flex-wrap gap-2">
+              {THEMES.map((t) => {
+                const isActive = theme === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setTheme(t.id)}
+                    title={t.label}
+                    className={`h-7 w-7 rounded-full border border-emerald-700 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
+                      isActive ? "ring-2 ring-white ring-offset-2 ring-offset-emerald-950" : ""
+                    }`}
+                    style={{ backgroundColor: t.color }}
+                    aria-label={`Switch to ${t.label} theme`}
+                  />
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-[10px] text-emerald-500 capitalize">{theme || "dark"}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -140,7 +173,7 @@ export default function AdminSidebar(props: AdminSidebarProps) {
             <SidebarContent {...props} />
           </aside>
         </div>
-      )}
+      </>
     </>
   );
 }
