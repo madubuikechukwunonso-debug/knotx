@@ -19,15 +19,32 @@ function minutesToTime(value: number): string {
   return `${hours}:${minutes}`;
 }
 
-function buildSlots(startTime: string, endTime: string, stepMinutes: number, serviceDurationMinutes: number): string[] {
+function buildSlots(
+  startTime: string,
+  endTime: string,
+  stepMinutes: number,
+  serviceDurationMinutes: number
+): string[] {
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
   const slots: string[] = [];
   const latestStart = end - serviceDurationMinutes;
+
   for (let current = start; current <= latestStart; current += stepMinutes) {
     slots.push(minutesToTime(current));
   }
   return slots;
+}
+
+interface StaffProfile {
+  id: number;
+  displayName: string | null;
+  bookingEnabled: boolean;
+  bio?: string | null;
+}
+
+interface Assignment {
+  staff: StaffProfile;
 }
 
 export async function GET(request: Request) {
@@ -35,7 +52,7 @@ export async function GET(request: Request) {
   const serviceId = searchParams.get('serviceId');
 
   if (serviceId) {
-    let assignments = await prisma.serviceStaffAssignment.findMany({
+    let assignments: Assignment[] = await prisma.serviceStaffAssignment.findMany({
       where: { serviceId: Number(serviceId) },
       include: {
         staff: {
@@ -54,12 +71,16 @@ export async function GET(request: Request) {
         where: { bookingEnabled: true },
         select: { id: true, displayName: true, bio: true, bookingEnabled: true },
       });
-      assignments = allEnabledStaff.map((staff: any) => ({ staff })) as any;
+
+      // Properly typed fallback
+      assignments = allEnabledStaff.map((staffProfile) => ({
+        staff: staffProfile as StaffProfile,
+      }));
     }
 
     const braiders = assignments
-      .filter((a: any) => a.staff.bookingEnabled)
-      .map((a: any) => ({
+      .filter((a) => a.staff.bookingEnabled)
+      .map((a) => ({
         staffUserId: a.staff.id,
         name: a.staff.displayName,
         bio: a.staff.bio,
@@ -68,7 +89,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, braiders });
   }
 
-  // ✅ COMPLETE: All required fields including depositAmount, hairRequirement, categoryId
+  // Return services with all required fields
   const services = await prisma.service.findMany({
     where: { active: true },
     orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -78,12 +99,12 @@ export async function GET(request: Request) {
       slug: true,
       description: true,
       price: true,
-      depositAmount: true,        // ← CRITICAL for deposit display
+      depositAmount: true,
       durationMinutes: true,
       slotDurationMinutes: true,
       image: true,
-      hairRequirement: true,      // ← For hair requirement display
-      categoryId: true,           // ← For category filtering
+      hairRequirement: true,
+      categoryId: true,
     },
   });
 
@@ -96,7 +117,10 @@ export async function POST(request: Request) {
     const { date, serviceId, staffUserId } = body;
 
     if (!date || !serviceId) {
-      return NextResponse.json({ ok: false, message: 'date and serviceId are required' }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, message: 'date and serviceId are required' },
+        { status: 400 }
+      );
     }
 
     const service = await prisma.service.findFirst({
@@ -104,15 +128,18 @@ export async function POST(request: Request) {
     });
 
     if (!service) {
-      return NextResponse.json({ ok: false, message: 'Service not found' }, { status: 404 });
+      return NextResponse.json(
+        { ok: false, message: 'Service not found' },
+        { status: 404 }
+      );
     }
 
     const dayOfWeek = dayOfWeekFromDate(date);
 
-    let assignments = await prisma.serviceStaffAssignment.findMany({
-      where: { 
+    let assignments: Assignment[] = await prisma.serviceStaffAssignment.findMany({
+      where: {
         serviceId: Number(serviceId),
-        ...(staffUserId ? { staffUserId: Number(staffUserId) } : {})
+        ...(staffUserId ? { staffUserId: Number(staffUserId) } : {}),
       },
       include: {
         staff: {
@@ -130,7 +157,11 @@ export async function POST(request: Request) {
         where: { bookingEnabled: true },
         select: { id: true, displayName: true, bookingEnabled: true },
       });
-      assignments = allEnabled.map(staff => ({ staff })) as any;
+
+      // Fixed: Properly typed map
+      assignments = allEnabled.map((staffProfile) => ({
+        staff: staffProfile as StaffProfile,
+      }));
     }
 
     const availableByStaff: any[] = [];
@@ -177,14 +208,19 @@ export async function POST(request: Request) {
         select: { time: true },
       });
 
-      const bookedTimes = new Set(existingBookings.map(b => b.time));
-
+      const bookedTimes = new Set(existingBookings.map((b) => b.time));
       const stepMinutes = service.slotDurationMinutes || service.durationMinutes;
-      const allSlots = buildSlots(workingHours.startTime, workingHours.endTime, stepMinutes, service.durationMinutes);
+
+      const allSlots = buildSlots(
+        workingHours.startTime,
+        workingHours.endTime,
+        stepMinutes,
+        service.durationMinutes
+      );
 
       const freeSlots = allSlots
-        .filter(slot => !bookedTimes.has(slot))
-        .map(slot => ({
+        .filter((slot) => !bookedTimes.has(slot))
+        .map((slot) => ({
           staffUserId: profile.id,
           staffName: profile.displayName,
           time: slot,
