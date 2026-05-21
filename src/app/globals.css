@@ -6,6 +6,7 @@
 
 @layer base {
   :root {
+    /* === Base Light Theme (default) === */
     --background: 0 0% 100%;
     --foreground: 0 0% 0%;
     --card: 0 0% 100%;
@@ -26,8 +27,185 @@
     --input: 0 0% 90%;
     --ring: 0 0% 0%;
     --radius: 0.25rem;
+
+    /* Admin-specific semantic variables */
+    --admin-bg: 248 250 252;           /* slate-50 */
+    --admin-card: 255 255 255;
+    --admin-card-foreground: 15 23 42;
+    --admin-border: 226 232 240;
+    --admin-muted: 241 245 249;
+    --admin-muted-foreground: 100 116 139;
+    --admin-accent: 16 185 129;        /* emerald-500 */
+    --admin-accent-foreground: 255 255 255;
+
     --font-serif: 'Cormorant Garamond', Georgia, serif;
     --font-sans: 'Inter', system-ui, sans-serif;
+  }
+
+  /* ============================================
+     MULTI-THEME SUPPORT (data-theme attribute)
+     Controlled by ThemeProvider in layout.tsx
+     ============================================ */
+
+  /* Dark (Emerald) - Rich & luxurious */
+  [data-theme="dark"] {
+    --background: 222 47% 11%;           /* deep emerald-tinted dark */
+    --foreground: 0 0% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 0 0% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 16 185 129;               /* emerald-500 */
+    --primary-foreground: 255 255 255;
+    --secondary: 215 28% 17%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 148 38% 78%;
+    --accent: 16 185 129;
+    --accent-foreground: 255 255 255;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 16 185 129;
+
+    /* Admin semantic overrides */
+    --admin-bg: 15 23 42;                /* slate-900 */
+    --admin-card: 30 41 59;              /* slate-800 */
+    --admin-card-foreground: 248 250 252;
+    --admin-border: 51 65 85;
+    --admin-muted: 30 41 59;
+    --admin-muted-foreground: 148 163 184;
+    --admin-accent: 52 211 153;          /* emerald-400 */
+    --admin-accent-foreground: 15 23 42;
+  }
+
+  /* Midnight - Deep cool dark */
+  [data-theme="midnight"] {
+    --background: 215 28% 17%;
+    --foreground: 0 0% 98%;
+    --card: 215 28% 17%;
+    --card-foreground: 0 0% 98%;
+    --popover: 215 28% 17%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 148 38% 78%;
+    --primary-foreground: 15 23 42;
+    --secondary: 215 28% 22%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 215 28% 22%;
+    --muted-foreground: 148 38% 78%;
+    --accent: 148 38% 78%;
+    --accent-foreground: 15 23 42;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 215 28% 22%;
+    --input: 215 28% 22%;
+    --ring: 148 38% 78%;
+
+    --admin-bg: 15 23 42;
+    --admin-card: 30 41 59;
+    --admin-card-foreground: 248 250 252;
+    --admin-border: 51 65 85;
+    --admin-muted: 30 41 59;
+    --admin-muted-foreground: 148 163 184;
+    --admin-accent: 148 163 184;
+    --admin-accent-foreground: 15 23 42;
+  }
+
+  /* Ocean - Deep teal */
+  [data-theme="ocean"] {
+    --background: 200 50% 12%;
+    --foreground: 0 0% 98%;
+    --card: 200 50% 12%;
+    --card-foreground: 0 0% 98%;
+    --popover: 200 50% 12%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 103 76% 71%;
+    --primary-foreground: 15 23 42;
+    --secondary: 200 50% 18%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 200 50% 18%;
+    --muted-foreground: 103 76% 71%;
+    --accent: 103 76% 71%;
+    --accent-foreground: 15 23 42;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 200 50% 18%;
+    --input: 200 50% 18%;
+    --ring: 103 76% 71%;
+
+    --admin-bg: 15 23 42;
+    --admin-card: 30 41 59;
+    --admin-card-foreground: 248 250 252;
+    --admin-border: 51 65 85;
+    --admin-muted: 30 41 59;
+    --admin-muted-foreground: 148 163 184;
+    --admin-accent: 103 76% 71%;
+    --admin-accent-foreground: 15 23 42;
+  }
+
+  /* Rose - Warm elegant */
+  [data-theme="rose"] {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 0 72% 51%;                /* rose-600 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96.5%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96.5%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 0 72% 51%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 72% 51%;
+
+    --admin-bg: 255 241 242;             /* rose-50 */
+    --admin-card: 255 255 255;
+    --admin-card-foreground: 15 23 42;
+    --admin-border: 254 205 211;
+    --admin-muted: 255 241 242;
+    --admin-muted-foreground: 190 18% 60%;
+    --admin-accent: 0 72% 51%;
+    --admin-accent-foreground: 255 255 255;
+  }
+
+  /* Light - Clean & fresh (emerald accent) */
+  [data-theme="light"] {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 16 185 129;               /* emerald-500 */
+    --primary-foreground: 255 255 255;
+    --secondary: 0 0% 96.5%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96.5%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 16 185 129;
+    --accent-foreground: 255 255 255;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 16 185 129;
+
+    --admin-bg: 248 250 252;
+    --admin-card: 255 255 255;
+    --admin-card-foreground: 15 23 42;
+    --admin-border: 226 232 240;
+    --admin-muted: 241 245 249;
+    --admin-muted-foreground: 100 116 139;
+    --admin-accent: 16 185 129;
+    --admin-accent-foreground: 255 255 255;
   }
 
   * {
@@ -55,6 +233,22 @@
 
   .nav-link {
     @apply text-sm uppercase tracking-widest font-medium transition-opacity duration-200 hover:opacity-50;
+  }
+
+  /* Admin panel reusable classes (use these in components for consistency) */
+  .admin-card {
+    background-color: hsl(var(--admin-card));
+    color: hsl(var(--admin-card-foreground));
+    border-color: hsl(var(--admin-border));
+  }
+
+  .admin-muted {
+    color: hsl(var(--admin-muted-foreground));
+  }
+
+  .admin-accent {
+    background-color: hsl(var(--admin-accent));
+    color: hsl(var(--admin-accent-foreground));
   }
 }
 
