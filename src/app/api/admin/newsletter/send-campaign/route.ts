@@ -1,7 +1,18 @@
+// src/app/api/admin/newsletter/send-campaign/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { MailtrapTransport } from 'mailtrap';
 import { prisma } from '@/lib/prisma';
+
+interface Subscriber {
+  email: string;
+  name: string | null;
+}
+
+interface LocalUser {
+  email: string;
+  displayName: string | null;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,12 +43,12 @@ export async function POST(request: NextRequest) {
     const allRecipients = new Map<string, string>();
 
     // Add subscribers
-    subscribers.forEach((sub) => {
+    (subscribers as Subscriber[]).forEach((sub) => {
       allRecipients.set(sub.email, sub.name || 'Valued Customer');
     });
 
     // Add local users (if not already in subscribers)
-    localUsers.forEach((user) => {
+    (localUsers as LocalUser[]).forEach((user) => {
       if (!allRecipients.has(user.email)) {
         allRecipients.set(user.email, user.displayName || 'Valued Customer');
       }
@@ -56,6 +67,7 @@ export async function POST(request: NextRequest) {
     // MAILTRAP CONFIGURATION
     // ============================================
     const TOKEN = process.env.MAILTRAP_TOKEN;
+
     if (!TOKEN) {
       return NextResponse.json(
         { error: 'MAILTRAP_TOKEN is not configured in environment variables' },
@@ -79,8 +91,8 @@ export async function POST(request: NextRequest) {
 
     await transport.sendMail({
       from: sender,
-      to: sender.address,           // Send to yourself (visible in Mailtrap)
-      bcc: bccList,                 // All recipients in BCC (hidden from each other)
+      to: sender.address, // Send to yourself (visible in Mailtrap)
+      bcc: bccList,       // All recipients in BCC (hidden from each other)
       subject: subject,
       html: htmlBody,
       category: "Newsletter Campaign",
@@ -93,6 +105,7 @@ export async function POST(request: NextRequest) {
       recipientCount,
       message: `Campaign successfully sent to ${recipientCount} recipients`,
     });
+
   } catch (error: any) {
     console.error('Send campaign error:', error);
     return NextResponse.json(
