@@ -47,6 +47,10 @@ interface Assignment {
   staff: StaffProfile;
 }
 
+interface BookingTime {
+  time: string;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const serviceId = searchParams.get('serviceId');
@@ -72,7 +76,7 @@ export async function GET(request: Request) {
         select: { id: true, displayName: true, bio: true, bookingEnabled: true },
       });
 
-      // ✅ Fixed: Explicitly type the parameter
+      // Fixed: Explicit any on parameter
       assignments = allEnabledStaff.map((staffProfile: any) => ({
         staff: staffProfile as StaffProfile,
       }));
@@ -89,7 +93,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, braiders });
   }
 
-  // Return services with all required fields
   const services = await prisma.service.findMany({
     where: { active: true },
     orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
@@ -158,7 +161,7 @@ export async function POST(request: Request) {
         select: { id: true, displayName: true, bookingEnabled: true },
       });
 
-      // ✅ Fixed: Explicitly type the parameter
+      // Fixed: Explicit any on parameter
       assignments = allEnabled.map((staffProfile: any) => ({
         staff: staffProfile as StaffProfile,
       }));
@@ -206,7 +209,7 @@ export async function POST(request: Request) {
           status: { not: 'cancelled' },
         },
         select: { time: true },
-      });
+      }) as BookingTime[];
 
       const bookedTimes = new Set(existingBookings.map((b) => b.time));
       const stepMinutes = service.slotDurationMinutes || service.durationMinutes;
