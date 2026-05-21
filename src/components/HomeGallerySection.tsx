@@ -13,6 +13,7 @@ interface GalleryImage {
   id: number;
   url: string;
   name?: string;
+  position?: number;
 }
 
 export default function HomeGallerySection() {
@@ -20,26 +21,43 @@ export default function HomeGallerySection() {
   const cardsRef = useRef<HTMLDivElement[]>([]);
   const [images, setImages] = useState<any[]>(defaultGalleryImages.slice(0, 3));
 
-  // Fetch images from database (same as Admin Dashboard)
+  // Fetch images from database
   useEffect(() => {
     const fetchGalleryImages = async () => {
       try {
         const res = await fetch('/api/admin/media', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          const dbImages = data.galleryImages || [];
+          const dbImages: GalleryImage[] = data.galleryImages || [];
 
-          // If we have uploaded images, use them. Otherwise keep defaults.
-          if (dbImages.length > 0) {
-            // Use first 3 uploaded images
-            const selectedImages = dbImages.slice(0, 3).map((img: GalleryImage, index: number) => ({
-              id: img.id,
-              src: img.url,
-              alt: img.name || `Gallery Image ${index + 1}`,
-              category: "Signature Style",
-            }));
-            setImages(selectedImages);
+          // Create final array of exactly 3 images
+          const finalImages: any[] = [];
+
+          for (let i = 0; i < 3; i++) {
+            // Try to find a DB image that matches this position
+            const dbImage = dbImages.find((img) => img.position === i);
+
+            if (dbImage) {
+              // Use uploaded image from DB
+              finalImages.push({
+                id: dbImage.id,
+                src: dbImage.url,
+                alt: dbImage.name || `Gallery Image ${i + 1}`,
+                category: "Signature Style",
+              });
+            } else {
+              // Use default image as fallback
+              const defaultImg = defaultGalleryImages[i];
+              finalImages.push({
+                id: defaultImg.id,
+                src: defaultImg.src,
+                alt: defaultImg.alt,
+                category: defaultImg.category,
+              });
+            }
           }
+
+          setImages(finalImages);
         }
       } catch (error) {
         console.error("Failed to fetch gallery images:", error);
@@ -50,7 +68,7 @@ export default function HomeGallerySection() {
     fetchGalleryImages();
   }, []);
 
-  // GSAP Animation (unchanged)
+  // GSAP Animation
   useEffect(() => {
     const ctx = gsap.context(() => {
       cardsRef.current.forEach((card, i) => {
@@ -74,7 +92,7 @@ export default function HomeGallerySection() {
     }, sectionRef);
 
     return () => ctx.revert();
-  }, [images]); // Re-run animation when images change
+  }, [images]);
 
   return (
     <section ref={sectionRef} className="bg-[#f7f3ee] px-6 py-20 md:px-10 lg:px-16">
