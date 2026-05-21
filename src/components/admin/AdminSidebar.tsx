@@ -2,8 +2,8 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { X, DollarSign, Calendar } from "lucide-react";
-import { useTheme } from "next-themes"; // ← Added for theme logic
+import { X, DollarSign } from "lucide-react";
+import { useTheme } from "next-themes";
 
 export type AdminTabId =
   | "overview"
@@ -52,10 +52,104 @@ function SidebarContent({
   const isStaff = role === "staff";
   const { theme, setTheme } = useTheme();
 
+  // Dynamic sidebar styling based on current theme
+  const getSidebarStyles = () => {
+    switch (theme) {
+      case "dark":
+        return {
+          container: "bg-emerald-950 text-white",
+          headerBorder: "border-emerald-800",
+          navActive: "bg-white text-emerald-950 shadow-xl",
+          navInactive: "hover:bg-emerald-900/50 text-emerald-100",
+          iconActive: "bg-emerald-600 text-white",
+          iconInactive: "bg-emerald-900/70 text-emerald-300",
+          descriptionActive: "text-emerald-700",
+          descriptionInactive: "text-emerald-400",
+          footerBorder: "border-emerald-800",
+          footerBg: "bg-emerald-900/40",
+          footerText: "text-emerald-400",
+          footerSubtext: "text-emerald-200",
+          themeLabel: "text-emerald-300",
+          themeCurrent: "text-emerald-500",
+        };
+      case "midnight":
+        return {
+          container: "bg-slate-950 text-white",
+          headerBorder: "border-slate-800",
+          navActive: "bg-white text-slate-950 shadow-xl",
+          navInactive: "hover:bg-slate-900/60 text-slate-200",
+          iconActive: "bg-slate-700 text-white",
+          iconInactive: "bg-slate-800 text-slate-400",
+          descriptionActive: "text-slate-700",
+          descriptionInactive: "text-slate-400",
+          footerBorder: "border-slate-800",
+          footerBg: "bg-slate-900/50",
+          footerText: "text-slate-400",
+          footerSubtext: "text-slate-200",
+          themeLabel: "text-slate-300",
+          themeCurrent: "text-slate-500",
+        };
+      case "ocean":
+        return {
+          container: "bg-[#0f172a] text-white",
+          headerBorder: "border-slate-700",
+          navActive: "bg-white text-slate-950 shadow-xl",
+          navInactive: "hover:bg-slate-800/60 text-slate-200",
+          iconActive: "bg-teal-600 text-white",
+          iconInactive: "bg-slate-800 text-slate-400",
+          descriptionActive: "text-slate-700",
+          descriptionInactive: "text-slate-400",
+          footerBorder: "border-slate-700",
+          footerBg: "bg-slate-900/50",
+          footerText: "text-slate-400",
+          footerSubtext: "text-slate-200",
+          themeLabel: "text-slate-300",
+          themeCurrent: "text-slate-500",
+        };
+      case "rose":
+        return {
+          container: "bg-rose-950 text-white",
+          headerBorder: "border-rose-800",
+          navActive: "bg-white text-rose-950 shadow-xl",
+          navInactive: "hover:bg-rose-900/50 text-rose-100",
+          iconActive: "bg-rose-600 text-white",
+          iconInactive: "bg-rose-900/70 text-rose-300",
+          descriptionActive: "text-rose-700",
+          descriptionInactive: "text-rose-400",
+          footerBorder: "border-rose-800",
+          footerBg: "bg-rose-900/40",
+          footerText: "text-rose-400",
+          footerSubtext: "text-rose-200",
+          themeLabel: "text-rose-300",
+          themeCurrent: "text-rose-500",
+        };
+      case "light":
+      default:
+        return {
+          container: "bg-white text-slate-900 border-r border-slate-200",
+          headerBorder: "border-slate-200",
+          navActive: "bg-emerald-950 text-white shadow-xl",
+          navInactive: "hover:bg-slate-100 text-slate-700",
+          iconActive: "bg-emerald-600 text-white",
+          iconInactive: "bg-slate-200 text-slate-600",
+          descriptionActive: "text-emerald-200",
+          descriptionInactive: "text-slate-500",
+          footerBorder: "border-slate-200",
+          footerBg: "bg-slate-100",
+          footerText: "text-slate-500",
+          footerSubtext: "text-slate-700",
+          themeLabel: "text-slate-600",
+          themeCurrent: "text-slate-500",
+        };
+    }
+  };
+
+  const s = getSidebarStyles();
+
   return (
-    <div className="flex h-full flex-col bg-emerald-950 text-white">
+    <div className={`flex h-full flex-col ${s.container}`}>
       {/* HEADER BAR */}
-      <div className="flex items-center justify-between border-b border-emerald-800 px-5 py-5 lg:px-6">
+      <div className={`flex items-center justify-between border-b px-5 py-5 lg:px-6 ${s.headerBorder}`}>
         <div className="flex items-center gap-2">
           <DollarSign className="h-7 w-7 text-emerald-400" />
           <div>
@@ -70,7 +164,7 @@ function SidebarContent({
 
         <button
           onClick={onClose}
-          className="lg:hidden h-10 w-10 flex items-center justify-center rounded-2xl border border-emerald-700 hover:bg-emerald-900 transition-colors"
+          className="lg:hidden h-10 w-10 flex items-center justify-center rounded-2xl border border-emerald-700 hover:bg-emerald-900/70 transition-colors"
         >
           <X size={20} />
         </button>
@@ -82,6 +176,7 @@ function SidebarContent({
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const active = tab.id === activeTab;
+
             return (
               <button
                 key={tab.id}
@@ -90,21 +185,23 @@ function SidebarContent({
                   onClose();
                 }}
                 className={`group flex w-full items-start gap-3 rounded-3xl px-4 py-4 text-left transition-all duration-200 ${
-                  active
-                    ? "bg-white text-emerald-950 shadow-xl"
-                    : "hover:bg-emerald-900/50 text-emerald-100"
+                  active ? s.navActive : s.navInactive
                 }`}
               >
                 <div
                   className={`h-10 w-10 flex items-center justify-center rounded-2xl transition-colors ${
-                    active ? "bg-emerald-600 text-white" : "bg-emerald-900/70 text-emerald-300"
+                    active ? s.iconActive : s.iconInactive
                   }`}
                 >
                   <Icon size={20} />
                 </div>
                 <div className="min-w-0 flex-1 pt-0.5">
                   <p className="font-medium text-base">{tab.label}</p>
-                  <p className={`text-xs mt-0.5 ${active ? "text-emerald-700" : "text-emerald-400"}`}>
+                  <p
+                    className={`text-xs mt-0.5 ${
+                      active ? s.descriptionActive : s.descriptionInactive
+                    }`}
+                  >
                     {tab.description}
                   </p>
                 </div>
@@ -114,21 +211,23 @@ function SidebarContent({
         </nav>
       </div>
 
-      {/* BOTTOM FOOTER — Theme switcher added to match layout.tsx logic */}
-      <div className="border-t border-emerald-800 p-5 text-xs text-emerald-400">
-        <div className="rounded-3xl bg-emerald-900/40 p-4">
+      {/* BOTTOM FOOTER — Theme switcher */}
+      <div className={`border-t p-5 text-xs ${s.footerBorder} ${s.footerText}`}>
+        <div className={`rounded-3xl p-4 ${s.footerBg}`}>
           <p className="uppercase text-[10px] tracking-widest mb-1">
             {isStaff ? "💼 My Tasks" : "💰 Money moves"}
           </p>
-          <p className="text-emerald-200 text-sm mb-3">
+          <p className={`text-sm mb-3 ${s.footerSubtext}`}>
             {isStaff
               ? "Handle bookings, messages, and services efficiently."
               : "All your business tools in one beautiful place."}
           </p>
 
-          {/* Theme Switcher — consumes the ThemeProvider from layout.tsx */}
+          {/* Theme Switcher */}
           <div>
-            <p className="uppercase text-[10px] tracking-widest mb-2 text-emerald-300">Theme</p>
+            <p className={`uppercase text-[10px] tracking-widest mb-2 ${s.themeLabel}`}>
+              Theme
+            </p>
             <div className="flex flex-wrap gap-2">
               {THEMES.map((t) => {
                 const isActive = theme === t.id;
@@ -137,8 +236,10 @@ function SidebarContent({
                     key={t.id}
                     onClick={() => setTheme(t.id)}
                     title={t.label}
-                    className={`h-7 w-7 rounded-full border border-emerald-700 transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
-                      isActive ? "ring-2 ring-white ring-offset-2 ring-offset-emerald-950" : ""
+                    className={`h-7 w-7 rounded-full border transition-all hover:scale-110 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
+                      isActive
+                        ? "ring-2 ring-white ring-offset-2 ring-offset-emerald-950 border-white"
+                        : "border-emerald-700"
                     }`}
                     style={{ backgroundColor: t.color }}
                     aria-label={`Switch to ${t.label} theme`}
@@ -146,7 +247,9 @@ function SidebarContent({
                 );
               })}
             </div>
-            <p className="mt-1.5 text-[10px] text-emerald-500 capitalize">{theme || "dark"}</p>
+            <p className={`mt-1.5 text-[10px] capitalize ${s.themeCurrent}`}>
+              {theme || "dark"}
+            </p>
           </div>
         </div>
       </div>
