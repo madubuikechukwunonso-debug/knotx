@@ -72,8 +72,8 @@ export async function GET(request: Request) {
         select: { id: true, displayName: true, bio: true, bookingEnabled: true },
       });
 
-      // Properly typed fallback
-      assignments = allEnabledStaff.map((staffProfile) => ({
+      // ✅ Fixed: Explicitly type the parameter
+      assignments = allEnabledStaff.map((staffProfile: any) => ({
         staff: staffProfile as StaffProfile,
       }));
     }
@@ -158,8 +158,8 @@ export async function POST(request: Request) {
         select: { id: true, displayName: true, bookingEnabled: true },
       });
 
-      // Fixed: Properly typed map
-      assignments = allEnabled.map((staffProfile) => ({
+      // ✅ Fixed: Explicitly type the parameter
+      assignments = allEnabled.map((staffProfile: any) => ({
         staff: staffProfile as StaffProfile,
       }));
     }
