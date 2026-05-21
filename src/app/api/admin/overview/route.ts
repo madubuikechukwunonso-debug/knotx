@@ -1,8 +1,11 @@
+// src/app/api/admin/overview/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
+
     const [
       totalRevenue,
       revenueFromOrders,
@@ -13,6 +16,7 @@ export async function GET() {
       recentUsers,
       recentOrders,
       recentBookings,
+      liveVisitors,
     ] = await Promise.all([
       // Total Revenue (Orders + Bookings)
       prisma.order.aggregate({ _sum: { total: true } }),
@@ -20,7 +24,7 @@ export async function GET() {
       // Revenue from Orders only
       prisma.order.aggregate({ _sum: { total: true } }),
 
-      // Revenue from Bookings (using price field)
+      // Revenue from Bookings
       prisma.booking.aggregate({ _sum: { price: true } }),
 
       prisma.order.count(),
@@ -65,6 +69,29 @@ export async function GET() {
           createdAt: true,
         },
       }),
+
+      // ============================================
+      // LIVE VISITORS (Last 15 minutes)
+      // ============================================
+      prisma.visitorLog.findMany({
+        where: {
+          createdAt: {
+            gte: fifteenMinutesAgo,
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        take: 20,
+        select: {
+          id: true,
+          ip: true,
+          page: true,
+          userType: true,
+          displayName: true,
+          createdAt: true,
+        },
+      }),
     ]);
 
     return NextResponse.json({
@@ -79,7 +106,7 @@ export async function GET() {
       recentUsers,
       recentOrders,
       recentBookings,
-      liveVisitors: [], // Placeholder for future visitor tracking
+      liveVisitors, // ← Now populated with real data
       lastUpdated: new Date().toISOString(),
     });
   } catch (error) {
