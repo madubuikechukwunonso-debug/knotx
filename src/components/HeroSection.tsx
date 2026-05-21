@@ -6,13 +6,14 @@ interface HeroVideo {
   id: number;
   url: string;
   name: string;
+  position?: number;
 }
 
 export default function HeroSection() {
   const [mounted, setMounted] = useState(false);
   const [heroVideos, setHeroVideos] = useState<HeroVideo[]>([]);
 
-  // Default videos (fallback when no uploads exist)
+  // Default videos (fallback)
   const defaultVideos = [
     "/videos/1.webm",
     "/videos/2.webm",
@@ -27,7 +28,6 @@ export default function HeroSection() {
         const res = await fetch('/api/admin/media', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          // Filter only hero videos
           const videos = data.heroVideos || [];
           setHeroVideos(videos);
         }
@@ -35,15 +35,38 @@ export default function HeroSection() {
         console.error("Failed to fetch hero videos:", error);
       }
     };
-
     fetchHeroVideos();
     setMounted(true);
   }, []);
 
-  // Determine which videos to display
-  const videosToShow = heroVideos.length > 0 
-    ? heroVideos.map(v => v.url) 
-    : defaultVideos;
+  // Smart merge logic:
+  // - Use uploaded videos from DB (respecting position if available)
+  // - Fill remaining slots with hardcoded defaults
+  const videosToShow: string[] = [];
+
+  // Sort DB videos by position (if exists), otherwise keep original order
+  const sortedDbVideos = [...heroVideos].sort((a, b) => {
+    if (a.position !== undefined && b.position !== undefined) {
+      return a.position - b.position;
+    }
+    return 0;
+  });
+
+  const dbUrls = sortedDbVideos.map(v => v.url);
+
+  for (let i = 0; i < 4; i++) {
+    if (dbUrls[i]) {
+      // Use uploaded video if it exists in this slot
+      videosToShow.push(dbUrls[i]);
+    } else {
+      // Fill with a default video that isn't already used
+      const fallback = defaultVideos.find(
+        (defaultUrl) => !videosToShow.includes(defaultUrl)
+      ) || defaultVideos[i];
+
+      videosToShow.push(fallback);
+    }
+  }
 
   return (
     <section className="relative w-full h-screen overflow-hidden bg-black">
