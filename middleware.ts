@@ -6,13 +6,12 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ============================================
-  // SKIP TRACKING FOR THESE PATHS
+  // SKIP TRACKING FOR THESE PATHS ONLY
   // ============================================
   if (
-    pathname.startsWith('/admin') ||           // Admin panel
-    pathname.startsWith('/api') ||             // API routes
-    pathname.startsWith('/_next') ||           // Next.js internals
-    pathname.includes('.') ||                  // Static files (images, css, js, etc.)
+    pathname.startsWith('/api') ||           // API routes
+    pathname.startsWith('/_next') ||        // Next.js internals
+    pathname.includes('.') ||               // Static files (images, css, js, etc.)
     pathname === '/favicon.ico'
   ) {
     return NextResponse.next();
@@ -76,8 +75,7 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico
-     * - admin routes
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|admin).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 };
