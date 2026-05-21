@@ -13,7 +13,7 @@ type Props = {
 export default function AdminHeader({ title, description, onMenuClick }: Props) {
   const { theme } = useTheme();
 
-  // Theme-aware styling to match root ThemeProvider (data-theme)
+  // Theme-aware styling aligned with globals.css [data-theme] system
   const getHeaderStyles = () => {
     switch (theme) {
       case "dark":
