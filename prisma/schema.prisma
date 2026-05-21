@@ -405,6 +405,7 @@ model HeroVideo {
   id        Int      @id @default(autoincrement())
   url       String
   name      String?
+  position  Int?     @default(0)     // ← ADD THIS
   sortOrder Int      @default(0)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -415,6 +416,7 @@ model GalleryImage {
   id        Int      @id @default(autoincrement())
   url       String
   name      String?
+  position  Int?     @default(0)     // ← ADD THIS
   sortOrder Int      @default(0)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
