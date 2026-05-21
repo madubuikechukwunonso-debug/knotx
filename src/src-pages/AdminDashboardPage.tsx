@@ -59,7 +59,7 @@ export default function AdminOverviewSection() {
       // Merge DB videos with defaults
       const dbVideos = mediaData.heroVideos || [];
       const mergedVideos = defaultVideos.map((defaultVideo, index) => {
-        const dbVideo = dbVideos[index];
+        const dbVideo = dbVideos.find((v: any) => v.position === index) || dbVideos[index];
         return dbVideo
           ? { id: dbVideo.id, url: dbVideo.url, name: dbVideo.name || defaultVideo.name }
           : defaultVideo;
@@ -75,7 +75,7 @@ export default function AdminOverviewSection() {
       }));
 
       const mergedImages = realGallery.map((defaultImg, index) => {
-        const dbImg = dbImages[index];
+        const dbImg = dbImages.find((img: any) => img.position === index) || dbImages[index];
         return dbImg
           ? { id: dbImg.id, url: dbImg.url, name: dbImg.name || defaultImg.name }
           : defaultImg;
@@ -96,7 +96,7 @@ export default function AdminOverviewSection() {
     return () => clearInterval(interval);
   }, []);
 
-  // Individual upload handler
+  // ✅ FIXED: Individual upload with proper overwrite
   const handleIndividualUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
     type: 'hero' | 'gallery',
@@ -108,6 +108,7 @@ export default function AdminOverviewSection() {
     setUploadingIndex(index);
 
     try {
+      // 1. Upload file to Vercel Blob
       const blob = await put(
         `${type}/${Date.now()}-${file.name}`,
         file,
@@ -117,6 +118,12 @@ export default function AdminOverviewSection() {
         }
       );
 
+      // 2. Clear the specific position first (important for overwrite)
+      await fetch(`/api/admin/media/clear?type=${type}&position=${index}`, {
+        method: 'DELETE',
+      });
+
+      // 3. Create new record with position
       const response = await fetch('/api/admin/media', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -140,15 +147,12 @@ export default function AdminOverviewSection() {
     }
   };
 
-  const formatTime = (date: Date) =>
-    date.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-
   return (
     <div className="space-y-8 bg-[#0f172a] min-h-screen p-6 text-white">
       
       {/* Version Badge */}
       <div className="bg-[#1e2937] border border-pink-500/30 rounded-2xl p-4 text-center">
-        <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 8 — INDIVIDUAL UPLOADS</span>
+        <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 9 — PROPER OVERWRITE</span>
       </div>
 
       <div>
@@ -262,7 +266,7 @@ export default function AdminOverviewSection() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Hero Videos - Individual Upload */}
+          {/* Hero Videos */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <Video className="text-pink-400" />
@@ -295,7 +299,7 @@ export default function AdminOverviewSection() {
             </div>
           </div>
 
-          {/* Gallery Images - Individual Upload */}
+          {/* Gallery Images */}
           <div>
             <div className="flex items-center gap-3 mb-4">
               <ImageIcon className="text-pink-400" />
