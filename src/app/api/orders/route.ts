@@ -1,3 +1,4 @@
+// src/app/api/orders/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import {
   createOrder,
@@ -6,15 +7,25 @@ import {
 } from "@/modules/orders/orders.service";
 import { getSession } from "@/lib/session";
 
+interface Order {
+  id: number;
+  userId?: number | null;
+  userType?: "local" | "oauth" | "guest" | null;
+  customerName?: string | null;
+  customerEmail?: string | null;
+  total?: number | null;
+  status?: string | null;
+  createdAt?: Date | string;
+  // Add more fields as needed
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-
     const id = searchParams.get("id");
 
     if (id) {
       const orderId = Number(id);
-
       if (!Number.isInteger(orderId) || orderId <= 0) {
         return NextResponse.json(
           { ok: false, message: "Invalid order id" },
@@ -31,12 +42,11 @@ export async function GET(request: NextRequest) {
     }
 
     const session = await getSession();
-
     if (!session?.userId) {
       return NextResponse.json({ ok: true, orders: [] });
     }
 
-    const orders = await listOrders();
+    const orders = (await listOrders()) as Order[];
 
     const myOrders = orders.filter(
       (order) =>
