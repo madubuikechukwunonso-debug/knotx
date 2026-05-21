@@ -145,7 +145,7 @@ export default function AdminOverviewSection() {
 
   return (
     <div className="space-y-8 bg-[#0f172a] min-h-screen p-6 text-white">
-      
+     
       {/* Version Badge */}
       <div className="bg-[#1e2937] border border-pink-500/30 rounded-2xl p-4 text-center">
         <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 10 — CLEAN OVERWRITE</span>
@@ -261,7 +261,7 @@ export default function AdminOverviewSection() {
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          
+         
           {/* Hero Videos */}
           <div>
             <div className="flex items-center gap-3 mb-4">
