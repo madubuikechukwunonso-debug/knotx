@@ -13,7 +13,6 @@ export default function HeroSection() {
   const [mounted, setMounted] = useState(false);
   const [heroVideos, setHeroVideos] = useState<HeroVideo[]>([]);
 
-  // Default videos (fallback)
   const defaultVideos = [
     "/videos/1.webm",
     "/videos/2.webm",
@@ -28,8 +27,7 @@ export default function HeroSection() {
         const res = await fetch('/api/admin/media', { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
-          const videos = data.heroVideos || [];
-          setHeroVideos(videos);
+          setHeroVideos(data.heroVideos || []);
         }
       } catch (error) {
         console.error("Failed to fetch hero videos:", error);
@@ -39,32 +37,21 @@ export default function HeroSection() {
     setMounted(true);
   }, []);
 
-  // Smart merge logic:
-  // - Use uploaded videos from DB (respecting position if available)
-  // - Fill remaining slots with hardcoded defaults
+  // ============================================
+  // POSITION-BASED MERGING (Best Approach)
+  // ============================================
   const videosToShow: string[] = [];
 
-  // Sort DB videos by position (if exists), otherwise keep original order
-  const sortedDbVideos = [...heroVideos].sort((a, b) => {
-    if (a.position !== undefined && b.position !== undefined) {
-      return a.position - b.position;
-    }
-    return 0;
-  });
-
-  const dbUrls = sortedDbVideos.map(v => v.url);
-
   for (let i = 0; i < 4; i++) {
-    if (dbUrls[i]) {
-      // Use uploaded video if it exists in this slot
-      videosToShow.push(dbUrls[i]);
-    } else {
-      // Fill with a default video that isn't already used
-      const fallback = defaultVideos.find(
-        (defaultUrl) => !videosToShow.includes(defaultUrl)
-      ) || defaultVideos[i];
+    // Find video that has this exact position
+    const dbVideo = heroVideos.find((v) => v.position === i);
 
-      videosToShow.push(fallback);
+    if (dbVideo) {
+      // Use uploaded video
+      videosToShow.push(dbVideo.url);
+    } else {
+      // Use default video for this slot
+      videosToShow.push(defaultVideos[i]);
     }
   }
 
