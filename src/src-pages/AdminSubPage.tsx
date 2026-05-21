@@ -1,7 +1,7 @@
 // src/src-pages/AdminSubPage.tsx
 import type { AdminTabId } from '@/components/admin/AdminSidebar';
 import { prisma } from '@/lib/prisma';
-import AdminOverviewSection from '@/sections/admin/AdminOverviewSectionNew';   // ← UPDATED
+import AdminOverviewSection from '@/sections/admin/AdminOverviewSectionNew';
 import AdminServicesSection from '@/sections/admin/AdminServicesSection';
 import AdminProductsSection from '@/sections/admin/AdminProductsSection';
 import AdminGallerySection from '@/sections/admin/AdminGallerySection';
@@ -16,6 +16,27 @@ import AdminAvailabilitySection from '@/sections/admin/AdminAvailabilitySection'
 type AdminSubPageProps = {
   tab: AdminTabId;
 };
+
+// Define proper types for the data we're working with
+interface SubscriberWithLocalUser {
+  id: number;
+  email: string;
+  name: string | null;
+  source: string;
+  isActive: boolean;
+  unsubscribedAt: Date | null;
+  createdAt: Date;
+  localUser: {
+    displayName: string | null;
+  } | null;
+}
+
+interface LocalUserBasic {
+  id: number;
+  email: string;
+  displayName: string | null;
+  createdAt: Date;
+}
 
 export default async function AdminSubPage({ tab }: AdminSubPageProps) {
   switch (tab) {
@@ -58,7 +79,7 @@ export default async function AdminSubPage({ tab }: AdminSubPageProps) {
             createdAt: true,
             localUser: { select: { displayName: true } },
           },
-        }),
+        }) as Promise<SubscriberWithLocalUser[]>,
         prisma.localUser.findMany({
           select: {
             id: true,
@@ -66,11 +87,11 @@ export default async function AdminSubPage({ tab }: AdminSubPageProps) {
             displayName: true,
             createdAt: true,
           },
-        }),
+        }) as Promise<LocalUserBasic[]>,
       ]);
 
       const contacts = [
-        ...subscribers.map((s) => ({
+        ...subscribers.map((s: SubscriberWithLocalUser) => ({
           id: `sub-${s.id}`,
           email: s.email,
           name: s.name || s.localUser?.displayName || '—',
@@ -80,8 +101,8 @@ export default async function AdminSubPage({ tab }: AdminSubPageProps) {
           type: 'subscriber' as const,
         })),
         ...localUsers
-          .filter((u) => !subscribers.some((s) => s.email === u.email))
-          .map((u) => ({
+          .filter((u: LocalUserBasic) => !subscribers.some((s: SubscriberWithLocalUser) => s.email === u.email))
+          .map((u: LocalUserBasic) => ({
             id: `user-${u.id}`,
             email: u.email,
             name: u.displayName || '—',
