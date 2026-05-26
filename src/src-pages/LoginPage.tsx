@@ -23,7 +23,7 @@ type Props = {
 };
 
 export default function LoginPage({ initialMode = 'login' }: Props) {
-  const [mode, setMode] = useState<<Mode>(initialMode);
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [identifier, setIdentifier] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -195,9 +195,10 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
     window.location.href = '/api/auth/google';
   };
 
-  // OTP input handling
+  // OTP Input Handlers
   const handleOtpChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
+
     const newDigits = [...otpDigits];
     newDigits[index] = value.slice(-1);
     setOtpDigits(newDigits);
@@ -218,24 +219,27 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
     e.preventDefault();
     const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
     const newDigits = [...otpDigits];
+
     pasted.split('').forEach((char, i) => {
       if (i < 6) newDigits[i] = char;
     });
+
     setOtpDigits(newDigits);
     setOtp(newDigits.join(''));
+
     if (pasted.length > 0) {
       otpRefs.current[Math.min(pasted.length, 5)]?.focus();
     }
   };
 
-  const modeTitle = {
+  const modeTitle: Record<Mode, string> = {
     login: 'Welcome back',
     register: 'Get started',
     'verify-otp': 'Verify email',
     'forgot-password': 'Reset password',
   };
 
-  const modeSubtitle = {
+  const modeSubtitle: Record<Mode, string> = {
     login: 'Sign in to your account to continue',
     register: 'Create your account in seconds',
     'verify-otp': `We sent a code to ${registeredEmail || 'your email'}`,
@@ -247,14 +251,14 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
       <Navigation />
 
       <main className="relative min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-stone-100 px-4 pb-12 pt-24 text-slate-900 sm:px-6 lg:px-8">
-        {/* Decorative background elements */}
+        {/* Background decoration */}
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
           <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-purple-200/20 blur-3xl" />
           <div className="absolute -bottom-20 -right-20 h-96 w-96 rounded-full bg-blue-200/20 blur-3xl" />
         </div>
 
         <div className="relative mx-auto w-full max-w-lg">
-          {/* Back link */}
+          {/* Back Link */}
           <Link
             href="/"
             className="mb-6 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-slate-500 transition-colors hover:bg-white/60 hover:text-slate-800"
@@ -278,7 +282,7 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
 
             {/* Body */}
             <div className="px-6 py-8 sm:px-10">
-              {/* Google Buttons */}
+              {/* Google Sign In Button */}
               {(mode === 'login' || mode === 'register') && (
                 <>
                   <button
@@ -291,9 +295,7 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
 
                   <div className="my-6 flex items-center gap-4">
                     <div className="h-px flex-1 bg-slate-200" />
-                    <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                      or
-                    </span>
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-400">or</span>
                     <div className="h-px flex-1 bg-slate-200" />
                   </div>
                 </>
@@ -318,39 +320,20 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
                     placeholder="Password"
                     required
                     rightElement={
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="text-slate-400 hover:text-slate-600"
-                      >
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-slate-400 hover:text-slate-600">
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     }
                   />
 
-                  <div className="flex items-center justify-end">
-                    <button
-                      type="button"
-                      onClick={() => setMode('forgot-password')}
-                      className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-800"
-                    >
+                  <div className="flex justify-end">
+                    <button type="button" onClick={() => setMode('forgot-password')} className="text-sm font-medium text-slate-500 hover:text-slate-800">
                       Forgot password?
                     </button>
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={isPending}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl active:scale-[0.98] disabled:opacity-60"
-                  >
-                    {isPending ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        Signing in...
-                      </>
-                    ) : (
-                      'Sign In'
-                    )}
+                  <button type="submit" disabled={isPending} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 active:scale-[0.98] disabled:opacity-60">
+                    {isPending ? <><Loader2 size={18} className="animate-spin" /> Signing in...</> : 'Sign In'}
                   </button>
                 </form>
               )}
@@ -358,29 +341,9 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
               {/* REGISTER FORM */}
               {mode === 'register' && (
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <InputGroup
-                    icon={<User size={18} />}
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    placeholder="Username"
-                    required
-                  />
-                  <InputGroup
-                    icon={<Mail size={18} />}
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email address"
-                    required
-                  />
-                  <InputGroup
-                    icon={<User size={18} />}
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Display Name (optional)"
-                  />
+                  <InputGroup icon={<User size={18} />} type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
+                  <InputGroup icon={<Mail size={18} />} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email address" required />
+                  <InputGroup icon={<User size={18} />} type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Display Name (optional)" />
                   <InputGroup
                     icon={<Lock size={18} />}
                     type={showPassword ? 'text' : 'password'}
@@ -390,29 +353,14 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
                     required
                     minLength={6}
                     rightElement={
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="text-slate-400 hover:text-slate-600"
-                      >
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-slate-400 hover:text-slate-600">
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     }
                   />
 
-                  <button
-                    type="submit"
-                    disabled={isPending}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl active:scale-[0.98] disabled:opacity-60"
-                  >
-                    {isPending ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        Creating Account...
-                      </>
-                    ) : (
-                      'Create Account'
-                    )}
+                  <button type="submit" disabled={isPending} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 active:scale-[0.98] disabled:opacity-60">
+                    {isPending ? <><Loader2 size={18} className="animate-spin" /> Creating Account...</> : 'Create Account'}
                   </button>
                 </form>
               )}
@@ -438,48 +386,18 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
                     ))}
                   </div>
 
-                  <button
-                    type="submit"
-                    disabled={isPending || otpDigits.join('').length !== 6}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl active:scale-[0.98] disabled:opacity-60"
-                  >
-                    {isPending ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        Verifying...
-                      </>
-                    ) : (
-                      'Verify & Continue'
-                    )}
+                  <button type="submit" disabled={isPending || otpDigits.join('').length !== 6} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 active:scale-[0.98] disabled:opacity-60">
+                    {isPending ? <><Loader2 size={18} className="animate-spin" /> Verifying...</> : 'Verify & Continue'}
                   </button>
                 </form>
               )}
 
-              {/* FORGOT PASSWORD FORM */}
+              {/* FORGOT PASSWORD */}
               {mode === 'forgot-password' && (
                 <form onSubmit={handleForgotPassword} className="space-y-4">
-                  <InputGroup
-                    icon={<Mail size={18} />}
-                    type="email"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    required
-                  />
-
-                  <button
-                    type="submit"
-                    disabled={isPending}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl active:scale-[0.98] disabled:opacity-60"
-                  >
-                    {isPending ? (
-                      <>
-                        <Loader2 size={18} className="animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      'Send Reset Link'
-                    )}
+                  <InputGroup icon={<Mail size={18} />} type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} placeholder="Enter your email" required />
+                  <button type="submit" disabled={isPending} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 active:scale-[0.98] disabled:opacity-60">
+                    {isPending ? <><Loader2 size={18} className="animate-spin" /> Sending...</> : 'Send Reset Link'}
                   </button>
                 </form>
               )}
@@ -500,52 +418,15 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
 
               {/* Mode Switcher */}
               <div className="mt-8 text-center text-sm text-slate-500">
-                {mode === 'login' && (
-                  <p>
-                    Don&apos;t have an account?{' '}
-                    <button
-                      onClick={() => setMode('register')}
-                      className="font-semibold text-slate-900 transition-colors hover:underline"
-                    >
-                      Sign up
-                    </button>
-                  </p>
-                )}
-                {mode === 'register' && (
-                  <p>
-                    Already have an account?{' '}
-                    <button
-                      onClick={() => setMode('login')}
-                      className="font-semibold text-slate-900 transition-colors hover:underline"
-                    >
-                      Sign in
-                    </button>
-                  </p>
-                )}
-                {mode === 'forgot-password' && (
-                  <button
-                    onClick={() => setMode('login')}
-                    className="font-semibold text-slate-900 transition-colors hover:underline"
-                  >
-                    Back to Sign In
-                  </button>
-                )}
-                {mode === 'verify-otp' && (
-                  <button
-                    onClick={() => setMode('register')}
-                    className="font-semibold text-slate-900 transition-colors hover:underline"
-                  >
-                    Back to registration
-                  </button>
-                )}
+                {mode === 'login' && <p>Don&apos;t have an account? <button onClick={() => setMode('register')} className="font-semibold text-slate-900 hover:underline">Sign up</button></p>}
+                {mode === 'register' && <p>Already have an account? <button onClick={() => setMode('login')} className="font-semibold text-slate-900 hover:underline">Sign in</button></p>}
+                {mode === 'forgot-password' && <button onClick={() => setMode('login')} className="font-semibold text-slate-900 hover:underline">Back to Sign In</button>}
+                {mode === 'verify-otp' && <button onClick={() => setMode('register')} className="font-semibold text-slate-900 hover:underline">Back to registration</button>}
               </div>
             </div>
           </div>
 
-          {/* Footer */}
-          <p className="mt-6 text-center text-xs text-slate-400">
-            Protected by industry-standard encryption
-          </p>
+          <p className="mt-6 text-center text-xs text-slate-400">Protected by industry-standard encryption</p>
         </div>
       </main>
     </>
@@ -554,15 +435,12 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
 
 /* ==================== SUBCOMPONENTS ==================== */
 
-function InputGroup({
-  icon,
-  rightElement,
-  className = '',
-  ...props
-}: React.InputHTMLAttributes<<HTMLInputElement> & {
+interface InputGroupProps extends React.InputHTMLAttributes<HTMLInputElement> {
   icon: React.ReactNode;
   rightElement?: React.ReactNode;
-}) {
+}
+
+function InputGroup({ icon, rightElement, className = '', ...props }: InputGroupProps) {
   return (
     <div className={`relative ${className}`}>
       <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
@@ -572,9 +450,7 @@ function InputGroup({
         {...props}
         className="w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-11 pr-11 text-sm text-slate-900 shadow-sm transition-all placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-4 focus:ring-slate-100"
       />
-      {rightElement && (
-        <div className="absolute right-3.5 top-1/2 -translate-y-1/2">{rightElement}</div>
-      )}
+      {rightElement && <div className="absolute right-3.5 top-1/2 -translate-y-1/2">{rightElement}</div>}
     </div>
   );
 }
@@ -582,22 +458,10 @@ function InputGroup({
 function GoogleIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.51h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.34z"
-        fill="#4285F4"
-      />
-      <path
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-        fill="#34A853"
-      />
-      <path
-        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-        fill="#FBBC05"
-      />
-      <path
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-        fill="#EA4335"
-      />
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.51h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.34z" fill="#4285F4" />
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
     </svg>
   );
 }
