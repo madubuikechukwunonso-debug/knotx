@@ -2,7 +2,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import Providers from '@/components/Providers';
-import { ThemeProvider } from 'next-themes';
 
 export const metadata: Metadata = {
   title: 'KNOTXANDKRAFTS',
@@ -14,15 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body>
         <Providers>
-          <ThemeProvider
-            attribute="data-theme"
-            defaultTheme="dark"
-            enableSystem={false}
-            themes={['dark', 'midnight', 'ocean', 'rose', 'light']}
-            storageKey="admin-theme"           // ← Separate storage key (only affects admin)
-          >
-            {children}
-          </ThemeProvider>
+          {children}
         </Providers>
       </body>
     </html>
