@@ -1,10 +1,30 @@
 // src/app/api/messages/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await getSession();
+
+    if (!session?.userId) {
+      return NextResponse.json({ messages: [] }, { status: 401 });
+    }
+
+    // Get the logged-in user's email so we can show them their own inquiries
+    const user = await prisma.localUser.findUnique({
+      where: { id: session.userId },
+      select: { email: true },
+    });
+
+    if (!user?.email) {
+      return NextResponse.json({ messages: [] });
+    }
+
     const messages = await prisma.contactMessage.findMany({
+      where: {
+        email: user.email.toLowerCase(),
+      },
       orderBy: { createdAt: "desc" },
       include: {
         replies: {
@@ -13,10 +33,11 @@ export async function GET(req: NextRequest) {
         },
       },
     });
+
     return NextResponse.json({ messages });
   } catch (error) {
     console.error("Error fetching messages:", error);
-    return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
+    return NextResponse.json({ messages: [] }, { status: 500 });
   }
 }
 
@@ -24,7 +45,6 @@ export async function POST(req: NextRequest) {
   try {
     const { message, name, email, subject } = await req.json();
 
-    // Validation
     if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "Message content is required" }, { status: 400 });
     }
