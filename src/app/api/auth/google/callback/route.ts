@@ -12,20 +12,21 @@ export async function GET(req: NextRequest) {
   const state = searchParams.get("state");
   const storedState = req.cookies.get("google_oauth_state")?.value;
 
+  const baseUrl = (process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "");
+
   // CSRF Protection
   if (!state || !storedState || state !== storedState) {
     console.error("Google OAuth: Invalid state");
-    return NextResponse.redirect("/login?error=invalid_state");
+    return NextResponse.redirect(`${baseUrl}/login?error=invalid_state`);
   }
 
   const googleClientId = process.env.GOOGLE_CLIENT_ID;
   const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const baseUrl = (process.env.NEXTAUTH_URL || "http://localhost:3000").replace(/\/$/, "");
   const redirectUri = `${baseUrl}/api/auth/google/callback`;
 
   if (!code || !googleClientId || !googleClientSecret) {
-    console.error("Google OAuth: Missing GOOGLE_CLIENT_SECRET or authorization code");
-    return NextResponse.redirect("/login?error=google_config_error");
+    console.error("Google OAuth: Missing credentials");
+    return NextResponse.redirect(`${baseUrl}/login?error=google_config_error`);
   }
 
   try {
@@ -46,10 +47,10 @@ export async function GET(req: NextRequest) {
 
     if (!tokenRes.ok || !tokenData.access_token) {
       console.error("Google token exchange failed:", tokenData);
-      return NextResponse.redirect("/login?error=token_exchange_failed");
+      return NextResponse.redirect(`${baseUrl}/login?error=token_exchange_failed`);
     }
 
-    // 2. Get user info from Google
+    // 2. Get user profile from Google
     const userInfoRes = await fetch(GOOGLE_USERINFO_URL, {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
@@ -59,25 +60,22 @@ export async function GET(req: NextRequest) {
     const googleUser = await userInfoRes.json();
 
     if (!googleUser.email) {
-      console.error("Google did not return email");
-      return NextResponse.redirect("/login?error=no_email_from_google");
+      return NextResponse.redirect(`${baseUrl}/login?error=no_email_from_google`);
     }
 
-    // 3. Find or create user in database
+    // 3. Find or create user
     let user = await prisma.localUser.findUnique({
       where: { email: googleUser.email.toLowerCase() },
     });
 
     if (!user) {
       const baseUsername = googleUser.email.split("@")[0];
-      const uniqueUsername = `${baseUsername}_${Date.now()}`;
-
       user = await prisma.localUser.create({
         data: {
           email: googleUser.email.toLowerCase(),
-          username: uniqueUsername,
+          username: `${baseUsername}_${Date.now()}`,
           displayName: googleUser.name || baseUsername,
-          passwordHash: "GOOGLE_AUTH", // Marker for Google users
+          passwordHash: "GOOGLE_AUTH",
           role: "user",
           isActive: true,
         },
@@ -104,26 +102,22 @@ export async function GET(req: NextRequest) {
       .sign(secret);
 
     // 5. Set session cookie and redirect to Dashboard
-    const response = NextResponse.redirect("/dashboard");
+    const response = NextResponse.redirect(`${baseUrl}/dashboard`);
 
     response.cookies.set("knotx_session", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
+      maxAge: 60 * 60 * 24 * 30,
     });
 
-    // Clear OAuth state cookie
-    response.cookies.set("google_oauth_state", "", {
-      maxAge: 0,
-      path: "/",
-    });
+    response.cookies.set("google_oauth_state", "", { maxAge: 0, path: "/" });
 
     return response;
 
   } catch (error: any) {
     console.error("Google OAuth Callback Error:", error);
-    return NextResponse.redirect("/login?error=google_auth_failed");
+    return NextResponse.redirect(`${baseUrl}/login?error=google_auth_failed`);
   }
 }
