@@ -141,20 +141,19 @@ export default function AdminOverviewSection() {
   };
 
   return (
-    <div className="space-y-8 bg-[#0f172a] min-h-screen p-6 text-white">
+    <div className="space-y-8 bg-background min-h-screen p-6 text-foreground">
       
       {/* Top Bar */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-semibold tracking-tight">Command Center</h1>
-          <p className="text-slate-400 mt-1">Real-time overview • KnotX &amp; Krafts</p>
+          <p className="text-muted-foreground mt-1">Real-time overview • KnotX &amp; Krafts</p>
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Return to User Dashboard Button */}
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-xl text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/90 rounded-xl text-sm font-medium transition-all text-primary-foreground"
           >
             <LogOut size={18} />
             Return to User Dashboard
@@ -162,30 +161,25 @@ export default function AdminOverviewSection() {
         </div>
       </div>
 
-      {/* Version Badge */}
-      <div className="bg-[#1e2937] border border-pink-500/30 rounded-2xl p-4 text-center">
-        <span className="font-mono text-pink-400 text-sm tracking-[4px]">VERSION 10 — CLEAN OVERWRITE</span>
-      </div>
-
       {/* Stats Section */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-6 md:col-span-2">
+        <div className="bg-card border border-border rounded-3xl p-6 md:col-span-2">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-xs text-slate-400 tracking-widest">TOTAL REVENUE</p>
+              <p className="text-xs text-muted-foreground tracking-widest">TOTAL REVENUE</p>
               <p className="text-4xl font-semibold tabular-nums mt-1">
                 {loading && !data ? "..." : `$${(data?.stats.totalRevenue || 0) / 100}`}
               </p>
             </div>
-            <DollarSign className="text-pink-400" size={28} />
+            <DollarSign className="text-primary" size={28} />
           </div>
-          <div className="mt-4 space-y-2 text-sm border-t border-slate-700 pt-4">
+          <div className="mt-4 space-y-2 text-sm border-t border-border pt-4">
             <div className="flex justify-between">
-              <span className="text-slate-400">From Orders</span>
+              <span className="text-muted-foreground">From Orders</span>
               <span className="font-medium">${(data?.stats.revenueFromOrders || 0) / 100}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">From Booking Deposits</span>
+              <span className="text-muted-foreground">From Booking Deposits</span>
               <span className="font-medium">${(data?.stats.revenueFromBookings || 0) / 100}</span>
             </div>
           </div>
@@ -196,15 +190,15 @@ export default function AdminOverviewSection() {
           { label: "Customers", value: data?.stats.totalCustomers ?? "—", icon: Users },
           { label: "Bookings", value: data?.stats.totalBookings ?? "—", icon: Calendar },
         ].map((stat, i) => (
-          <div key={i} className="bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
+          <div key={i} className="bg-card border border-border rounded-3xl p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-xs text-slate-400 tracking-widest">{stat.label}</p>
+                <p className="text-xs text-muted-foreground tracking-widest">{stat.label}</p>
                 <p className="text-4xl font-semibold mt-3 tabular-nums">
                   {loading && !data ? "..." : stat.value}
                 </p>
               </div>
-              <stat.icon className="text-pink-400 mt-1" size={24} />
+              <stat.icon className="text-primary mt-1" size={24} />
             </div>
           </div>
         ))}
@@ -212,13 +206,13 @@ export default function AdminOverviewSection() {
 
       {/* Live Visitors + Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
+        <div className="lg:col-span-3 bg-card border border-border rounded-3xl p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-pink-400 text-xs tracking-[3px]">LIVE VISITORS</p>
+              <p className="text-primary text-xs tracking-[3px]">LIVE VISITORS</p>
               <p className="text-xl font-medium">Website Activity Log</p>
             </div>
-            <button onClick={() => fetchData(true)} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700">
+            <button onClick={() => fetchData(true)} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 border border-border">
               <RefreshCw size={16} /> Refresh
             </button>
           </div>
@@ -226,20 +220,20 @@ export default function AdminOverviewSection() {
           <div className="max-h-[380px] overflow-auto pr-2 space-y-3 text-sm">
             {data?.liveVisitors && data.liveVisitors.length > 0 ? (
               data.liveVisitors.map((visitor, index) => (
-                <div key={index} className="flex justify-between items-center bg-[#0f172a] p-4 rounded-2xl">
+                <div key={index} className="flex justify-between items-center bg-muted p-4 rounded-2xl">
                   <div>
                     <p className="font-medium">{visitor.displayName || 'Guest Visitor'}</p>
-                    <p className="text-xs text-slate-400">{visitor.page} • {visitor.ip}</p>
+                    <p className="text-xs text-muted-foreground">{visitor.page} • {visitor.ip}</p>
                   </div>
                   <div className="text-right text-xs">
-                    <span className={`px-2 py-0.5 rounded text-[10px] ${visitor.userType === 'registered' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-500/20'}`}>
+                    <span className={`px-2 py-0.5 rounded text-[10px] ${visitor.userType === 'registered' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted-foreground/20'}`}>
                       {visitor.userType}
                     </span>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-center py-8 text-slate-400 text-sm">
+              <p className="text-center py-8 text-muted-foreground text-sm">
                 No live visitors logged yet.<br />
                 <span className="text-xs">(Tracking is active via middleware)</span>
               </p>
@@ -247,48 +241,58 @@ export default function AdminOverviewSection() {
           </div>
         </div>
 
-        <div className="lg:col-span-2 bg-[#1e2937] border border-slate-700 rounded-3xl p-6">
-          <p className="text-pink-400 text-xs tracking-[3px] mb-4">RECENT ACTIVITY</p>
+        <div className="lg:col-span-2 bg-card border border-border rounded-3xl p-6">
+          <p className="text-primary text-xs tracking-[3px] mb-4">RECENT ACTIVITY</p>
           <div className="space-y-4 text-sm">
             <div>
-              <p className="text-xs text-slate-400 mb-2">NEW USERS</p>
+              <p className="text-xs text-muted-foreground mb-2">NEW USERS</p>
               {data?.recentUsers?.length ? data.recentUsers.map((u, i) => (
-                <div key={i} className="flex justify-between py-1 border-b border-slate-700 last:border-0">
+                <div key={i} className="flex justify-between py-1 border-b border-border last:border-0">
                   <span>{u.displayName || u.email}</span>
                 </div>
-              )) : <p className="text-xs text-slate-500">No recent users</p>}
+              )) : <p className="text-xs text-muted-foreground">No recent users</p>}
             </div>
           </div>
         </div>
       </div>
 
       {/* Media Management */}
-      <div className="bg-[#1e2937] border border-slate-700 rounded-3xl p-8">
+      <div className="bg-card border border-border rounded-3xl p-8">
         <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-          <Upload className="text-pink-400" /> Media Management
+          <Upload className="text-primary" /> Media Management
         </h3>
-        <p className="text-sm text-slate-400 mb-6">
+        <p className="text-sm text-muted-foreground mb-6">
           Upload or replace videos and images individually. Only the selected slot will be updated.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Hero Videos */}
+          {/* Hero Videos with Preview */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <Video className="text-pink-400" />
+              <Video className="text-primary" />
               <h4 className="font-semibold text-lg">Hero Section Videos</h4>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-6">
               {heroVideos.map((video, index) => (
-                <div key={index} className="border border-slate-600 rounded-2xl p-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{video.name}</p>
-                      <p className="text-xs text-slate-400 truncate max-w-[220px]">{video.url}</p>
-                    </div>
+                <div key={index} className="border border-border rounded-2xl p-4">
+                  <div className="mb-3">
+                    <p className="font-medium">{video.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{video.url}</p>
+                  </div>
+
+                  {/* Video Preview */}
+                  <div className="mb-4 rounded-xl overflow-hidden border border-border bg-black">
+                    <video 
+                      src={video.url} 
+                      controls 
+                      className="w-full max-h-[180px] object-contain"
+                    />
+                  </div>
+
+                  <div className="flex justify-end">
                     <label className="cursor-pointer">
-                      <div className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-xl text-sm font-medium transition-all">
-                        {uploadingIndex === index ? "Uploading..." : "Change"}
+                      <div className="px-4 py-2 bg-primary hover:bg-primary/90 rounded-xl text-sm font-medium transition-all text-primary-foreground">
+                        {uploadingIndex === index ? "Uploading..." : "Change Video"}
                       </div>
                       <input
                         type="file"
@@ -307,19 +311,19 @@ export default function AdminOverviewSection() {
           {/* Gallery Images */}
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <ImageIcon className="text-pink-400" />
+              <ImageIcon className="text-primary" />
               <h4 className="font-semibold text-lg">Home Gallery Images</h4>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {galleryImagesState.map((img, index) => (
-                <div key={index} className="border border-slate-600 rounded-2xl overflow-hidden">
-                  <div className="aspect-video bg-slate-800 flex items-center justify-center">
+                <div key={index} className="border border-border rounded-2xl overflow-hidden">
+                  <div className="aspect-video bg-muted flex items-center justify-center">
                     <img src={img.url} alt={img.name} className="max-h-full object-cover" />
                   </div>
-                  <div className="p-3 flex justify-between items-center bg-[#0f172a]">
+                  <div className="p-3 flex justify-between items-center bg-card">
                     <p className="text-sm truncate">{img.name}</p>
                     <label className="cursor-pointer">
-                      <div className="px-3 py-1.5 bg-pink-600 hover:bg-pink-700 rounded-lg text-xs font-medium transition-all">
+                      <div className="px-3 py-1.5 bg-primary hover:bg-primary/90 rounded-lg text-xs font-medium transition-all text-primary-foreground">
                         {uploadingIndex === index ? "..." : "Change"}
                       </div>
                       <input
