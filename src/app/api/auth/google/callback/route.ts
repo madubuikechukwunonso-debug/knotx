@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   // CSRF Protection
   if (!state || !storedState || state !== storedState) {
-    console.error("Google OAuth: Invalid state parameter");
+    console.error("Google OAuth: Invalid state");
     return NextResponse.redirect("/login?error=invalid_state");
   }
 
@@ -24,12 +24,12 @@ export async function GET(req: NextRequest) {
   const redirectUri = `${baseUrl}/api/auth/google/callback`;
 
   if (!code || !googleClientId || !googleClientSecret) {
-    console.error("Google OAuth: Missing client credentials or code");
+    console.error("Google OAuth: Missing GOOGLE_CLIENT_SECRET or authorization code");
     return NextResponse.redirect("/login?error=google_config_error");
   }
 
   try {
-    // 1. Exchange code for access token
+    // 1. Exchange code for tokens
     const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -59,29 +59,32 @@ export async function GET(req: NextRequest) {
     const googleUser = await userInfoRes.json();
 
     if (!googleUser.email) {
-      console.error("Google did not return an email");
+      console.error("Google did not return email");
       return NextResponse.redirect("/login?error=no_email_from_google");
     }
 
-    // 3. Find or create user
+    // 3. Find or create user in database
     let user = await prisma.localUser.findUnique({
       where: { email: googleUser.email.toLowerCase() },
     });
 
     if (!user) {
+      const baseUsername = googleUser.email.split("@")[0];
+      const uniqueUsername = `${baseUsername}_${Date.now()}`;
+
       user = await prisma.localUser.create({
         data: {
           email: googleUser.email.toLowerCase(),
-          username: googleUser.email.split("@")[0] + "_" + Date.now(),
-          displayName: googleUser.name || googleUser.email.split("@")[0],
-          passwordHash: "", // Google users have no password
+          username: uniqueUsername,
+          displayName: googleUser.name || baseUsername,
+          passwordHash: "GOOGLE_AUTH", // Marker for Google users
           role: "user",
           isActive: true,
         },
       });
     }
 
-    // 4. Create session JWT
+    // 4. Create JWT session
     const secret = new TextEncoder().encode(
       process.env.APP_SECRET || "dev-secret-change-me"
     );
@@ -100,7 +103,7 @@ export async function GET(req: NextRequest) {
       .setExpirationTime("30d")
       .sign(secret);
 
-    // 5. Set cookie and redirect
+    // 5. Set session cookie and redirect to Dashboard
     const response = NextResponse.redirect("/dashboard");
 
     response.cookies.set("knotx_session", token, {
@@ -111,10 +114,14 @@ export async function GET(req: NextRequest) {
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
 
-    // Clear state cookie
-    response.cookies.set("google_oauth_state", "", { maxAge: 0, path: "/" });
+    // Clear OAuth state cookie
+    response.cookies.set("google_oauth_state", "", {
+      maxAge: 0,
+      path: "/",
+    });
 
     return response;
+
   } catch (error: any) {
     console.error("Google OAuth Callback Error:", error);
     return NextResponse.redirect("/login?error=google_auth_failed");
