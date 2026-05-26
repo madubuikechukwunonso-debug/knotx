@@ -3,9 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
-import { LogIn, UserPlus, ArrowLeft, Mail } from 'lucide-react';
 
-type Mode = 'login' | 'register' | 'verify-otp';
+type Mode = 'login' | 'register' | 'verify-otp' | 'forgot-password';
 
 type Props = {
   initialMode?: Mode;
@@ -19,6 +18,7 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [otp, setOtp] = useState('');
+  const [forgotEmail, setForgotEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isPending, setIsPending] = useState(false);
@@ -127,7 +127,7 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
         return;
       }
 
-      setSuccess('Email verified! Redirecting...');
+      setSuccess('Email verified! Redirecting to dashboard...');
       setTimeout(() => {
         window.location.href = '/dashboard';
       }, 1200);
@@ -138,7 +138,36 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
     }
   };
 
-  // ==================== GOOGLE SIGN IN / SIGN UP ====================
+  // ==================== FORGOT PASSWORD ====================
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsPending(true);
+
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.success) {
+        setError(data?.message || 'Failed to send reset link');
+        return;
+      }
+
+      setSuccess('Password reset link has been sent to your email.');
+      setForgotEmail('');
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  // ==================== GOOGLE AUTH ====================
   const handleGoogleAuth = () => {
     window.location.href = '/api/auth/google';
   };
@@ -171,11 +200,13 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
                 {mode === 'login' && 'Welcome Back'}
                 {mode === 'register' && 'Create Your Account'}
                 {mode === 'verify-otp' && 'Verify Your Email'}
+                {mode === 'forgot-password' && 'Reset Password'}
               </h1>
               <p className="mt-5 max-w-md text-sm leading-7 text-white/70">
                 {mode === 'login' && 'Sign in to manage your bookings and orders.'}
                 {mode === 'register' && 'Join to book services and shop with us.'}
                 {mode === 'verify-otp' && 'Enter the code we sent to your email.'}
+                {mode === 'forgot-password' && 'Enter your email to receive a reset link.'}
               </p>
             </div>
 
@@ -187,34 +218,22 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
                     {mode === 'login' && 'Sign In'}
                     {mode === 'register' && 'Create Account'}
                     {mode === 'verify-otp' && 'Verify OTP'}
+                    {mode === 'forgot-password' && 'Forgot Password'}
                   </h2>
                 </div>
 
-                {/* ==================== GOOGLE BUTTONS ==================== */}
-
-                {/* Sign in with Google - Login Mode */}
-                {mode === 'login' && (
+                {/* Google Buttons */}
+                {(mode === 'login' || mode === 'register') && (
                   <button
-                    onClick={handleGoogleAuth}
+                    onClick={() => window.location.href = '/api/auth/google'}
                     className="mb-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-black/10 py-3 text-sm font-medium hover:bg-black/5 transition-colors"
                   >
                     <GoogleIcon />
-                    Sign in with Google
+                    {mode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}
                   </button>
                 )}
 
-                {/* Sign up with Google - Register Mode */}
-                {mode === 'register' && (
-                  <button
-                    onClick={handleGoogleAuth}
-                    className="mb-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-black/10 py-3 text-sm font-medium hover:bg-black/5 transition-colors"
-                  >
-                    <GoogleIcon />
-                    Sign up with Google
-                  </button>
-                )}
-
-                {/* ==================== LOGIN FORM ==================== */}
+                {/* LOGIN FORM */}
                 {mode === 'login' && (
                   <form onSubmit={handleLogin} className="space-y-5">
                     <input
@@ -240,10 +259,20 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
                     >
                       {isPending ? 'Signing in...' : 'Sign In'}
                     </button>
+
+                    <div className="text-center">
+                      <button
+                        type="button"
+                        onClick={() => setMode('forgot-password')}
+                        className="text-sm text-black/60 hover:text-black underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
                   </form>
                 )}
 
-                {/* ==================== REGISTER FORM ==================== */}
+                {/* REGISTER FORM */}
                 {mode === 'register' && (
                   <form onSubmit={handleRegister} className="space-y-5">
                     <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm" placeholder="Username" required />
@@ -257,7 +286,7 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
                   </form>
                 )}
 
-                {/* ==================== OTP VERIFICATION ==================== */}
+                {/* OTP VERIFICATION */}
                 {mode === 'verify-otp' && (
                   <form onSubmit={handleVerifyOtp} className="space-y-5">
                     <p className="text-sm text-black/60">Enter the 6-digit code sent to <strong>{registeredEmail}</strong></p>
@@ -271,7 +300,24 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
                       required
                     />
                     <button type="submit" disabled={isPending || otp.length !== 6} className="w-full rounded-2xl bg-black py-3 text-sm font-medium text-white disabled:opacity-60">
-                      {isPending ? 'Verifying...' : 'Verify Email'}
+                      {isPending ? 'Verifying...' : 'Verify & Continue to Dashboard'}
+                    </button>
+                  </form>
+                )}
+
+                {/* FORGOT PASSWORD FORM */}
+                {mode === 'forgot-password' && (
+                  <form onSubmit={handleForgotPassword} className="space-y-5">
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm"
+                      placeholder="Enter your email"
+                      required
+                    />
+                    <button type="submit" disabled={isPending} className="w-full rounded-2xl bg-black py-3 text-sm font-medium text-white disabled:opacity-60">
+                      {isPending ? 'Sending...' : 'Send Reset Link'}
                     </button>
                   </form>
                 )}
@@ -282,9 +328,18 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
 
                 {/* Mode Switcher */}
                 <div className="mt-8 text-center text-sm text-black/60">
-                  {mode === 'login' && <>Don&apos;t have an account? <button onClick={() => setMode('register')} className="font-medium text-black underline">Create one</button></>}
-                  {mode === 'register' && <>Already have an account? <button onClick={() => setMode('login')} className="font-medium text-black underline">Sign in</button></>}
-                  {mode === 'verify-otp' && <button onClick={() => setMode('register')} className="text-black underline">Back to registration</button>}
+                  {mode === 'login' && (
+                    <>Don&apos;t have an account? <button onClick={() => setMode('register')} className="font-medium text-black underline">Create one</button></>
+                  )}
+                  {mode === 'register' && (
+                    <>Already have an account? <button onClick={() => setMode('login')} className="font-medium text-black underline">Sign in</button></>
+                  )}
+                  {mode === 'forgot-password' && (
+                    <button onClick={() => setMode('login')} className="text-black underline">Back to Sign In</button>
+                  )}
+                  {mode === 'verify-otp' && (
+                    <button onClick={() => setMode('register')} className="text-black underline">Back to registration</button>
+                  )}
                 </div>
               </div>
             </div>
