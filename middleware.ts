@@ -6,9 +6,9 @@ import { jwtVerify } from 'jose';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // ============================================
-  // SKIP TRACKING FOR THESE PATHS
-  // ============================================
+  console.log(`[Middleware] Path: ${pathname}`);
+
+  // Skip tracking for these paths
   if (
     pathname.startsWith('/api') ||
     pathname.startsWith('/_next') ||
@@ -18,78 +18,46 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // ============================================
-  // EXTRACT USER INFO FROM JWT SESSION
-  // ============================================
-  let userId: string | null = null;
-  let displayName: string | null = null;
-  let userType: string = 'guest';
-
+  // Get session
   const sessionCookie = request.cookies.get('knotx_session')?.value;
+  let userId = null;
+  let displayName = null;
+  let userType = 'guest';
 
   if (sessionCookie) {
     try {
-      const secret = new TextEncoder().encode(
-        process.env.APP_SECRET || 'dev-secret-change-me'
-      );
-
+      const secret = new TextEncoder().encode(process.env.APP_SECRET || 'dev-secret-change-me');
       const { payload } = await jwtVerify(sessionCookie, secret);
-
-      if (payload.userId) {
-        userId = String(payload.userId);
-        displayName = payload.name as string || null;
-        userType = 'registered';
-      }
-    } catch (error) {
-      // Invalid or expired session - treat as guest
-      console.error('Invalid session in middleware');
+      userId = payload.userId ? String(payload.userId) : null;
+      displayName = payload.name as string || null;
+      userType = 'registered';
+    } catch (e) {
+      console.log('[Middleware] Invalid session cookie');
     }
   }
 
-  // ============================================
-  // GET REAL CLIENT IP
-  // ============================================
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
-  const ip = forwardedFor?.split(',')[0]?.trim() || realIp || 'unknown';
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 
+             request.headers.get('x-real-ip') || 'unknown';
 
-  const userAgent = request.headers.get('user-agent') || null;
+  console.log(`[Middleware] Tracking visit → Page: ${pathname}, IP: ${ip}, Type: ${userType}`);
 
-  // ============================================
-  // FIRE TRACKING REQUEST (Non-blocking)
-  // ============================================
+  // Fire tracking request
   fetch(`${request.nextUrl.origin}/api/track-visit`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       page: pathname,
-      userId: userId,
-      displayName: displayName,
-      userType: userType,
-      ip: ip,
-      userAgent: userAgent,
+      userId,
+      displayName,
+      userType,
+      ip,
+      userAgent: request.headers.get('user-agent'),
     }),
-  }).catch((error) => {
-    console.error('Visitor tracking failed:', error);
-  });
+  }).catch(err => console.error('[Middleware] Track fetch failed:', err));
 
   return NextResponse.next();
 }
 
-// ============================================
-// MATCHER CONFIGURATION
-// ============================================
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - API routes
-     * - Next.js internals
-     * - Static files
-     * - Favicon
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)',
-  ],
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 };
