@@ -1,3 +1,4 @@
+// src/app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { loginUser } from "@/lib/auth";
 import { setSessionCookie } from "@/lib/session";
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
     if (!identifier || !password) {
       return NextResponse.json(
         { ok: false, message: "Identifier and password are required" },
-        { status: 400 },
+        { status: 400 }
       );
     }
 
@@ -33,9 +34,15 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    // Log the real error on the server (check Vercel logs)
+    console.error("🔴 LOGIN ERROR:", error.message);
+
     return NextResponse.json(
-      { ok: false, message: error.message || "Login failed" },
-      { status: 401 },
+      { 
+        ok: false, 
+        message: error.message || "Login failed" 
+      },
+      { status: 401 }
     );
   }
 }
