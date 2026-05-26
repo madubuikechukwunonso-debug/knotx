@@ -47,6 +47,7 @@ export default function AdminOverviewSection() {
 
   async function fetchData(isManual = false) {
     if (!isManual) setLoading(true);
+    
     try {
       const [overviewRes, mediaRes] = await Promise.all([
         fetch('/api/admin/overview', { cache: 'no-store' }),
@@ -58,6 +59,7 @@ export default function AdminOverviewSection() {
 
       setData(overviewData);
 
+      // Merge hero videos
       const dbVideos = mediaData.heroVideos || [];
       const mergedVideos = defaultVideos.map((defaultVideo, index) => {
         const dbVideo = dbVideos.find((v: any) => v.position === index);
@@ -67,6 +69,7 @@ export default function AdminOverviewSection() {
       });
       setHeroVideos(mergedVideos);
 
+      // Merge gallery images
       const dbImages = mediaData.galleryImages || [];
       const realGallery = defaultGalleryImages.slice(0, 3).map((img, index) => ({
         id: img.id,
@@ -141,13 +144,18 @@ export default function AdminOverviewSection() {
     }
   };
 
-  // Build dynamic live visitor locations from real backend IP geolocation data
-  const liveVisitorLocations = (data?.liveVisitors || [])
+  // Sort visitors by newest first
+  const sortedLiveVisitors = [...(data?.liveVisitors || [])].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  // Build map locations (only those with coordinates)
+  const liveVisitorLocations = sortedLiveVisitors
     .filter((visitor: any) => visitor.latitude && visitor.longitude)
     .map((visitor: any) => ({
       name: visitor.city || visitor.country || 'Unknown',
       coordinates: [visitor.longitude, visitor.latitude] as [number, number],
-      count: 1, // You can group by location later if needed
+      count: 1,
       page: visitor.page,
       userType: visitor.userType,
     }));
@@ -216,7 +224,7 @@ export default function AdminOverviewSection() {
         ))}
       </div>
 
-      {/* === LIVE VISITOR MAP (Real IP-based Locations) === */}
+      {/* === LIVE VISITOR MAP === */}
       <div className="bg-card border border-border rounded-3xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -226,12 +234,18 @@ export default function AdminOverviewSection() {
               <p className="text-xl font-medium">Global Activity Map</p>
             </div>
           </div>
-          <button onClick={() => fetchData(true)} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 border border-border">
-            <RefreshCw size={16} /> Refresh
+          
+          {/* FIXED REFRESH BUTTON */}
+          <button 
+            onClick={() => fetchData(true)} 
+            className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 border border-border transition-all"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> 
+            Refresh
           </button>
         </div>
 
-        {/* Dynamic Map with Real Locations */}
+        {/* Map */}
         <div className="rounded-2xl overflow-hidden border border-border bg-background">
           <ComposableMap
             projectionConfig={{ scale: 140 }}
@@ -256,11 +270,9 @@ export default function AdminOverviewSection() {
             {liveVisitorLocations.map((location, index) => (
               <Marker key={index} coordinates={location.coordinates}>
                 <g>
-                  {/* Pulsing Effect */}
                   <circle r={8} fill="#22d3ee" opacity="0.3">
                     <animate attributeName="r" values="8;22;8" dur="2.2s" repeatCount="indefinite" />
                   </circle>
-                  {/* Main Marker */}
                   <circle r={7} fill="#22d3ee" />
                   <circle r={3.5} fill="#ffffff" />
                 </g>
@@ -269,7 +281,7 @@ export default function AdminOverviewSection() {
           </ComposableMap>
         </div>
 
-        {/* Dynamic Legend from Real Data */}
+        {/* Map Legend */}
         <div className="mt-4 flex flex-wrap gap-3 text-sm">
           {liveVisitorLocations.length > 0 ? (
             liveVisitorLocations.map((loc, i) => (
@@ -280,8 +292,35 @@ export default function AdminOverviewSection() {
               </div>
             ))
           ) : (
-            <p className="text-muted-foreground text-sm">No live visitor locations detected yet.</p>
+            <p className="text-muted-foreground text-sm">No live locations yet. Visit from another device to test.</p>
           )}
+        </div>
+
+        {/* === NEW: RECENT VISITS LOG (Terminal Style) === */}
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-primary text-sm font-medium tracking-widest">RECENT VISITS LOG</p>
+            <span className="text-xs text-muted-foreground">Newest on top • Auto-updates every 15s</span>
+          </div>
+
+          <div className="bg-black/90 rounded-2xl p-4 font-mono text-sm max-h-[320px] overflow-auto border border-border">
+            {sortedLiveVisitors.length > 0 ? (
+              sortedLiveVisitors.map((visitor: any, index: number) => (
+                <div key={index} className="flex justify-between py-1.5 border-b border-white/10 last:border-0 text-green-400">
+                  <div className="flex-1 truncate">
+                    <span className="text-white/70">[{new Date(visitor.createdAt).toLocaleTimeString()}]</span>{' '}
+                    <span>{visitor.displayName || 'Guest'}</span>{' '}
+                    <span className="text-white/50">→ {visitor.page}</span>
+                  </div>
+                  <div className="text-right text-xs text-white/60">
+                    {visitor.city || visitor.country || visitor.ip}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-white/50 py-4 text-center">No recent visits logged yet.</p>
+            )}
+          </div>
         </div>
       </div>
 
