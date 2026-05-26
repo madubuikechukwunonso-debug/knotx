@@ -2,19 +2,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-interface EnrichedVisitor {
-  id: number;
-  ip: string;
-  page: string;
-  userType: string;
-  displayName: string | null;
-  createdAt: Date;
-  city?: string;
-  country?: string;
-  latitude?: number;
-  longitude?: number;
-}
-
 export async function GET() {
   try {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
@@ -29,7 +16,7 @@ export async function GET() {
       recentUsers,
       recentOrders,
       recentBookings,
-      rawLiveVisitors,
+      liveVisitors,
     ] = await Promise.all([
       prisma.order.aggregate({ _sum: { total: true } }),
       prisma.order.aggregate({ _sum: { total: true } }),
@@ -52,6 +39,7 @@ export async function GET() {
         orderBy: { createdAt: 'desc' },
         select: { id: true, customerName: true, serviceType: true, price: true, status: true, createdAt: true },
       }),
+      // Live visitors (now includes city & country from track-visit)
       prisma.visitorLog.findMany({
         where: { createdAt: { gte: fifteenMinutesAgo } },
         orderBy: { createdAt: 'desc' },
@@ -62,40 +50,12 @@ export async function GET() {
           page: true,
           userType: true,
           displayName: true,
+          city: true,
+          country: true,
           createdAt: true,
         },
       }),
     ]);
-
-    // Enrich visitors with real geolocation data
-    const liveVisitors: EnrichedVisitor[] = await Promise.all(
-      rawLiveVisitors.map(async (visitor: any) => {
-        const enriched: EnrichedVisitor = { ...visitor };
-
-        if (visitor.ip && visitor.ip !== '::1' && !visitor.ip.startsWith('127.')) {
-          try {
-            const geoRes = await fetch(`https://ipapi.co/${visitor.ip}/json/`, {
-              next: { revalidate: 3600 },
-            });
-
-            if (geoRes.ok) {
-              const geoData = await geoRes.json();
-
-              if (geoData.latitude && geoData.longitude) {
-                enriched.latitude = geoData.latitude;
-                enriched.longitude = geoData.longitude;
-                enriched.city = geoData.city;
-                enriched.country = geoData.country_name;
-              }
-            }
-          } catch (geoError) {
-            console.error(`Geolocation failed for IP ${visitor.ip}`);
-          }
-        }
-
-        return enriched;
-      })
-    );
 
     return NextResponse.json({
       stats: {
@@ -109,7 +69,7 @@ export async function GET() {
       recentUsers,
       recentOrders,
       recentBookings,
-      liveVisitors,
+      liveVisitors, // Now contains city & country
       lastUpdated: new Date().toISOString(),
     });
   } catch (error) {
