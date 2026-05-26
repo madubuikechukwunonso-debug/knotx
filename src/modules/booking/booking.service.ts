@@ -44,11 +44,9 @@ function isSlotAvailable(
 ): boolean {
   const slotStart = timeToMinutes(slotTime);
   const slotEnd = slotStart + serviceDurationMinutes;
-
   for (const booking of existingBookings) {
     const bookingStart = timeToMinutes(booking.time);
     const bookingEnd = bookingStart + booking.durationMinutes;
-
     // Check for any overlap
     if (slotStart < bookingEnd && slotEnd > bookingStart) {
       return false;
@@ -159,7 +157,8 @@ export async function createBooking(input: CreateBookingInput) {
       serviceId: service.id,
       staffUserId: input.staffUserId,
       serviceType: service.name,
-      durationMinutes: service.durationMinutes,
+      // ✅ Updated: Use passed durationMinutes if available, otherwise fall back to service default
+      durationMinutes: input.durationMinutes ?? service.durationMinutes,
       price: service.price,
       paymentStatus: "unpaid",
       date: input.date,
