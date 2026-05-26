@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-interface VisitorWithLocation {
+interface EnrichedVisitor {
   id: number;
   ip: string;
   page: string;
@@ -67,18 +67,15 @@ export async function GET() {
       }),
     ]);
 
-    // ============================================
-    // ENRICH LIVE VISITORS WITH REAL LOCATION DATA
-    // ============================================
-    const liveVisitors: VisitorWithLocation[] = await Promise.all(
-      rawLiveVisitors.map(async (visitor) => {
-        const enriched: VisitorWithLocation = { ...visitor };
+    // Enrich visitors with real geolocation data
+    const liveVisitors: EnrichedVisitor[] = await Promise.all(
+      rawLiveVisitors.map(async (visitor: any) => {
+        const enriched: EnrichedVisitor = { ...visitor };
 
         if (visitor.ip && visitor.ip !== '::1' && !visitor.ip.startsWith('127.')) {
           try {
-            // Using ipapi.co (free, no API key required for basic usage)
             const geoRes = await fetch(`https://ipapi.co/${visitor.ip}/json/`, {
-              next: { revalidate: 3600 }, // Cache for 1 hour
+              next: { revalidate: 3600 },
             });
 
             if (geoRes.ok) {
@@ -92,7 +89,7 @@ export async function GET() {
               }
             }
           } catch (geoError) {
-            console.error(`Geolocation failed for IP ${visitor.ip}:`, geoError);
+            console.error(`Geolocation failed for IP ${visitor.ip}`);
           }
         }
 
@@ -112,7 +109,7 @@ export async function GET() {
       recentUsers,
       recentOrders,
       recentBookings,
-      liveVisitors, // ← Now includes latitude & longitude
+      liveVisitors,
       lastUpdated: new Date().toISOString(),
     });
   } catch (error) {
