@@ -19,6 +19,20 @@ function minutesToTime(value: number): string {
   return `${hours}:${minutes}`;
 }
 
+/**
+ * Checks if two time ranges overlap
+ */
+function timesOverlap(
+  start1: number,
+  duration1: number,
+  start2: number,
+  duration2: number
+): boolean {
+  const end1 = start1 + duration1;
+  const end2 = start2 + duration2;
+  return start1 < end2 && end1 > start2;
+}
+
 function buildSlots(
   startTime: string,
   endTime: string,
@@ -47,8 +61,9 @@ interface Assignment {
   staff: StaffProfile;
 }
 
-interface BookingTime {
+interface ExistingBooking {
   time: string;
+  durationMinutes: number;
 }
 
 export async function GET(request: Request) {
@@ -76,7 +91,6 @@ export async function GET(request: Request) {
         select: { id: true, displayName: true, bio: true, bookingEnabled: true },
       });
 
-      // Fixed: Explicit any on parameter
       assignments = allEnabledStaff.map((staffProfile: any) => ({
         staff: staffProfile as StaffProfile,
       }));
@@ -161,7 +175,6 @@ export async function POST(request: Request) {
         select: { id: true, displayName: true, bookingEnabled: true },
       });
 
-      // Fixed: Explicit any on parameter
       assignments = allEnabled.map((staffProfile: any) => ({
         staff: staffProfile as StaffProfile,
       }));
@@ -183,8 +196,6 @@ export async function POST(request: Request) {
 
       if (!working) continue;
 
-      const workingHours = working;
-
       const hasFullDayBlock = await prisma.staffTimeOff.findFirst({
         where: {
           staffUserId: profile.id,
@@ -202,33 +213,46 @@ export async function POST(request: Request) {
 
       if (hasFullDayBlock || hasBlockedSlot) continue;
 
+      // ✅ FIXED: Fetch durationMinutes along with time
       const existingBookings = await prisma.booking.findMany({
         where: {
           staffUserId: profile.id,
           date: date,
           status: { not: 'cancelled' },
         },
-        select: { time: true },
-      }) as BookingTime[];
+        select: { time: true, durationMinutes: true },
+      }) as ExistingBooking[];
 
-      const bookedTimes = new Set(existingBookings.map((b) => b.time));
-      const stepMinutes = service.slotDurationMinutes || service.durationMinutes;
-
+      const stepMinutes = service.slotDurationMinutes || 60;
       const allSlots = buildSlots(
-        workingHours.startTime,
-        workingHours.endTime,
+        working.startTime,
+        working.endTime,
         stepMinutes,
         service.durationMinutes
       );
 
-      const freeSlots = allSlots
-        .filter((slot) => !bookedTimes.has(slot))
-        .map((slot) => ({
-          staffUserId: profile.id,
-          staffName: profile.displayName,
-          time: slot,
-          durationMinutes: service.durationMinutes,
-        }));
+      const freeSlots: any[] = [];
+
+      for (const slot of allSlots) {
+        const candidateStart = timeToMinutes(slot);
+        const candidateEnd = candidateStart + service.durationMinutes;
+
+        // Check against all existing bookings for overlap
+        const hasOverlap = existingBookings.some((booking) => {
+          const bookedStart = timeToMinutes(booking.time);
+          const bookedDuration = booking.durationMinutes || service.durationMinutes;
+          return timesOverlap(candidateStart, service.durationMinutes, bookedStart, bookedDuration);
+        });
+
+        if (!hasOverlap) {
+          freeSlots.push({
+            staffUserId: profile.id,
+            staffName: profile.displayName,
+            time: slot,
+            durationMinutes: service.durationMinutes,
+          });
+        }
+      }
 
       availableByStaff.push(...freeSlots);
     }
