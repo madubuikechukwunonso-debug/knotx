@@ -216,7 +216,7 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
 
   const handleOtpPaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g '').slice(0, 6);
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
     const newDigits = [...otpDigits];
     pasted.split('').forEach((char, i) => {
       if (i < 6) newDigits[i] = char;
