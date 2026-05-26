@@ -7,34 +7,36 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { page, userId, displayName, userType } = body;
 
-    // Get real client IP
+    // Get real client IP (supports Vercel + other platforms)
     const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       request.headers.get('x-real-ip') ||
       'unknown';
 
-    // Default values
+    // Default location values
     let city: string | null = null;
     let country: string | null = null;
 
-    // Only geolocate real public IPs
+    // Only attempt geolocation for real public IPs
     if (ip && ip !== 'unknown' && ip !== '::1' && !ip.startsWith('127.')) {
       try {
         const geoRes = await fetch(`https://ipapi.co/${ip}/json/`, {
-          next: { revalidate: 86400 }, // Cache for 24 hours
+          next: { revalidate: 86400 }, // Cache response for 24 hours
         });
 
         if (geoRes.ok) {
           const geoData = await geoRes.json();
+
           if (geoData.city) city = geoData.city;
           if (geoData.country_name) country = geoData.country_name;
         }
       } catch (geoError) {
+        // Fail silently — don't block visit tracking if geolocation fails
         console.error('Geolocation failed for IP:', ip);
       }
     }
 
-    // Save visit with location data
+    // Save visitor log with location data
     await prisma.visitorLog.create({
       data: {
         ip,
