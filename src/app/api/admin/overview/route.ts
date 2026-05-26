@@ -2,6 +2,19 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
+interface VisitorWithLocation {
+  id: number;
+  ip: string;
+  page: string;
+  userType: string;
+  displayName: string | null;
+  createdAt: Date;
+  city?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
 export async function GET() {
   try {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
@@ -16,72 +29,32 @@ export async function GET() {
       recentUsers,
       recentOrders,
       recentBookings,
-      liveVisitors,
+      rawLiveVisitors,
     ] = await Promise.all([
-      // Total Revenue (Orders + Bookings)
       prisma.order.aggregate({ _sum: { total: true } }),
-
-      // Revenue from Orders only
       prisma.order.aggregate({ _sum: { total: true } }),
-
-      // Revenue from Bookings
       prisma.booking.aggregate({ _sum: { price: true } }),
-
       prisma.order.count(),
       prisma.localUser.count(),
       prisma.booking.count(),
-
-      // Recent Users
       prisma.localUser.findMany({
         take: 6,
         orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          displayName: true,
-          email: true,
-          createdAt: true,
-        },
+        select: { id: true, displayName: true, email: true, createdAt: true },
       }),
-
-      // Recent Orders
       prisma.order.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          customerName: true,
-          total: true,
-          status: true,
-          createdAt: true,
-        },
+        select: { id: true, customerName: true, total: true, status: true, createdAt: true },
       }),
-
-      // Recent Bookings
       prisma.booking.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          customerName: true,
-          serviceType: true,
-          price: true,
-          status: true,
-          createdAt: true,
-        },
+        select: { id: true, customerName: true, serviceType: true, price: true, status: true, createdAt: true },
       }),
-
-      // ============================================
-      // LIVE VISITORS (Last 15 minutes)
-      // ============================================
       prisma.visitorLog.findMany({
-        where: {
-          createdAt: {
-            gte: fifteenMinutesAgo,
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        where: { createdAt: { gte: fifteenMinutesAgo } },
+        orderBy: { createdAt: 'desc' },
         take: 20,
         select: {
           id: true,
@@ -93,6 +66,39 @@ export async function GET() {
         },
       }),
     ]);
+
+    // ============================================
+    // ENRICH LIVE VISITORS WITH REAL LOCATION DATA
+    // ============================================
+    const liveVisitors: VisitorWithLocation[] = await Promise.all(
+      rawLiveVisitors.map(async (visitor) => {
+        const enriched: VisitorWithLocation = { ...visitor };
+
+        if (visitor.ip && visitor.ip !== '::1' && !visitor.ip.startsWith('127.')) {
+          try {
+            // Using ipapi.co (free, no API key required for basic usage)
+            const geoRes = await fetch(`https://ipapi.co/${visitor.ip}/json/`, {
+              next: { revalidate: 3600 }, // Cache for 1 hour
+            });
+
+            if (geoRes.ok) {
+              const geoData = await geoRes.json();
+
+              if (geoData.latitude && geoData.longitude) {
+                enriched.latitude = geoData.latitude;
+                enriched.longitude = geoData.longitude;
+                enriched.city = geoData.city;
+                enriched.country = geoData.country_name;
+              }
+            }
+          } catch (geoError) {
+            console.error(`Geolocation failed for IP ${visitor.ip}:`, geoError);
+          }
+        }
+
+        return enriched;
+      })
+    );
 
     return NextResponse.json({
       stats: {
@@ -106,7 +112,7 @@ export async function GET() {
       recentUsers,
       recentOrders,
       recentBookings,
-      liveVisitors, // ← Now populated with real data
+      liveVisitors, // ← Now includes latitude & longitude
       lastUpdated: new Date().toISOString(),
     });
   } catch (error) {
