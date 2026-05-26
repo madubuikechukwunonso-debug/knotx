@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 
-export default function ResetPasswordPage() {
+// Separate component that uses useSearchParams
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get('token');
@@ -68,6 +69,58 @@ export default function ResetPasswordPage() {
   };
 
   return (
+    <form onSubmit={handleResetPassword} className="space-y-5">
+      <div>
+        <label className="mb-2 block text-sm font-medium text-black/70">New Password</label>
+        <input
+          type="password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm"
+          placeholder="Enter new password"
+          required
+          minLength={6}
+        />
+      </div>
+
+      <div>
+        <label className="mb-2 block text-sm font-medium text-black/70">Confirm New Password</label>
+        <input
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm"
+          placeholder="Confirm new password"
+          required
+        />
+      </div>
+
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+          {success}
+        </div>
+      )}
+
+      <button
+        type="submit"
+        disabled={isPending || !token}
+        className="w-full rounded-2xl bg-black py-3 text-sm font-medium text-white disabled:opacity-60"
+      >
+        {isPending ? 'Resetting Password...' : 'Reset Password'}
+      </button>
+    </form>
+  );
+}
+
+// Main Page Component
+export default function ResetPasswordPage() {
+  return (
     <>
       <Navigation />
 
@@ -78,61 +131,9 @@ export default function ResetPasswordPage() {
             <p className="mt-2 text-black/60">Enter your new password below</p>
           </div>
 
-          {!token ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
-              <p className="text-red-700">Invalid reset link. Please request a new password reset.</p>
-              <Link href="/login" className="mt-4 inline-block text-black underline">
-                Back to Login
-              </Link>
-            </div>
-          ) : (
-            <form onSubmit={handleResetPassword} className="space-y-5">
-              <div>
-                <label className="mb-2 block text-sm font-medium text-black/70">New Password</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm"
-                  placeholder="Enter new password"
-                  required
-                  minLength={6}
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-medium text-black/70">Confirm New Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3 text-sm"
-                  placeholder="Confirm new password"
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {error}
-                </div>
-              )}
-
-              {success && (
-                <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-                  {success}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isPending || !token}
-                className="w-full rounded-2xl bg-black py-3 text-sm font-medium text-white disabled:opacity-60"
-              >
-                {isPending ? 'Resetting Password...' : 'Reset Password'}
-              </button>
-            </form>
-          )}
+          <Suspense fallback={<div className="text-center py-8">Loading...</div>}>
+            <ResetPasswordForm />
+          </Suspense>
 
           <div className="mt-8 text-center">
             <Link href="/login" className="text-sm text-black/60 hover:text-black underline">
