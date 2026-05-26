@@ -7,8 +7,12 @@ import { LogIn, UserPlus, ArrowLeft, Mail } from 'lucide-react';
 
 type Mode = 'login' | 'register' | 'verify-otp';
 
-export default function LoginPage() {
-  const [mode, setMode] = useState<Mode>('login');
+type Props = {
+  initialMode?: Mode;
+};
+
+export default function LoginPage({ initialMode = 'login' }: Props) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [identifier, setIdentifier] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -76,7 +80,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Registration successful → Send OTP
       setRegisteredEmail(email.trim());
 
       const otpRes = await fetch('/api/auth/send-otp', {
