@@ -250,7 +250,7 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
     <>
       <Navigation />
 
-      <main className="relative min-h-screen bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 px-4 pb-12 pt-24 text-slate-900 sm:px-6 lg:px-8">
+      <main className="relative min-h-screen bg-gradient-to-br from-cyan-50 via-sky-50 to-blue-100 px-4 pb-12 pt-24 text-slate-900 sm:px-6 lg:px-8">
         {/* Background decoration */}
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
           <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-purple-200/20 blur-3xl" />
