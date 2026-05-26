@@ -28,6 +28,7 @@ export type CreateBookingInput = {
   notes?: string;
   userId?: number;
   userType?: "oauth" | "local" | "guest";  // ← FIXED: Added "guest"
+  durationMinutes?: number;
 };
 
 export type AvailabilityInput = {
