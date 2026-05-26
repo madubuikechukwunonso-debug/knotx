@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import {
-  Users, DollarSign, ShoppingCart, Calendar, RefreshCw, Upload, Video, Image as ImageIcon, LogOut
+  Users, DollarSign, ShoppingCart, Calendar, RefreshCw, Upload, Video, Image as ImageIcon, LogOut, MapPin
 } from 'lucide-react';
 import Link from 'next/link';
 import { galleryImages as defaultGalleryImages } from '@/lib/galleryImages';
 import { uploadMediaAction } from '@/app/actions/upload-media';
+import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps';
 
 interface MediaItem {
   id?: number;
@@ -140,6 +141,17 @@ export default function AdminOverviewSection() {
     }
   };
 
+  // Build dynamic live visitor locations from real backend IP geolocation data
+  const liveVisitorLocations = (data?.liveVisitors || [])
+    .filter((visitor: any) => visitor.latitude && visitor.longitude)
+    .map((visitor: any) => ({
+      name: visitor.city || visitor.country || 'Unknown',
+      coordinates: [visitor.longitude, visitor.latitude] as [number, number],
+      count: 1, // You can group by location later if needed
+      page: visitor.page,
+      userType: visitor.userType,
+    }));
+
   return (
     <div className="space-y-8 bg-background min-h-screen p-6 text-foreground">
       
@@ -204,55 +216,72 @@ export default function AdminOverviewSection() {
         ))}
       </div>
 
-      {/* Live Visitors + Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-3 bg-card border border-border rounded-3xl p-6">
-          <div className="flex items-center justify-between mb-5">
+      {/* === LIVE VISITOR MAP (Real IP-based Locations) === */}
+      <div className="bg-card border border-border rounded-3xl p-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <MapPin className="text-primary" />
             <div>
               <p className="text-primary text-xs tracking-[3px]">LIVE VISITORS</p>
-              <p className="text-xl font-medium">Website Activity Log</p>
+              <p className="text-xl font-medium">Global Activity Map</p>
             </div>
-            <button onClick={() => fetchData(true)} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 border border-border">
-              <RefreshCw size={16} /> Refresh
-            </button>
           </div>
-
-          <div className="max-h-[380px] overflow-auto pr-2 space-y-3 text-sm">
-            {data?.liveVisitors && data.liveVisitors.length > 0 ? (
-              data.liveVisitors.map((visitor, index) => (
-                <div key={index} className="flex justify-between items-center bg-muted p-4 rounded-2xl">
-                  <div>
-                    <p className="font-medium">{visitor.displayName || 'Guest Visitor'}</p>
-                    <p className="text-xs text-muted-foreground">{visitor.page} • {visitor.ip}</p>
-                  </div>
-                  <div className="text-right text-xs">
-                    <span className={`px-2 py-0.5 rounded text-[10px] ${visitor.userType === 'registered' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted-foreground/20'}`}>
-                      {visitor.userType}
-                    </span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-center py-8 text-muted-foreground text-sm">
-                No live visitors logged yet.<br />
-                <span className="text-xs">(Tracking is active via middleware)</span>
-              </p>
-            )}
-          </div>
+          <button onClick={() => fetchData(true)} className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 border border-border">
+            <RefreshCw size={16} /> Refresh
+          </button>
         </div>
 
-        <div className="lg:col-span-2 bg-card border border-border rounded-3xl p-6">
-          <p className="text-primary text-xs tracking-[3px] mb-4">RECENT ACTIVITY</p>
-          <div className="space-y-4 text-sm">
-            <div>
-              <p className="text-xs text-muted-foreground mb-2">NEW USERS</p>
-              {data?.recentUsers?.length ? data.recentUsers.map((u, i) => (
-                <div key={i} className="flex justify-between py-1 border-b border-border last:border-0">
-                  <span>{u.displayName || u.email}</span>
-                </div>
-              )) : <p className="text-xs text-muted-foreground">No recent users</p>}
-            </div>
-          </div>
+        {/* Dynamic Map with Real Locations */}
+        <div className="rounded-2xl overflow-hidden border border-border bg-background">
+          <ComposableMap
+            projectionConfig={{ scale: 140 }}
+            width={900}
+            height={420}
+            style={{ width: "100%", height: "auto" }}
+          >
+            <Geographies geography="https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json">
+              {({ geographies }) =>
+                geographies.map((geo) => (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    fill="#334155"
+                    stroke="#475569"
+                    strokeWidth={0.6}
+                  />
+                ))
+              }
+            </Geographies>
+
+            {liveVisitorLocations.map((location, index) => (
+              <Marker key={index} coordinates={location.coordinates}>
+                <g>
+                  {/* Pulsing Effect */}
+                  <circle r={8} fill="#22d3ee" opacity="0.3">
+                    <animate attributeName="r" values="8;22;8" dur="2.2s" repeatCount="indefinite" />
+                  </circle>
+                  {/* Main Marker */}
+                  <circle r={7} fill="#22d3ee" />
+                  <circle r={3.5} fill="#ffffff" />
+                </g>
+              </Marker>
+            ))}
+          </ComposableMap>
+        </div>
+
+        {/* Dynamic Legend from Real Data */}
+        <div className="mt-4 flex flex-wrap gap-3 text-sm">
+          {liveVisitorLocations.length > 0 ? (
+            liveVisitorLocations.map((loc, i) => (
+              <div key={i} className="flex items-center gap-2 bg-muted px-3 py-1.5 rounded-xl">
+                <div className="w-2.5 h-2.5 bg-[#22d3ee] rounded-full" />
+                <span className="font-medium">{loc.name}</span>
+                <span className="text-muted-foreground">({loc.count} active)</span>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground text-sm">No live visitor locations detected yet.</p>
+          )}
         </div>
       </div>
 
