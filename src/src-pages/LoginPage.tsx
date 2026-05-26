@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
+import { LogIn, UserPlus, ArrowLeft, Mail } from 'lucide-react';
 
 type Mode = 'login' | 'register' | 'verify-otp' | 'forgot-password';
 
