@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
+import { LogIn, UserPlus, ArrowLeft, Mail } from 'lucide-react';
 
 type Mode = 'login' | 'register' | 'verify-otp';
 
@@ -142,7 +143,7 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
     window.location.href = '/api/auth/google';
   };
 
-  // Google SVG Icon Component
+  // Google SVG Icon
   const GoogleIcon = () => (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.51h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.34z" fill="#4285F4"/>
@@ -191,10 +192,10 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
 
                 {/* ==================== GOOGLE BUTTONS ==================== */}
 
-                {/* Sign in with Google - Only on Login */}
+                {/* Sign in with Google - Login Mode */}
                 {mode === 'login' && (
                   <button
-                    onClick={() => window.location.href = '/api/auth/google'}
+                    onClick={handleGoogleAuth}
                     className="mb-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-black/10 py-3 text-sm font-medium hover:bg-black/5 transition-colors"
                   >
                     <GoogleIcon />
@@ -202,10 +203,10 @@ export default function LoginPage({ initialMode = 'login' }: Props) {
                   </button>
                 )}
 
-                {/* Sign up with Google - Only on Register */}
+                {/* Sign up with Google - Register Mode */}
                 {mode === 'register' && (
                   <button
-                    onClick={() => window.location.href = '/api/auth/google'}
+                    onClick={handleGoogleAuth}
                     className="mb-6 flex w-full items-center justify-center gap-3 rounded-2xl border border-black/10 py-3 text-sm font-medium hover:bg-black/5 transition-colors"
                   >
                     <GoogleIcon />
