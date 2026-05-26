@@ -13,24 +13,39 @@ export default function AccountPage() {
 
   const [myBookings, setMyBookings] = useState<any[]>([]);
   const [myOrders, setMyOrders] = useState<any[]>([]);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
 
   // Redirect if not logged in
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) router.push('/login');
+    if (!isLoading && !isAuthenticated) {
+      router.push('/login');
+    }
   }, [isLoading, isAuthenticated, router]);
 
   // Load user's bookings and orders
   useEffect(() => {
     if (isAuthenticated) {
-      fetch('/api/booking/create?mine=1')
+      // ✅ FIXED: Use the correct and maintained endpoint
+      fetch('/api/booking/mine')
         .then((r) => r.json())
-        .then((d) => setMyBookings(d.bookings || []))
-        .catch(() => {});
+        .then((d) => {
+          setMyBookings(d.bookings || []);
+        })
+        .catch(() => {
+          setMyBookings([]);
+        })
+        .finally(() => setBookingsLoading(false));
 
       fetch('/api/orders?mine=1')
         .then((r) => r.json())
-        .then((d) => setMyOrders(d.orders || []))
-        .catch(() => {});
+        .then((d) => {
+          setMyOrders(d.orders || []);
+        })
+        .catch(() => {
+          setMyOrders([]);
+        })
+        .finally(() => setOrdersLoading(false));
     }
   }, [isAuthenticated]);
 
@@ -97,7 +112,11 @@ export default function AccountPage() {
                 My Bookings
               </h2>
 
-              {myBookings.length > 0 ? (
+              {bookingsLoading ? (
+                <div className="bg-[#f6f6f6] py-8 text-center">
+                  <p className="text-sm text-black/40">Loading your bookings...</p>
+                </div>
+              ) : myBookings.length > 0 ? (
                 <div className="space-y-4">
                   {myBookings.map((booking) => (
                     <div key={booking.id} className="border border-black/5 p-4">
@@ -138,7 +157,11 @@ export default function AccountPage() {
                 My Orders
               </h2>
 
-              {myOrders.length > 0 ? (
+              {ordersLoading ? (
+                <div className="bg-[#f6f6f6] py-8 text-center">
+                  <p className="text-sm text-black/40">Loading your orders...</p>
+                </div>
+              ) : myOrders.length > 0 ? (
                 <div className="space-y-4">
                   {myOrders.map((order) => (
                     <div key={order.id} className="border border-black/5 p-4">
