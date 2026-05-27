@@ -1,3 +1,4 @@
+// src/sections/admin/AdminBookingsSection.tsx
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import AdminBookingTable from './AdminBookingTable';
@@ -24,7 +25,6 @@ async function createBooking(formData: FormData) {
   const paymentStatus = formData.get('paymentStatus') as string;
   const notes = (formData.get('notes') as string) || undefined;
 
-  // Create the booking
   const booking = await prisma.booking.create({
     data: {
       customerName,
@@ -44,9 +44,6 @@ async function createBooking(formData: FormData) {
 
   revalidatePath('/admin/bookings');
 
-  // ============================================
-  // IF PAYMENT STATUS IS UNPAID → SEND PAYMENT LINK
-  // ============================================
   if (paymentStatus === 'unpaid') {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -122,7 +119,6 @@ async function updateBooking(formData: FormData) {
     },
   });
 
-  // Existing email logic (kept as is)
   if (oldBooking && oldBooking.status !== newStatus) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -206,7 +202,6 @@ async function getBookings() {
   });
 }
 
-// Fetch active services for the dropdown
 async function getServices() {
   return prisma.service.findMany({
     where: { active: true },
@@ -227,22 +222,22 @@ export default async function AdminBookingsSection() {
   ]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto bg-background text-foreground">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-serif text-emerald-950">Bookings</h1>
-          <p className="text-emerald-600 text-sm mt-1">
+          <h1 className="text-3xl font-serif">Bookings</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             {bookings.length} booking{bookings.length !== 1 ? 's' : ''} • Appointments & reservations
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="text-xs text-emerald-500 hidden sm:inline">Click "New Booking" below</span>
+          <span className="text-xs text-muted-foreground hidden sm:inline">Click "New Booking" below</span>
         </div>
       </div>
 
       <AdminBookingTable
         bookings={bookings}
-        services={services}                   
+        services={services}
         onCreate={createBooking}
         onUpdate={updateBooking}
         onDelete={deleteBooking}
