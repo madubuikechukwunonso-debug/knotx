@@ -1,3 +1,4 @@
+// src/app/api/stripe/webhook/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
@@ -5,7 +6,6 @@ import { prisma } from '@/lib/prisma';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-04-22.dahlia',
 });
-
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(request: NextRequest) {
@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
         const existingOrder = await prisma.order.findFirst({
           where: { stripePaymentIntent: session.payment_intent as string },
         });
-
         if (existingOrder) {
           console.log(`Order already exists for session ${session.id}`);
           return NextResponse.json({ received: true });
@@ -49,19 +48,18 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Create the order with items - SENDS TO ADMIN SECTION
+        // Create the order with items
         const order = await prisma.order.create({
           data: {
             customerName: metadata.customerName || 'Guest',
             customerEmail: metadata.customerEmail || '',
             customerPhone: metadata.customerPhone || undefined,
             total: parseInt(metadata.totalAmount || '0'),
-            status: 'paid',           // ← Admin sees this in AdminOrdersSection
-            shippingStatus: 'pending', // ← Admin can update shipping status
+            status: 'paid',
+            shippingStatus: 'pending',
             stripePaymentIntent: session.payment_intent as string,
             userId: metadata.userId ? parseInt(metadata.userId) : undefined,
             userType: metadata.userType || undefined,
-            // Shipping address for admin
             shippingAddressLine1: metadata.shippingAddressLine1 || '',
             shippingAddressLine2: metadata.shippingAddressLine2 || '',
             shippingCity: metadata.shippingCity || '',
@@ -78,7 +76,27 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        console.log(`✅ ORDER SENT TO ADMIN SECTION: ${order.id} for session ${session.id}`);
+        console.log(`✅ ORDER CREATED: ${order.id} for session ${session.id}`);
+
+        // ============================================
+        // NOTIFY SUPER ADMIN
+        // ============================================
+        try {
+          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/notify-new-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: order.id,
+              customerName: metadata.customerName,
+              customerEmail: metadata.customerEmail,
+              total: order.total,
+              itemCount: items.length,
+            }),
+          });
+          console.log(`Admin notified for new order #${order.id}`);
+        } catch (notifyError) {
+          console.error('Failed to notify admin about new order:', notifyError);
+        }
 
         // ============================================
         // REMOVE ONLY THE PAID ITEMS FROM WISHLIST
@@ -132,7 +150,6 @@ export async function POST(request: NextRequest) {
       const existingBooking = await prisma.booking.findFirst({
         where: { stripeCheckoutSessionId: session.id },
       });
-
       if (existingBooking) {
         console.log(`Booking already exists for session ${session.id}`);
         return NextResponse.json({ received: true });
@@ -156,7 +173,6 @@ export async function POST(request: NextRequest) {
         const service = await prisma.service.findUnique({
           where: { id: serviceId },
         });
-
         if (!service) {
           console.error('Service not found:', serviceId);
           return NextResponse.json({ received: true });
@@ -191,7 +207,37 @@ export async function POST(request: NextRequest) {
 
         console.log(`Booking created: ${booking.id} (userType: ${isRegisteredUser ? metadata.userType : 'guest'})`);
 
+        // ============================================
+        // NOTIFY SUPER ADMIN
+        // ============================================
+        try {
+          const staff = await prisma.staffProfile.findUnique({
+            where: { id: staffUserId },
+            select: { displayName: true },
+          });
+
+          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/admin/notify-new-booking`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              bookingId: booking.id,
+              customerName: metadata.customerName,
+              customerEmail: metadata.customerEmail,
+              serviceName: service.name,
+              bookingDate: metadata.date,
+              bookingTime: metadata.time,
+              braiderName: staff?.displayName || 'N/A',
+              totalAmount: session.amount_total,
+            }),
+          });
+          console.log(`Admin notified for new booking #${booking.id}`);
+        } catch (notifyError) {
+          console.error('Failed to notify admin about new booking:', notifyError);
+        }
+
+        // ============================================
         // Send invoice email
+        // ============================================
         try {
           const staff = await prisma.staffProfile.findUnique({
             where: { id: staffUserId },
@@ -206,7 +252,6 @@ export async function POST(request: NextRequest) {
 
             const totalAmount = session.amount_total ||
               (service.price + selectedAddons.reduce((sum, a) => sum + (a.price * a.quantity), 0));
-
             const depositAmount = session.amount_subtotal ||
               service.depositAmount || Math.round(totalAmount * 0.3);
 
@@ -226,13 +271,11 @@ export async function POST(request: NextRequest) {
                 braiderName: staff.displayName,
               }),
             });
-
             console.log(`Invoice email sent for booking ${booking.id}`);
           }
         } catch (invoiceError: any) {
           console.error('Failed to send invoice:', invoiceError);
         }
-
       } catch (error: any) {
         console.error('Error creating booking from webhook:', error);
       }
