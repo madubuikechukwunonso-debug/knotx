@@ -34,9 +34,7 @@ function buildSlots(startTime: string, endTime: string, stepMinutes: number): st
   return slots;
 }
 
-// ============================================
-// FIX: Properly block overlapping time slots
-// ============================================
+// Check if a slot has enough continuous time for the service duration
 function isSlotAvailable(
   slotTime: string,
   serviceDurationMinutes: number,
@@ -44,9 +42,11 @@ function isSlotAvailable(
 ): boolean {
   const slotStart = timeToMinutes(slotTime);
   const slotEnd = slotStart + serviceDurationMinutes;
+
   for (const booking of existingBookings) {
     const bookingStart = timeToMinutes(booking.time);
     const bookingEnd = bookingStart + booking.durationMinutes;
+
     // Check for any overlap
     if (slotStart < bookingEnd && slotEnd > bookingStart) {
       return false;
@@ -83,7 +83,6 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
     select: { staffUserId: true, time: true, durationMinutes: true },
   });
 
-  // ✅ Fixed: Explicit any on filter parameter
   const bookingEnabledProfiles = profiles.filter((p: any) => p.bookingEnabled);
 
   const availableByStaff = bookingEnabledProfiles.flatMap((profile: any) => {
@@ -104,10 +103,10 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
     // Get bookings for THIS braider only
     const braiderBookings = bookings.filter((b: any) => b.staffUserId === profile.userId);
 
-    // Generate all possible start times
+    // Generate all possible start times based on service duration
     const allSlots = buildSlots(working.startTime, working.endTime, service.durationMinutes);
 
-    // Filter out overlapping slots
+    // Filter out slots that don't have enough continuous time
     const availableSlots = allSlots.filter((slot) =>
       isSlotAvailable(slot, service.durationMinutes, braiderBookings)
     );
@@ -128,9 +127,7 @@ export async function createBooking(input: CreateBookingInput) {
   });
   if (!service) throw new Error("Service not found");
 
-  // ============================================
-  // FIX: Block past dates
-  // ============================================
+  // Block past dates
   const bookingDate = new Date(`${input.date}T00:00:00`);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -147,7 +144,24 @@ export async function createBooking(input: CreateBookingInput) {
   const validSlot = available.find(
     (slot) => slot.staffUserId === input.staffUserId && slot.time === input.time
   );
-  if (!validSlot) throw new Error("Selected booking slot is no longer available");
+
+  if (!validSlot) {
+    // Check if the time slot exists but the duration is too long
+    const allPossibleSlotsForShorterServices = await getAvailabilityForService({
+      date: input.date,
+      serviceId: input.serviceId,
+    });
+
+    const slotExistsForShorterService = allPossibleSlotsForShorterServices.some(
+      (slot) => slot.staffUserId === input.staffUserId && slot.time === input.time
+    );
+
+    if (slotExistsForShorterService) {
+      throw new Error("Time too short for selected service");
+    }
+
+    throw new Error("Selected booking slot is no longer available");
+  }
 
   const newBooking = await prisma.booking.create({
     data: {
@@ -157,7 +171,6 @@ export async function createBooking(input: CreateBookingInput) {
       serviceId: service.id,
       staffUserId: input.staffUserId,
       serviceType: service.name,
-      // ✅ Updated: Use passed durationMinutes if available, otherwise fall back to service default
       durationMinutes: input.durationMinutes ?? service.durationMinutes,
       price: service.price,
       paymentStatus: "unpaid",
