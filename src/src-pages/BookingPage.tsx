@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Navigation from '@/components/Navigation';
@@ -45,6 +46,7 @@ export default function BookingPage() {
   const [submitted, setSubmitted] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [showGuestWarning, setShowGuestWarning] = useState(false);
+  const [error, setError] = useState(''); // Added error state
 
   // Modal state
   const [showModal, setShowModal] = useState(false);
@@ -130,6 +132,7 @@ export default function BookingPage() {
     setSelectedTime('');
     setAvailableSlots([]);
     setShowGuestWarning(false);
+    setError('');
     setModalStep('addons');
     setShowModal(true);
   };
@@ -138,6 +141,7 @@ export default function BookingPage() {
     setShowModal(false);
     setSelectedService('');
     setSelectedServiceData(null);
+    setError('');
   };
 
   const handleCategorySelect = (categoryId: number | null) => {
@@ -151,10 +155,13 @@ export default function BookingPage() {
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedDate(e.target.value);
+    setSelectedTime('');
+    setError('');
   };
 
   const handleTimeSelect = (time: string) => {
     setSelectedTime(time);
+    setError('');
     if (!user) {
       setShowGuestWarning(true);
     }
@@ -203,6 +210,8 @@ export default function BookingPage() {
     if (!selectedService || !selectedDate || !selectedTime || !selectedBraiderId) return;
 
     setCheckoutLoading(true);
+    setError('');
+
     try {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -233,13 +242,20 @@ export default function BookingPage() {
       });
 
       const data = await response.json();
+
+      if (!response.ok || data.error) {
+        setError(data.message || 'Failed to create checkout session');
+        setCheckoutLoading(false);
+        return;
+      }
+
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert(data.message || 'Failed to create checkout session');
+        setError(data.message || 'Failed to create checkout session');
       }
     } catch (error) {
-      alert('Failed to start payment. Please try again.');
+      setError('Failed to start payment. Please try again.');
     } finally {
       setCheckoutLoading(false);
     }
@@ -496,7 +512,7 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* DATE & TIME STEP - IMPROVED RESPONSIVE DATE PICKER */}
+              {/* DATE & TIME STEP */}
               {modalStep === 'datetime' && (
                 <div>
                   <h3 className="text-xl font-medium mb-4">Choose Date & Time</h3>
@@ -548,6 +564,12 @@ export default function BookingPage() {
                     </div>
                   )}
 
+                  {error && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-sm">
+                      {error}
+                    </div>
+                  )}
+
                   <div className="flex gap-4">
                     <button
                       onClick={() => setModalStep('braider')}
@@ -556,7 +578,11 @@ export default function BookingPage() {
                       Back
                     </button>
                     <button
-                      onClick={() => setModalStep('details')}
+                      onClick={() => {
+                        if (!selectedTime) return;
+                        setError('');
+                        setModalStep('details');
+                      }}
                       disabled={!selectedTime}
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-400 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
                     >
@@ -566,10 +592,9 @@ export default function BookingPage() {
                 </div>
               )}
 
-              {/* DETAILS STEP - GUEST WARNING ALONE OR FORM */}
+              {/* DETAILS STEP */}
               {modalStep === 'details' && (
                 <div>
-                  {/* GUEST WARNING - SHOWN ALONE FOR NON-REGISTERED USERS */}
                   {showGuestWarning && !user ? (
                     <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center">
                       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
@@ -581,16 +606,10 @@ export default function BookingPage() {
                       </p>
                       
                       <div className="flex flex-col gap-3 max-w-xs mx-auto">
-                        <Link 
-                          href="/login" 
-                          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center py-3.5 rounded-2xl font-medium text-base transition-colors"
-                        >
+                        <Link href="/login" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center py-3.5 rounded-2xl font-medium text-base transition-colors">
                           Login
                         </Link>
-                        <Link 
-                          href="/register" 
-                          className="w-full border border-emerald-600 text-emerald-600 hover:bg-emerald-50 text-center py-3.5 rounded-2xl font-medium text-base transition-colors"
-                        >
+                        <Link href="/register" className="w-full border border-emerald-600 text-emerald-600 hover:bg-emerald-50 text-center py-3.5 rounded-2xl font-medium text-base transition-colors">
                           Create Account
                         </Link>
                         <button
@@ -603,7 +622,6 @@ export default function BookingPage() {
                       </div>
                     </div>
                   ) : (
-                    /* FORM FOR REGISTERED USERS OR AFTER CONTINUING AS GUEST */
                     <form onSubmit={handleSubmit} className="space-y-6">
                       <h3 className="text-xl font-medium mb-4">Your Details</h3>
 
@@ -648,6 +666,12 @@ export default function BookingPage() {
                           Deposit due now: ${(calculateDeposit() / 100).toFixed(2)}
                         </div>
                       </div>
+
+                      {error && (
+                        <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-sm">
+                          {error}
+                        </div>
+                      )}
 
                       <div className="flex gap-4 pt-4">
                         <button
