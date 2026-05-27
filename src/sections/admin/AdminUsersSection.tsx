@@ -1,3 +1,4 @@
+// src/sections/admin/AdminUsersSection.tsx
 'use client';
 
 import { useState } from 'react';
@@ -217,19 +218,19 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto bg-background text-foreground">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-serif text-emerald-950">Users</h1>
-          <p className="text-emerald-600 text-sm mt-1">
+          <h1 className="text-3xl font-serif">Users</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             {users.length} customer{users.length !== 1 ? 's' : ''} • Manage accounts
           </p>
         </div>
 
         <button 
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm w-full sm:w-auto justify-center sm:justify-start"
+          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-3xl transition-colors shadow-sm w-full sm:w-auto justify-center sm:justify-start"
         >
           <Plus size={20} />
           <span className="font-medium">Invite New User</span>
@@ -237,44 +238,44 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
       </div>
 
       {/* TABLE CONTAINER */}
-      <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-emerald-50">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700">Customer</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700">Email</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700">Role</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700">Status</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700">Joined</th>
-                <th className="px-6 py-5 text-right font-medium text-emerald-700">Actions</th>
+                <th className="px-6 py-5 text-left font-medium text-muted-foreground">Customer</th>
+                <th className="px-6 py-5 text-left font-medium text-muted-foreground">Email</th>
+                <th className="px-6 py-5 text-left font-medium text-muted-foreground">Role</th>
+                <th className="px-6 py-5 text-left font-medium text-muted-foreground">Status</th>
+                <th className="px-6 py-5 text-left font-medium text-muted-foreground">Joined</th>
+                <th className="px-6 py-5 text-right font-medium text-muted-foreground">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-emerald-100">
+            <tbody className="divide-y divide-border">
               {users.map((user) => (
-                <tr key={user.id} className="hover:bg-emerald-50 transition-colors group">
+                <tr key={user.id} className="hover:bg-muted/50 transition-colors group">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-700 font-medium text-sm">
+                      <div className="h-9 w-9 bg-muted rounded-2xl flex items-center justify-center text-foreground font-medium text-sm">
                         {user.displayName?.[0] || user.username?.[0] || '?'}
                       </div>
                       <div>
-                        <p className="font-medium text-emerald-950">
+                        <p className="font-medium text-foreground">
                           {user.displayName || user.username}
                         </p>
-                        <p className="text-xs text-emerald-500">@{user.username}</p>
+                        <p className="text-xs text-muted-foreground">@{user.username}</p>
                       </div>
                     </div>
                   </td>
 
-                  <td className="px-6 py-5 text-emerald-600">{user.email}</td>
+                  <td className="px-6 py-5 text-muted-foreground">{user.email}</td>
 
                   <td className="px-6 py-5">
                     <select
                       value={user.role}
                       onChange={(e) => changeUserRole(user.id, e.target.value)}
                       disabled={updating}
-                      className="text-xs font-medium px-3 py-1 rounded-3xl bg-emerald-100 text-emerald-700 border-none focus:ring-2 focus:ring-emerald-500"
+                      className="text-xs font-medium px-3 py-1 rounded-3xl bg-muted text-foreground border-none focus:ring-2 focus:ring-primary"
                     >
                       <option value="user">USER</option>
                       <option value="worker">WORKER</option>
@@ -286,22 +287,22 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-2">
                       {user.isBlocked ? (
-                        <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl bg-red-100 text-red-700">
+                        <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
                           BLOCKED
                         </span>
                       ) : user.isActive ? (
-                        <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl bg-emerald-100 text-emerald-700">
+                        <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                           ACTIVE
                         </span>
                       ) : (
-                        <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl bg-gray-100 text-gray-700">
+                        <span className="inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
                           INACTIVE
                         </span>
                       )}
                     </div>
                   </td>
 
-                  <td className="px-6 py-5 text-emerald-500 text-sm">
+                  <td className="px-6 py-5 text-muted-foreground text-sm">
                     {new Date(user.createdAt).toLocaleDateString('en-CA')}
                   </td>
 
@@ -309,7 +310,7 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
                     <div className="flex items-center gap-1 justify-end">
                       <button 
                         onClick={() => openEditModal(user)}
-                        className="p-2 hover:bg-emerald-100 rounded-xl transition-colors text-emerald-600"
+                        className="p-2 hover:bg-muted rounded-xl transition-colors text-foreground"
                         title="Edit User"
                       >
                         <Edit2 size={16} />
@@ -318,11 +319,7 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
                       <button 
                         onClick={() => toggleBlockUser(user)}
                         disabled={updating}
-                        className={`p-2 rounded-xl transition-colors ${
-                          user.isBlocked 
-                            ? 'hover:bg-emerald-100 text-emerald-600' 
-                            : 'hover:bg-red-100 text-red-600'
-                        }`}
+                        className={`p-2 rounded-xl transition-colors ${user.isBlocked ? 'hover:bg-emerald-100 text-emerald-600' : 'hover:bg-red-100 text-red-600'}`}
                         title={user.isBlocked ? 'Unblock User' : 'Block User'}
                       >
                         {user.isBlocked ? <UserCheck size={16} /> : <UserX size={16} />}
@@ -346,9 +343,9 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
         {/* Empty state */}
         {users.length === 0 && (
           <div className="px-6 py-16 text-center">
-            <Users className="h-12 w-12 mx-auto text-emerald-300 mb-4" />
-            <p className="text-emerald-500 text-lg">No users yet</p>
-            <p className="text-emerald-400 text-sm mt-2">
+            <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-foreground text-lg">No users yet</p>
+            <p className="text-muted-foreground text-sm mt-2">
               Customers who register or are invited will appear here
             </p>
           </div>
@@ -358,65 +355,65 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
       {/* ADD USER MODAL */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100">
-              <h3 className="text-xl font-semibold text-emerald-950">Invite New User</h3>
-              <button onClick={closeModals} className="p-2 hover:bg-emerald-100 rounded-full">
+          <div className="bg-card border border-border rounded-3xl max-w-md w-full">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h3 className="text-xl font-semibold text-foreground">Invite New User</h3>
+              <button onClick={closeModals} className="p-2 hover:bg-muted rounded-full text-foreground">
                 <X size={20} />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">Username</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Username</label>
                 <input
                   type="text"
                   value={newUser.username}
                   onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
-                  className="w-full rounded-2xl border border-emerald-200 px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
                   placeholder="johndoe"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">Display Name</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Display Name</label>
                 <input
                   type="text"
                   value={newUser.displayName}
                   onChange={(e) => setNewUser({ ...newUser, displayName: e.target.value })}
-                  className="w-full rounded-2xl border border-emerald-200 px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
                   placeholder="John Doe"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">Email</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
                 <input
                   type="email"
                   value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                  className="w-full rounded-2xl border border-emerald-200 px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
                   placeholder="john@example.com"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">Password</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Password</label>
                 <input
                   type="password"
                   value={newUser.password}
                   onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                  className="w-full rounded-2xl border border-emerald-200 px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
                   placeholder="••••••••"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">Role</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Role</label>
                 <select
                   value={newUser.role}
                   onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  className="w-full rounded-2xl border border-emerald-200 px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
                 >
                   <option value="user">User</option>
                   <option value="worker">Worker</option>
@@ -425,17 +422,17 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
               </div>
             </div>
 
-            <div className="flex gap-3 px-6 py-4 border-t border-emerald-100">
+            <div className="flex gap-3 px-6 py-4 border-t border-border">
               <button
                 onClick={closeModals}
-                className="flex-1 px-6 py-3 border border-emerald-200 text-emerald-700 rounded-2xl text-sm font-medium hover:bg-emerald-50"
+                className="flex-1 px-6 py-3 border border-border text-foreground rounded-2xl text-sm font-medium hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 onClick={addNewUser}
                 disabled={updating}
-                className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-2xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+                className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-2xl text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
               >
                 {updating ? 'Creating...' : 'Create User'}
               </button>
@@ -447,41 +444,41 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
       {/* EDIT USER MODAL */}
       {showEditModal && selectedUser && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-emerald-100">
-              <h3 className="text-xl font-semibold text-emerald-950">Edit User</h3>
-              <button onClick={closeModals} className="p-2 hover:bg-emerald-100 rounded-full">
+          <div className="bg-card border border-border rounded-3xl max-w-md w-full">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h3 className="text-xl font-semibold text-foreground">Edit User</h3>
+              <button onClick={closeModals} className="p-2 hover:bg-muted rounded-full text-foreground">
                 <X size={20} />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">Display Name</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Display Name</label>
                 <input
                   type="text"
                   value={editUser.displayName}
                   onChange={(e) => setEditUser({ ...editUser, displayName: e.target.value })}
-                  className="w-full rounded-2xl border border-emerald-200 px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">Email</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Email</label>
                 <input
                   type="email"
                   value={editUser.email}
                   onChange={(e) => setEditUser({ ...editUser, email: e.target.value })}
-                  className="w-full rounded-2xl border border-emerald-200 px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-emerald-700 mb-1">Role</label>
+                <label className="block text-xs font-medium text-muted-foreground mb-1">Role</label>
                 <select
                   value={editUser.role}
                   onChange={(e) => setEditUser({ ...editUser, role: e.target.value })}
-                  className="w-full rounded-2xl border border-emerald-200 px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-500"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground"
                 >
                   <option value="user">User</option>
                   <option value="worker">Worker</option>
@@ -491,17 +488,17 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
               </div>
             </div>
 
-            <div className="flex gap-3 px-6 py-4 border-t border-emerald-100">
+            <div className="flex gap-3 px-6 py-4 border-t border-border">
               <button
                 onClick={closeModals}
-                className="flex-1 px-6 py-3 border border-emerald-200 text-emerald-700 rounded-2xl text-sm font-medium hover:bg-emerald-50"
+                className="flex-1 px-6 py-3 border border-border text-foreground rounded-2xl text-sm font-medium hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 onClick={updateUser}
                 disabled={updating}
-                className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-2xl text-sm font-medium hover:bg-emerald-700 disabled:opacity-50"
+                className="flex-1 px-6 py-3 bg-primary text-primary-foreground rounded-2xl text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
               >
                 {updating ? 'Saving...' : 'Save Changes'}
               </button>
@@ -513,15 +510,15 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
       {/* DELETE CONFIRMATION MODAL */}
       {showDeleteModal && selectedUser && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6">
+          <div className="bg-card border border-border rounded-3xl max-w-md w-full p-6">
             <div className="flex justify-center mb-4">
               <div className="h-16 w-16 bg-red-100 rounded-full flex items-center justify-center">
                 <Trash2 className="h-8 w-8 text-red-600" />
               </div>
             </div>
 
-            <h3 className="text-xl font-semibold text-emerald-950 text-center mb-2">Delete User?</h3>
-            <p className="text-emerald-600 text-center mb-6">
+            <h3 className="text-xl font-semibold text-foreground text-center mb-2">Delete User?</h3>
+            <p className="text-muted-foreground text-center mb-6">
               Are you sure you want to delete <strong>{selectedUser.displayName || selectedUser.username}</strong>? 
               This action cannot be undone.
             </p>
@@ -529,7 +526,7 @@ export default function AdminUsersSection({ users: initialUsers }: AdminUsersSec
             <div className="flex gap-3">
               <button
                 onClick={closeModals}
-                className="flex-1 px-6 py-3 border border-emerald-200 text-emerald-700 rounded-2xl text-sm font-medium hover:bg-emerald-50"
+                className="flex-1 px-6 py-3 border border-border text-foreground rounded-2xl text-sm font-medium hover:bg-muted"
               >
                 Cancel
               </button>
