@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
               customerEmail: metadata.customerEmail,
               total: order.total,
               itemCount: items.length,
+              items: items,
             }),
           });
           console.log(`Admin notified for new order #${order.id}`);
