@@ -20,34 +20,58 @@ function minutesToTime(value: number): string {
 }
 
 /**
- * Checks if there is enough continuous free time from slotStart
+ * Checks if two time ranges overlap
+ */
+function timesOverlap(
+  start1: number,
+  duration1: number,
+  start2: number,
+  duration2: number
+): boolean {
+  const end1 = start1 + duration1;
+  const end2 = start2 + duration2;
+  return start1 < end2 && end1 > start2;
+}
+
+/**
+ * Returns true only if there is enough continuous free time
+ * from the proposed start time until the next booking or end of working hours.
  */
 function hasEnoughContinuousTime(
-  slotStart: number,
+  slotStartMinutes: number,
   serviceDurationMinutes: number,
   existingBookings: Array<{ time: string; durationMinutes: number }>,
   workingEndTime: string
 ): boolean {
-  const slotEnd = slotStart + serviceDurationMinutes;
-  const dayEnd = timeToMinutes(workingEndTime);
+  const slotEndMinutes = slotStartMinutes + serviceDurationMinutes;
+  const dayEndMinutes = timeToMinutes(workingEndTime);
 
   // Sort bookings by start time
-  const sorted = [...existingBookings].sort(
+  const sortedBookings = [...existingBookings].sort(
     (a, b) => timeToMinutes(a.time) - timeToMinutes(b.time)
   );
 
-  // Find the earliest booking that starts at or after our slot
-  let nextBookingStart = dayEnd;
+  // Check for any direct overlap first
+  const hasDirectOverlap = sortedBookings.some((booking) => {
+    const bookedStart = timeToMinutes(booking.time);
+    const bookedDuration = booking.durationMinutes || serviceDurationMinutes;
+    return timesOverlap(slotStartMinutes, serviceDurationMinutes, bookedStart, bookedDuration);
+  });
 
-  for (const booking of sorted) {
-    const bStart = timeToMinutes(booking.time);
-    if (bStart >= slotStart) {
-      nextBookingStart = Math.min(nextBookingStart, bStart);
+  if (hasDirectOverlap) return false;
+
+  // Find the next booking that starts at or after this slot
+  let nextBookingStart = dayEndMinutes;
+
+  for (const booking of sortedBookings) {
+    const bookingStart = timeToMinutes(booking.time);
+    if (bookingStart >= slotStartMinutes) {
+      nextBookingStart = bookingStart;
       break;
     }
   }
 
-  const availableMinutes = nextBookingStart - slotStart;
+  const availableMinutes = nextBookingStart - slotStartMinutes;
   return availableMinutes >= serviceDurationMinutes;
 }
 
@@ -68,12 +92,28 @@ function buildSlots(
   return slots;
 }
 
+interface StaffProfile {
+  id: number;
+  displayName: string | null;
+  bookingEnabled: boolean;
+  bio?: string | null;
+}
+
+interface Assignment {
+  staff: StaffProfile;
+}
+
+interface ExistingBooking {
+  time: string;
+  durationMinutes: number;
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const serviceId = searchParams.get('serviceId');
 
   if (serviceId) {
-    let assignments: any[] = await prisma.serviceStaffAssignment.findMany({
+    let assignments: Assignment[] = await prisma.serviceStaffAssignment.findMany({
       where: { serviceId: Number(serviceId) },
       include: {
         staff: {
@@ -94,13 +134,13 @@ export async function GET(request: Request) {
       });
 
       assignments = allEnabledStaff.map((staffProfile: any) => ({
-        staff: staffProfile,
+        staff: staffProfile as StaffProfile,
       }));
     }
 
     const braiders = assignments
-      .filter((a: any) => a.staff.bookingEnabled)
-      .map((a: any) => ({
+      .filter((a) => a.staff.bookingEnabled)
+      .map((a) => ({
         staffUserId: a.staff.id,
         name: a.staff.displayName,
         bio: a.staff.bio,
@@ -155,7 +195,7 @@ export async function POST(request: Request) {
 
     const dayOfWeek = dayOfWeekFromDate(date);
 
-    let assignments: any[] = await prisma.serviceStaffAssignment.findMany({
+    let assignments: Assignment[] = await prisma.serviceStaffAssignment.findMany({
       where: {
         serviceId: Number(serviceId),
         ...(staffUserId ? { staffUserId: Number(staffUserId) } : {}),
@@ -178,7 +218,7 @@ export async function POST(request: Request) {
       });
 
       assignments = allEnabled.map((staffProfile: any) => ({
-        staff: staffProfile,
+        staff: staffProfile as StaffProfile,
       }));
     }
 
@@ -222,7 +262,7 @@ export async function POST(request: Request) {
           status: { not: 'cancelled' },
         },
         select: { time: true, durationMinutes: true },
-      });
+      }) as ExistingBooking[];
 
       const stepMinutes = service.slotDurationMinutes || 60;
       const allSlots = buildSlots(
@@ -237,14 +277,14 @@ export async function POST(request: Request) {
       for (const slot of allSlots) {
         const candidateStart = timeToMinutes(slot);
 
-        const hasEnoughTime = hasEnoughContinuousTime(
+        const isValid = hasEnoughContinuousTime(
           candidateStart,
           service.durationMinutes,
           existingBookings,
           working.endTime
         );
 
-        if (hasEnoughTime) {
+        if (isValid) {
           freeSlots.push({
             staffUserId: profile.id,
             staffName: profile.displayName,
