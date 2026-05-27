@@ -235,7 +235,7 @@ export default function AdminOverviewSection() {
             </div>
           </div>
           
-          {/* FIXED REFRESH BUTTON */}
+          {/* Refresh Button */}
           <button 
             onClick={() => fetchData(true)} 
             className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 border border-border transition-all"
@@ -292,33 +292,57 @@ export default function AdminOverviewSection() {
               </div>
             ))
           ) : (
-            <p className="text-muted-foreground text-sm">No live locations yet. Visit from another device to test.</p>
+            <p className="text-muted-foreground text-sm">No live locations yet.</p>
           )}
         </div>
 
-        {/* === NEW: RECENT VISITS LOG (Terminal Style) === */}
+        {/* === RECENT VISITS LOG (Mobile Friendly) === */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-primary text-sm font-medium tracking-widest">RECENT VISITS LOG</p>
-            <span className="text-xs text-muted-foreground">Newest on top • Auto-updates every 15s</span>
+            <p className="text-primary text-sm font-medium tracking-widest">RECENT VISITS</p>
+            <span className="text-xs text-muted-foreground">Newest first</span>
           </div>
 
-          <div className="bg-black/90 rounded-2xl p-4 font-mono text-sm max-h-[320px] overflow-auto border border-border">
+          <div className="space-y-3">
             {sortedLiveVisitors.length > 0 ? (
-              sortedLiveVisitors.map((visitor: any, index: number) => (
-                <div key={index} className="flex justify-between py-1.5 border-b border-white/10 last:border-0 text-green-400">
-                  <div className="flex-1 truncate">
-                    <span className="text-white/70">[{new Date(visitor.createdAt).toLocaleTimeString()}]</span>{' '}
-                    <span>{visitor.displayName || 'Guest'}</span>{' '}
-                    <span className="text-white/50">→ {visitor.page}</span>
+              sortedLiveVisitors.slice(0, 20).map((visitor: any, index: number) => (
+                <div 
+                  key={index} 
+                  className="bg-card border border-border rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium truncate">
+                        {visitor.displayName || 'Guest Visitor'}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${
+                        visitor.userType === 'registered' 
+                          ? 'bg-emerald-500/10 text-emerald-600' 
+                          : 'bg-muted text-muted-foreground'
+                      }`}>
+                        {visitor.userType || 'guest'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate mt-1">
+                      {visitor.page}
+                    </p>
                   </div>
-                  <div className="text-right text-xs text-white/60">
-                    {visitor.city || visitor.country || visitor.ip}
+
+                  <div className="text-left sm:text-right text-xs text-muted-foreground">
+                    <div>{new Date(visitor.createdAt).toLocaleTimeString([], { 
+                      hour: '2-digit', 
+                      minute: '2-digit' 
+                    })}</div>
+                    <div className="truncate max-w-[160px] sm:max-w-[180px]">
+                      {visitor.city || visitor.country || visitor.ip}
+                    </div>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-white/50 py-4 text-center">No recent visits logged yet.</p>
+              <div className="bg-card border border-border rounded-2xl p-8 text-center">
+                <p className="text-muted-foreground">No recent visits logged yet.</p>
+              </div>
             )}
           </div>
         </div>
