@@ -37,6 +37,7 @@ export default function AdminOverviewSection() {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
+  const [showAllVisits, setShowAllVisits] = useState(false);
 
   const defaultVideos = [
     { url: "/videos/1.webm", name: "Hero Video 1" },
@@ -59,7 +60,6 @@ export default function AdminOverviewSection() {
 
       setData(overviewData);
 
-      // Merge hero videos
       const dbVideos = mediaData.heroVideos || [];
       const mergedVideos = defaultVideos.map((defaultVideo, index) => {
         const dbVideo = dbVideos.find((v: any) => v.position === index);
@@ -69,7 +69,6 @@ export default function AdminOverviewSection() {
       });
       setHeroVideos(mergedVideos);
 
-      // Merge gallery images
       const dbImages = mediaData.galleryImages || [];
       const realGallery = defaultGalleryImages.slice(0, 3).map((img, index) => ({
         id: img.id,
@@ -149,7 +148,7 @@ export default function AdminOverviewSection() {
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  // Build map locations (only those with coordinates)
+  // Build map locations
   const liveVisitorLocations = sortedLiveVisitors
     .filter((visitor: any) => visitor.latitude && visitor.longitude)
     .map((visitor: any) => ({
@@ -159,6 +158,9 @@ export default function AdminOverviewSection() {
       page: visitor.page,
       userType: visitor.userType,
     }));
+
+  // Show limited visits on mobile by default
+  const visibleVisits = showAllVisits ? sortedLiveVisitors : sortedLiveVisitors.slice(0, 8);
 
   return (
     <div className="space-y-8 bg-background min-h-screen p-6 text-foreground">
@@ -235,7 +237,6 @@ export default function AdminOverviewSection() {
             </div>
           </div>
           
-          {/* Refresh Button */}
           <button 
             onClick={() => fetchData(true)} 
             className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-muted hover:bg-muted/80 border border-border transition-all"
@@ -296,55 +297,44 @@ export default function AdminOverviewSection() {
           )}
         </div>
 
-        {/* === RECENT VISITS LOG (Mobile Friendly) === */}
+        {/* === RECENT VISITS LOG (Terminal Style - Mobile Friendly) === */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-primary text-sm font-medium tracking-widest">RECENT VISITS</p>
-            <span className="text-xs text-muted-foreground">Newest first</span>
+            <p className="text-primary text-sm font-medium tracking-widest">RECENT VISITS LOG</p>
+            <span className="text-xs text-muted-foreground">Newest on top</span>
           </div>
 
-          <div className="space-y-3">
+          <div className="bg-black/90 rounded-2xl p-4 font-mono text-xs sm:text-sm border border-border overflow-auto max-h-[280px] sm:max-h-[320px]">
             {sortedLiveVisitors.length > 0 ? (
-              sortedLiveVisitors.slice(0, 20).map((visitor: any, index: number) => (
+              visibleVisits.map((visitor: any, index: number) => (
                 <div 
                   key={index} 
-                  className="bg-card border border-border rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  className="flex flex-col sm:flex-row justify-between py-1.5 border-b border-white/10 last:border-0 text-green-400 gap-1"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium truncate">
-                        {visitor.displayName || 'Guest Visitor'}
-                      </span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full whitespace-nowrap ${
-                        visitor.userType === 'registered' 
-                          ? 'bg-emerald-500/10 text-emerald-600' 
-                          : 'bg-muted text-muted-foreground'
-                      }`}>
-                        {visitor.userType || 'guest'}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground truncate mt-1">
-                      {visitor.page}
-                    </p>
+                  <div className="flex-1 truncate">
+                    <span className="text-white/70">[{new Date(visitor.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}]</span>{' '}
+                    <span>{visitor.displayName || 'Guest'}</span>{' '}
+                    <span className="text-white/50">→ {visitor.page}</span>
                   </div>
-
-                  <div className="text-left sm:text-right text-xs text-muted-foreground">
-                    <div>{new Date(visitor.createdAt).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}</div>
-                    <div className="truncate max-w-[160px] sm:max-w-[180px]">
-                      {visitor.city || visitor.country || visitor.ip}
-                    </div>
+                  <div className="text-right text-[10px] sm:text-xs text-white/60 truncate">
+                    {visitor.city || visitor.country || visitor.ip}
                   </div>
                 </div>
               ))
             ) : (
-              <div className="bg-card border border-border rounded-2xl p-8 text-center">
-                <p className="text-muted-foreground">No recent visits logged yet.</p>
-              </div>
+              <p className="text-white/50 py-4 text-center">No recent visits logged yet.</p>
             )}
           </div>
+
+          {/* Expand / Collapse Button */}
+          {sortedLiveVisitors.length > 8 && (
+            <button
+              onClick={() => setShowAllVisits(!showAllVisits)}
+              className="mt-3 text-xs text-primary hover:underline"
+            >
+              {showAllVisits ? 'Show less' : `Show all (${sortedLiveVisitors.length})`}
+            </button>
+          )}
         </div>
       </div>
 
@@ -372,7 +362,6 @@ export default function AdminOverviewSection() {
                     <p className="text-xs text-muted-foreground truncate">{video.url}</p>
                   </div>
 
-                  {/* Video Preview */}
                   <div className="mb-4 rounded-xl overflow-hidden border border-border bg-black">
                     <video 
                       src={video.url} 
