@@ -116,50 +116,50 @@ export default function AdminServiceTable({
       <button
         type="button"
         onClick={() => openModal(null)}
-        className="flex items-center gap-2 rounded-2xl bg-black px-6 py-3 text-sm font-medium text-white hover:bg-black/90"
+        className="flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
       >
         <Plus className="h-4 w-4" />
         New Service
       </button>
 
       {/* MOBILE OPTIMIZED TABLE */}
-      <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-3xl border border-black/10 bg-white">
+      <div className="overflow-x-auto -mx-4 sm:mx-0 rounded-3xl border border-border bg-card">
         <table className="w-full min-w-[700px] sm:min-w-full">
-          <thead className="bg-black/5">
+          <thead className="bg-muted">
             <tr>
-              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6">Service</th>
-              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6">Full Price</th>
-              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6">Deposit</th>
-              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6">Duration</th>
-              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6">Status</th>
-              <th className="px-4 py-4 text-right text-xs font-medium sm:px-6">Actions</th>
+              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6 text-muted-foreground">Service</th>
+              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6 text-muted-foreground">Full Price</th>
+              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6 text-muted-foreground">Deposit</th>
+              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6 text-muted-foreground">Duration</th>
+              <th className="px-4 py-4 text-left text-xs font-medium sm:px-6 text-muted-foreground">Status</th>
+              <th className="px-4 py-4 text-right text-xs font-medium sm:px-6 text-muted-foreground">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-border">
             {services.map((service) => (
-              <tr key={service.id} className="hover:bg-black/5">
+              <tr key={service.id} className="hover:bg-muted/50 transition-colors">
                 <td className="px-4 py-4 sm:px-6">
                   <div className="flex items-center gap-3">
                     {service.image && (
                       <img
                         src={service.image}
                         alt={service.name}
-                        className="w-10 h-10 object-cover rounded-xl flex-shrink-0"
+                        className="w-10 h-10 object-cover rounded-xl flex-shrink-0 border border-border"
                       />
                     )}
                     <div className="min-w-0">
-                      <p className="font-medium truncate">{service.name}</p>
-                      <p className="text-xs text-black/50">/{service.slug}</p>
+                      <p className="font-medium truncate text-foreground">{service.name}</p>
+                      <p className="text-xs text-muted-foreground">/{service.slug}</p>
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-4 font-medium sm:px-6">
+                <td className="px-4 py-4 font-medium sm:px-6 text-foreground">
                   ${(service.price / 100).toFixed(2)} CAD
                 </td>
-                <td className="px-4 py-4 font-medium text-emerald-600 sm:px-6">
+                <td className="px-4 py-4 font-medium sm:px-6 text-emerald-600 dark:text-emerald-400">
                   ${(service.depositAmount / 100).toFixed(2)} CAD
                 </td>
-                <td className="px-4 py-4 text-sm font-medium sm:px-6">
+                <td className="px-4 py-4 text-sm font-medium sm:px-6 text-foreground">
                   {service.durationMinutes} min
                 </td>
                 <td className="px-4 py-4 sm:px-6">
@@ -180,13 +180,13 @@ export default function AdminServiceTable({
                 <td className="px-4 py-4 text-right sm:px-6">
                   <button
                     onClick={() => openModal(service)}
-                    className="mr-3 text-black/70 hover:text-black"
+                    className="mr-3 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(service.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-600 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -195,7 +195,7 @@ export default function AdminServiceTable({
             ))}
             {services.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-sm text-black/50">
+                <td colSpan={6} className="px-6 py-12 text-center text-sm text-muted-foreground">
                   No services yet.
                 </td>
               </tr>
@@ -207,9 +207,9 @@ export default function AdminServiceTable({
       {/* MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full mx-auto shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-card border border-border rounded-3xl max-w-lg w-full mx-auto shadow-2xl max-h-[90vh] overflow-y-auto">
             <form action={handleSubmit} className="p-8 space-y-6">
-              <h2 className="text-2xl font-serif">
+              <h2 className="text-2xl font-serif text-foreground">
                 {editingService ? 'Edit Service' : 'New Service'}
               </h2>
 
@@ -217,26 +217,26 @@ export default function AdminServiceTable({
 
               {/* IMAGE UPLOAD */}
               <div>
-                <label className="block text-xs font-medium mb-2">Service Image</label>
+                <label className="block text-xs font-medium mb-2 text-muted-foreground">Service Image</label>
 
                 {editingService?.image && !previewUrl && (
                   <div className="mb-3">
-                    <p className="text-xs text-black/60 mb-1">Current Image:</p>
+                    <p className="text-xs text-muted-foreground mb-1">Current Image:</p>
                     <img
                       src={editingService.image}
                       alt="Current"
-                      className="w-32 h-32 object-cover rounded-2xl border border-black/10"
+                      className="w-32 h-32 object-cover rounded-2xl border border-border"
                     />
                   </div>
                 )}
 
                 {previewUrl && (
                   <div className="mb-3">
-                    <p className="text-xs text-black/60 mb-1">New Image Preview:</p>
+                    <p className="text-xs text-muted-foreground mb-1">New Image Preview:</p>
                     <img
                       src={previewUrl}
                       alt="Preview"
-                      className="w-32 h-32 object-cover rounded-2xl border border-black/10"
+                      className="w-32 h-32 object-cover rounded-2xl border border-border"
                     />
                   </div>
                 )}
@@ -246,9 +246,9 @@ export default function AdminServiceTable({
                   name="image"
                   accept="image/*"
                   onChange={handleFileChange}
-                  className="w-full text-sm file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:bg-black file:text-white hover:file:bg-black/90 cursor-pointer"
+                  className="w-full text-sm file:mr-4 file:py-3 file:px-6 file:rounded-2xl file:border-0 file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
                 />
-                <p className="text-xs text-black/50 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   {editingService
                     ? 'Leave empty to keep current image • Max 8 MB'
                     : 'Recommended: 1200×1200 px • Max 8 MB'}
@@ -256,90 +256,90 @@ export default function AdminServiceTable({
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Service Name</label>
+                <label className="block text-xs font-medium mb-1 text-muted-foreground">Service Name</label>
                 <input
                   type="text"
                   name="name"
                   defaultValue={editingService?.name || ''}
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Slug (URL)</label>
+                <label className="block text-xs font-medium mb-1 text-muted-foreground">Slug (URL)</label>
                 <input
                   type="text"
                   name="slug"
                   defaultValue={editingService?.slug || ''}
                   placeholder="auto-generated-from-name"
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Description</label>
+                <label className="block text-xs font-medium mb-1 text-muted-foreground">Description</label>
                 <textarea
                   name="description"
                   defaultValue={editingService?.description || ''}
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                   rows={3}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium mb-1">Full Price (cents)</label>
+                  <label className="block text-xs font-medium mb-1 text-muted-foreground">Full Price (cents)</label>
                   <input
                     type="number"
                     name="price"
                     defaultValue={editingService?.price || 0}
-                    className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                    className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">Deposit (cents)</label>
+                  <label className="block text-xs font-medium mb-1 text-muted-foreground">Deposit (cents)</label>
                   <input
                     type="number"
                     name="depositAmount"
                     defaultValue={editingService?.depositAmount || 0}
-                    className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                    className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Duration (minutes)</label>
+                <label className="block text-xs font-medium mb-1 text-muted-foreground">Duration (minutes)</label>
                 <input
                   type="number"
                   name="durationMinutes"
                   defaultValue={editingService?.durationMinutes || 60}
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                   required
                 />
               </div>
 
-              {/* NEW: Hair Requirement */}
+              {/* Hair Requirement */}
               <div>
-                <label className="block text-xs font-medium mb-1">Hair Requirement (optional)</label>
+                <label className="block text-xs font-medium mb-1 text-muted-foreground">Hair Requirement (optional)</label>
                 <textarea
                   name="hairRequirement"
                   defaultValue={editingService?.hairRequirement || ''}
                   placeholder="e.g. 3 packs of attachment + 2 packs of beads"
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                   rows={2}
                 />
-                <p className="text-xs text-gray-500 mt-1">Shown to customers on booking page</p>
+                <p className="text-xs text-muted-foreground mt-1">Shown to customers on booking page</p>
               </div>
 
-              {/* NEW: Category Dropdown */}
+              {/* Category Dropdown */}
               <div>
-                <label className="block text-xs font-medium mb-1">Category</label>
+                <label className="block text-xs font-medium mb-1 text-muted-foreground">Category</label>
                 <select
                   name="categoryId"
                   defaultValue={editingService?.categoryId?.toString() || ''}
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                 >
                   <option value="">Uncategorized</option>
                   {categories.map((cat) => (
@@ -356,9 +356,9 @@ export default function AdminServiceTable({
                   name="featured"
                   id="featured"
                   defaultChecked={editingService?.featured}
-                  className="w-4 h-4 text-emerald-600"
+                  className="w-4 h-4 text-primary"
                 />
-                <label htmlFor="featured" className="text-sm">Featured on homepage</label>
+                <label htmlFor="featured" className="text-sm text-foreground">Featured on homepage</label>
               </div>
 
               {editingService && (
@@ -368,9 +368,9 @@ export default function AdminServiceTable({
                     name="active"
                     id="active"
                     defaultChecked={editingService.active}
-                    className="w-4 h-4 text-emerald-600"
+                    className="w-4 h-4 text-primary"
                   />
-                  <label htmlFor="active" className="text-sm">Active (visible to customers)</label>
+                  <label htmlFor="active" className="text-sm text-foreground">Active (visible to customers)</label>
                 </div>
               )}
 
@@ -378,13 +378,13 @@ export default function AdminServiceTable({
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-2xl hover:bg-gray-50"
+                  className="flex-1 border border-border text-foreground py-3 rounded-2xl hover:bg-muted"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-medium"
+                  className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground py-3 rounded-2xl font-medium"
                 >
                   {editingService ? 'Update Service' : 'Create Service'}
                 </button>
