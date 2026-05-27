@@ -23,7 +23,7 @@ function minutesToTime(value: number) {
   return `${hours}:${minutes}`;
 }
 
-// Generate all possible start times
+// Generate possible start times
 function buildSlots(startTime: string, endTime: string, stepMinutes: number): string[] {
   const start = timeToMinutes(startTime);
   const end = timeToMinutes(endTime);
@@ -34,25 +34,40 @@ function buildSlots(startTime: string, endTime: string, stepMinutes: number): st
   return slots;
 }
 
-// Check if a slot has enough continuous time for the service duration
+// Improved: Check if there is enough continuous free time from the slot start
 function isSlotAvailable(
   slotTime: string,
   serviceDurationMinutes: number,
-  existingBookings: Array<{ time: string; durationMinutes: number }>
+  existingBookings: Array<{ time: string; durationMinutes: number }>,
+  workingEndTime: string
 ): boolean {
   const slotStart = timeToMinutes(slotTime);
   const slotEnd = slotStart + serviceDurationMinutes;
+  const dayEnd = timeToMinutes(workingEndTime);
 
-  for (const booking of existingBookings) {
+  // Sort bookings by start time
+  const sortedBookings = [...existingBookings].sort(
+    (a, b) => timeToMinutes(a.time) - timeToMinutes(b.time)
+  );
+
+  // Find the next booking after (or overlapping) this slot
+  let nextBookingStart = dayEnd; // default to end of day
+
+  for (const booking of sortedBookings) {
     const bookingStart = timeToMinutes(booking.time);
     const bookingEnd = bookingStart + booking.durationMinutes;
 
-    // Check for any overlap
-    if (slotStart < bookingEnd && slotEnd > bookingStart) {
-      return false;
+    // If booking overlaps or starts after our slot
+    if (bookingStart >= slotStart) {
+      nextBookingStart = Math.min(nextBookingStart, bookingStart);
     }
   }
-  return true;
+
+  // Check if we have enough continuous time until the next booking or end of day
+  const availableUntil = Math.min(nextBookingStart, dayEnd);
+  const availableMinutes = availableUntil - slotStart;
+
+  return availableMinutes >= serviceDurationMinutes;
 }
 
 export async function listServices() {
@@ -74,7 +89,6 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
   const hours = await prisma.staffWorkingHour.findMany();
   const timeOffs = await prisma.staffTimeOff.findMany();
 
-  // Get ALL bookings for this date (not cancelled)
   const bookings = await prisma.booking.findMany({
     where: {
       date: input.date,
@@ -100,15 +114,14 @@ export async function getAvailabilityForService(input: AvailabilityInput): Promi
     });
     if (hasTimeOff) return [];
 
-    // Get bookings for THIS braider only
     const braiderBookings = bookings.filter((b: any) => b.staffUserId === profile.userId);
 
-    // Generate all possible start times based on service duration
+    // Generate slots using service duration as step
     const allSlots = buildSlots(working.startTime, working.endTime, service.durationMinutes);
 
-    // Filter out slots that don't have enough continuous time
+    // Filter slots that have enough continuous free time
     const availableSlots = allSlots.filter((slot) =>
-      isSlotAvailable(slot, service.durationMinutes, braiderBookings)
+      isSlotAvailable(slot, service.durationMinutes, braiderBookings, working.endTime)
     );
 
     return availableSlots.map((slot) => ({
@@ -127,7 +140,6 @@ export async function createBooking(input: CreateBookingInput) {
   });
   if (!service) throw new Error("Service not found");
 
-  // Block past dates
   const bookingDate = new Date(`${input.date}T00:00:00`);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -146,17 +158,17 @@ export async function createBooking(input: CreateBookingInput) {
   );
 
   if (!validSlot) {
-    // Check if the time slot exists but the duration is too long
-    const allPossibleSlotsForShorterServices = await getAvailabilityForService({
+    // Check if slot exists but duration is too short
+    const allSlots = await getAvailabilityForService({
       date: input.date,
       serviceId: input.serviceId,
     });
 
-    const slotExistsForShorterService = allPossibleSlotsForShorterServices.some(
+    const slotExists = allSlots.some(
       (slot) => slot.staffUserId === input.staffUserId && slot.time === input.time
     );
 
-    if (slotExistsForShorterService) {
+    if (slotExists) {
       throw new Error("Time too short for selected service");
     }
 
