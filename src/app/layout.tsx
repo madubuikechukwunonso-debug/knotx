@@ -2,6 +2,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import Providers from '@/components/Providers';
+import VisitorTracker from '@/components/VisitorTracker';
 
 export const metadata: Metadata = {
   title: 'KNOTXANDKRAFTS',
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body>
         <Providers>
+          <VisitorTracker />     {/* ← Added here */}
           {children}
         </Providers>
       </body>
