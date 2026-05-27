@@ -175,7 +175,7 @@ async function toggleServiceActive(formData: FormData) {
   revalidatePath('/admin');
 }
 
-// ====================== CATEGORIES - NOW WORKS OUTSIDE MODAL ====================
+// ====================== CATEGORIES ======================
 async function createCategory(formData: FormData) {
   'use server';
   const name = formData.get('name') as string;
@@ -271,13 +271,13 @@ export default async function AdminServicesSection() {
   const uncategorizedServices = services.filter(s => !s.categoryId);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto px-4">
+    <div className="space-y-8 max-w-7xl mx-auto px-4 bg-background text-foreground">
       {/* SERVICES SECTION */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-serif text-emerald-950">Services</h1>
-            <p className="text-emerald-600 text-sm mt-1">
+            <h1 className="text-3xl font-serif">Services</h1>
+            <p className="text-muted-foreground text-sm mt-1">
               {services.length} service{services.length !== 1 ? 's' : ''} • Categories appear in modal dropdown
             </p>
           </div>
@@ -296,28 +296,28 @@ export default async function AdminServicesSection() {
       {/* CATEGORIES + ADDONS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
-        {/* CATEGORIES - CREATE OUTSIDE MODAL, APPEARS IN DROPDOWN */}
-        <div className="bg-white rounded-3xl border border-emerald-100 p-6">
+        {/* CATEGORIES */}
+        <div className="bg-card rounded-3xl border border-border p-6">
           <div className="mb-6">
-            <h2 className="text-2xl font-serif text-emerald-950">Categories</h2>
-            <p className="text-sm text-emerald-600">Create here → appears in service modal dropdown</p>
+            <h2 className="text-2xl font-serif">Categories</h2>
+            <p className="text-sm text-muted-foreground">Create here → appears in service modal dropdown</p>
           </div>
 
-          {/* CREATE CATEGORY FORM - OUTSIDE MODAL */}
+          {/* CREATE CATEGORY FORM */}
           <form action={createCategory} className="mb-8 space-y-3">
             <div>
-              <label className="block text-sm font-medium mb-1">New Category Name</label>
+              <label className="block text-sm font-medium mb-1 text-muted-foreground">New Category Name</label>
               <input
                 type="text"
                 name="name"
                 placeholder="Stitch Braids"
-                className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
+                className="w-full border border-border bg-background rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-primary text-foreground"
                 required
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3.5 rounded-2xl font-medium text-base transition-colors"
             >
               Create Category
             </button>
@@ -328,16 +328,16 @@ export default async function AdminServicesSection() {
             {categories.length > 0 ? (
               <div className="space-y-3">
                 {categories.map((cat) => (
-                  <div key={cat.id} className="flex items-center justify-between bg-emerald-50 px-4 py-4 rounded-2xl">
+                  <div key={cat.id} className="flex items-center justify-between bg-muted px-4 py-4 rounded-2xl">
                     <div className="min-w-0 pr-3">
-                      <p className="font-medium truncate">{cat.name}</p>
-                      <p className="text-xs text-emerald-600">{cat._count.services} services</p>
+                      <p className="font-medium truncate text-foreground">{cat.name}</p>
+                      <p className="text-xs text-muted-foreground">{cat._count.services} services</p>
                     </div>
                     <form action={deleteCategory} className="flex-shrink-0">
                       <input type="hidden" name="id" value={cat.id} />
                       <button
                         type="submit"
-                        className="text-red-500 hover:text-red-700 active:text-red-600 text-sm font-medium px-3 py-1.5 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors"
+                        className="text-red-500 hover:text-red-600 text-sm font-medium px-3 py-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       >
                         Delete
                       </button>
@@ -346,46 +346,46 @@ export default async function AdminServicesSection() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 py-4">No categories yet. Create one above!</p>
+              <p className="text-sm text-muted-foreground py-4">No categories yet. Create one above!</p>
             )}
           </div>
         </div>
 
-        {/* ADDONS WITH CATEGORY ASSOCIATION */}
-        <div className="bg-white rounded-3xl border border-emerald-100 p-6">
+        {/* ADDONS */}
+        <div className="bg-card rounded-3xl border border-border p-6">
           <div className="mb-6">
-            <h2 className="text-2xl font-serif text-emerald-950">Add-ons</h2>
-            <p className="text-sm text-emerald-600">Beads, Extra Packs, Treatments • Linked to categories</p>
+            <h2 className="text-2xl font-serif">Add-ons</h2>
+            <p className="text-sm text-muted-foreground">Beads, Extra Packs, Treatments • Linked to categories</p>
           </div>
 
           <form action={createAddon} className="mb-8 space-y-3">
             <div>
-              <label className="block text-sm font-medium mb-1">Addon Name</label>
+              <label className="block text-sm font-medium mb-1 text-muted-foreground">Addon Name</label>
               <input
                 type="text"
                 name="name"
                 placeholder="3 Packs of Beads"
-                className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
+                className="w-full border border-border bg-background rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-primary text-foreground"
                 required
               />
             </div>
             
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1">Price (cents)</label>
+                <label className="block text-sm font-medium mb-1 text-muted-foreground">Price (cents)</label>
                 <input
                   type="number"
                   name="price"
                   placeholder="1500"
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-primary text-foreground"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Category (optional)</label>
+                <label className="block text-sm font-medium mb-1 text-muted-foreground">Category (optional)</label>
                 <select
                   name="categoryId"
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-primary text-foreground"
                 >
                   <option value="">All Categories</option>
                   {categories.map((cat) => (
@@ -398,18 +398,18 @@ export default async function AdminServicesSection() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-1">Description (optional)</label>
+              <label className="block text-sm font-medium mb-1 text-muted-foreground">Description (optional)</label>
               <input
                 type="text"
                 name="description"
                 placeholder="Extra styling beads"
-                className="w-full border border-gray-300 rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-emerald-500"
+                className="w-full border border-border bg-background rounded-2xl px-4 py-3 text-base focus:outline-none focus:border-primary text-foreground"
               />
             </div>
             
             <button
               type="submit"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 rounded-2xl font-medium text-base transition-colors"
+              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3.5 rounded-2xl font-medium text-base transition-colors"
             >
               Create Add-on
             </button>
@@ -420,10 +420,10 @@ export default async function AdminServicesSection() {
             {addons.length > 0 ? (
               <div className="space-y-3">
                 {addons.map((addon) => (
-                  <div key={addon.id} className="flex items-center justify-between bg-emerald-50 px-4 py-4 rounded-2xl">
+                  <div key={addon.id} className="flex items-center justify-between bg-muted px-4 py-4 rounded-2xl">
                     <div className="min-w-0 pr-3">
-                      <p className="font-medium truncate">{addon.name}</p>
-                      <p className="text-sm text-emerald-600 font-medium">
+                      <p className="font-medium truncate text-foreground">{addon.name}</p>
+                      <p className="text-sm text-muted-foreground font-medium">
                         ${(addon.price / 100).toFixed(2)}
                         {addon.category && ` • ${addon.category.name}`}
                       </p>
@@ -432,7 +432,7 @@ export default async function AdminServicesSection() {
                       <input type="hidden" name="id" value={addon.id} />
                       <button
                         type="submit"
-                        className="text-red-500 hover:text-red-700 active:text-red-600 text-sm font-medium px-3 py-1.5 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors"
+                        className="text-red-500 hover:text-red-600 text-sm font-medium px-3 py-1.5 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       >
                         Delete
                       </button>
@@ -441,20 +441,20 @@ export default async function AdminServicesSection() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 py-4">No add-ons yet.</p>
+              <p className="text-sm text-muted-foreground py-4">No add-ons yet.</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* CATEGORY PREVIEW - SHOP GROUPING */}
-      <div className="bg-white rounded-3xl border border-emerald-100 p-6">
+      {/* CATEGORY PREVIEW */}
+      <div className="bg-card rounded-3xl border border-border p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-serif text-emerald-950">Shop Category Preview</h2>
-            <p className="text-sm text-emerald-600">How services appear grouped in the shop</p>
+            <h2 className="text-2xl font-serif">Shop Category Preview</h2>
+            <p className="text-sm text-muted-foreground">How services appear grouped in the shop</p>
           </div>
-          <div className="text-xs px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full">
+          <div className="text-xs px-3 py-1.5 bg-muted text-foreground rounded-full">
             {categories.length} Categories
           </div>
         </div>
@@ -464,8 +464,8 @@ export default async function AdminServicesSection() {
             {servicesByCategory.map((cat) => {
               const firstServiceImage = cat.services[0]?.image;
               return (
-                <div key={cat.id} className="border border-emerald-200 rounded-3xl overflow-hidden group">
-                  <div className="h-44 bg-emerald-100 relative">
+                <div key={cat.id} className="border border-border rounded-3xl overflow-hidden group bg-card">
+                  <div className="h-44 bg-muted relative">
                     {firstServiceImage ? (
                       <img 
                         src={firstServiceImage} 
@@ -473,35 +473,35 @@ export default async function AdminServicesSection() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
                       />
                     ) : (
-                      <div className="flex items-center justify-center h-full text-emerald-400 text-sm">No image yet</div>
+                      <div className="flex items-center justify-center h-full text-muted-foreground text-sm">No image yet</div>
                     )}
-                    <div className="absolute top-3 right-3 bg-white/90 px-3 py-1 rounded-full text-xs font-medium text-emerald-700">
+                    <div className="absolute top-3 right-3 bg-card/90 px-3 py-1 rounded-full text-xs font-medium text-foreground border border-border">
                       {cat.services.length} services
                     </div>
                   </div>
                   <div className="p-5">
-                    <h3 className="font-semibold text-lg">{cat.name}</h3>
-                    <p className="text-sm text-emerald-600 mt-1">Click to view all {cat.name.toLowerCase()}</p>
+                    <h3 className="font-semibold text-lg text-foreground">{cat.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">Click to view all {cat.name.toLowerCase()}</p>
                   </div>
                 </div>
               );
             })}
             
             {uncategorizedServices.length > 0 && (
-              <div className="border border-gray-300 rounded-3xl overflow-hidden">
-                <div className="h-44 bg-gray-100 flex items-center justify-center text-gray-400 text-sm">Uncategorized</div>
+              <div className="border border-border rounded-3xl overflow-hidden bg-card">
+                <div className="h-44 bg-muted flex items-center justify-center text-muted-foreground text-sm">Uncategorized</div>
                 <div className="p-5">
-                  <h3 className="font-semibold text-lg">Other Services</h3>
-                  <p className="text-sm text-gray-600">{uncategorizedServices.length} services</p>
+                  <h3 className="font-semibold text-lg text-foreground">Other Services</h3>
+                  <p className="text-sm text-muted-foreground">{uncategorizedServices.length} services</p>
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <div className="text-center py-12">
+          <div className="text-center py-12 bg-muted rounded-3xl">
             <div className="text-6xl mb-4">📁</div>
-            <p className="text-gray-500 mb-2">No categories yet</p>
-            <p className="text-sm text-gray-400">Create a category above to group products in the shop</p>
+            <p className="text-foreground mb-2">No categories yet</p>
+            <p className="text-sm text-muted-foreground">Create a category above to group services in the shop</p>
           </div>
         )}
       </div>
