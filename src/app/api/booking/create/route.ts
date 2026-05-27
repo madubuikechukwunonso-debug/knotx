@@ -3,16 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createBooking } from "@/modules/booking/booking.service";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
+import { sendAdminNotification } from "@/lib/send-admin-notification";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
-
   if (searchParams.get("mine") !== "1") {
     return NextResponse.json({ ok: true, bookings: [] });
   }
-
   const session = await getSession();
-  // You may want to implement listMyBookings properly
   return NextResponse.json({ ok: true, bookings: [] });
 }
 
@@ -21,10 +19,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const session = await getSession();
 
-    // Fetch service to get durationMinutes explicitly
+    // Fetch service details (name + duration)
     const service = await prisma.service.findFirst({
       where: { id: Number(body.serviceId), active: true },
-      select: { durationMinutes: true },
+      select: { 
+        id: true,
+        name: true,
+        durationMinutes: true 
+      },
     });
 
     if (!service) {
@@ -34,6 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create the booking
     const booking = await createBooking({
       customerName: body.customerName,
       customerEmail: body.customerEmail,
@@ -45,18 +48,35 @@ export async function POST(request: NextRequest) {
       notes: body.notes,
       userId: session?.userId,
       userType: session?.userType,
-      // Explicitly pass duration for clarity and future-proofing
       durationMinutes: service.durationMinutes,
+    });
+
+    // ============================================
+    // SEND NOTIFICATION TO SUPER ADMIN
+    // ============================================
+    await sendAdminNotification({
+      type: "new_booking",
+      title: `${body.customerName} booked ${service.name}`,
+      details: `
+        <p><strong>Customer:</strong> ${body.customerName}</p>
+        <p><strong>Email:</strong> ${body.customerEmail}</p>
+        <p><strong>Phone:</strong> ${body.customerPhone || "N/A"}</p>
+        <p><strong>Service:</strong> ${service.name}</p>
+        <p><strong>Date & Time:</strong> ${body.date} at ${body.time}</p>
+        <p><strong>Braider ID:</strong> ${body.staffUserId}</p>
+        ${body.notes ? `<p><strong>Notes:</strong> ${body.notes}</p>` : ""}
+      `,
     });
 
     return NextResponse.json({ ok: true, booking });
   } catch (error: any) {
+    console.error("Booking creation error:", error);
     return NextResponse.json(
       {
         ok: false,
         message: error?.message || "Failed to create booking",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
