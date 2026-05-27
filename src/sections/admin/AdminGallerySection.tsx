@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { Trash2, Eye, Star, Upload } from 'lucide-react';
 import GalleryUploadControls from './GalleryUploadControls';
 import { deleteGalleryItem, toggleActive } from './gallery-actions';
-import { put } from '@vercel/blob';   // ← NEW: Vercel Blob support
+import { put } from '@vercel/blob';
 
 const prisma = new PrismaClient();
 
@@ -14,13 +14,11 @@ async function uploadGalleryMedia(file: File): Promise<string> {
   const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
   const filename = `${timestamp}-${safeName}`;
 
-  // Upload to Vercel Blob (public, permanent URL)
-  // Works for both images AND videos
   const blob = await put(`gallery/${filename}`, file, {
     access: 'public',
   });
 
-  return blob.url;   // e.g. https://your-project.vercel-storage.com/gallery/...
+  return blob.url;
 }
 
 export default async function AdminGallerySection() {
@@ -29,24 +27,24 @@ export default async function AdminGallerySection() {
   });
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto bg-background text-foreground">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-serif text-emerald-950">Gallery</h1>
-          <p className="text-emerald-600 text-sm mt-1">
+          <h1 className="text-3xl font-serif">Gallery</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             {items.length} item{items.length !== 1 ? 's' : ''} • Visual storytelling
           </p>
         </div>
         <GalleryUploadControls />
       </div>
 
-      {/* GALLERY GRID – Your original beautiful design */}
+      {/* GALLERY GRID */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {items.map((item) => (
           <div
             key={item.id}
-            className="group bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden hover:shadow-md transition-all"
+            className="group bg-card border border-border rounded-3xl shadow-sm overflow-hidden hover:shadow-md transition-all"
           >
             <div className="relative aspect-square">
               {item.type === 'video' ? (
@@ -63,6 +61,7 @@ export default async function AdminGallerySection() {
                   className="w-full h-full object-cover"
                 />
               )}
+
               {/* Badges */}
               <div className="absolute top-3 right-3 flex flex-col gap-1">
                 {item.isFeatured && (
@@ -81,24 +80,27 @@ export default async function AdminGallerySection() {
                 )}
               </div>
             </div>
+
             <div className="p-4">
-              <p className="font-medium text-emerald-950 line-clamp-2 text-sm">{item.title}</p>
+              <p className="font-medium text-foreground line-clamp-2 text-sm">{item.title}</p>
               {item.caption && (
-                <p className="text-xs text-emerald-500 mt-1 line-clamp-2">{item.caption}</p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.caption}</p>
               )}
             </div>
+
             {/* Actions */}
-            <div className="border-t border-emerald-100 px-4 py-3 flex items-center justify-between text-xs">
+            <div className="border-t border-border px-4 py-3 flex items-center justify-between text-xs">
               <form action={toggleActive}>
                 <input type="hidden" name="id" value={item.id} />
                 <button
                   type="submit"
-                  className="flex items-center gap-1 hover:text-emerald-700 transition-colors"
+                  className="flex items-center gap-1 hover:text-primary transition-colors text-muted-foreground"
                 >
                   <Eye size={16} />
                   {item.isActive ? 'Hide' : 'Show'}
                 </button>
               </form>
+
               <form action={deleteGalleryItem}>
                 <input type="hidden" name="id" value={item.id} />
                 <button
@@ -112,12 +114,13 @@ export default async function AdminGallerySection() {
           </div>
         ))}
       </div>
+
       {/* Empty state */}
       {items.length === 0 && (
-        <div className="bg-white rounded-3xl border border-emerald-100 p-12 text-center">
-          <Upload className="h-12 w-12 mx-auto text-emerald-300 mb-4" />
-          <p className="text-emerald-500 text-lg">Your gallery is empty</p>
-          <p className="text-emerald-400 text-sm mt-2">
+        <div className="bg-card border border-border rounded-3xl p-12 text-center">
+          <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <p className="text-foreground text-lg">Your gallery is empty</p>
+          <p className="text-muted-foreground text-sm mt-2">
             Use “Upload” or “Take Photo” above to add images and videos
           </p>
         </div>
