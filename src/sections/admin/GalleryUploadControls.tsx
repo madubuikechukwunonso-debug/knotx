@@ -71,7 +71,7 @@ export default function GalleryUploadControls() {
       <div className="flex flex-col sm:flex-row gap-3">
         <button
           onClick={openModal}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl font-medium transition-colors"
+          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-3xl font-medium transition-colors"
         >
           <Upload size={20} />
           Upload Images / Videos
@@ -79,23 +79,23 @@ export default function GalleryUploadControls() {
 
         <button
           onClick={openModal}
-          className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-3xl font-medium transition-colors"
+          className="flex items-center gap-2 bg-primary/90 hover:bg-primary text-primary-foreground px-6 py-3 rounded-3xl font-medium transition-colors"
         >
           <Camera size={20} />
           Take Photo
         </button>
       </div>
 
-      {/* MODAL - NOW FULLY SCROLLABLE ON MOBILE */}
+      {/* MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="bg-card border border-border rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-8 py-6 border-b">
-              <h2 className="text-2xl font-serif">Add to Gallery</h2>
+            <div className="flex items-center justify-between px-8 py-6 border-b border-border">
+              <h2 className="text-2xl font-serif text-foreground">Add to Gallery</h2>
               <button
                 onClick={closeModal}
-                className="text-black/40 hover:text-black transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors"
               >
                 <X size={28} />
               </button>
@@ -104,7 +104,7 @@ export default function GalleryUploadControls() {
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-8 space-y-8">
               {/* File selector */}
-              <label className="block border-2 border-dashed border-emerald-200 hover:border-emerald-400 rounded-3xl p-8 text-center cursor-pointer">
+              <label className="block border-2 border-dashed border-border hover:border-primary rounded-3xl p-8 text-center cursor-pointer">
                 <input
                   type="file"
                   accept="image/*,video/*"
@@ -112,16 +112,16 @@ export default function GalleryUploadControls() {
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                <ImageIcon className="mx-auto h-12 w-12 text-emerald-400 mb-3" />
-                <p className="font-medium text-emerald-700">Click or tap to select images/videos</p>
-                <p className="text-sm text-emerald-500 mt-1">or use camera</p>
+                <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground mb-3" />
+                <p className="font-medium text-foreground">Click or tap to select images/videos</p>
+                <p className="text-sm text-muted-foreground mt-1">or use camera</p>
               </label>
 
               {/* Previews */}
               {previewUrls.length > 0 && (
                 <div className="grid grid-cols-3 gap-3">
                   {previewUrls.map((url, i) => (
-                    <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-emerald-100">
+                    <div key={i} className="aspect-square rounded-2xl overflow-hidden border border-border">
                       <img
                         src={url}
                         alt={`preview ${i}`}
@@ -135,34 +135,34 @@ export default function GalleryUploadControls() {
               {/* Metadata fields */}
               <div className="space-y-6">
                 <div>
-                  <label className="block text-xs font-medium mb-1">Title (optional)</label>
+                  <label className="block text-xs font-medium mb-1 text-muted-foreground">Title (optional)</label>
                   <input
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3 focus:border-emerald-400 outline-none"
+                    className="w-full rounded-2xl border border-border bg-background px-4 py-3 focus:border-primary outline-none text-foreground"
                     placeholder="Summer collection 2026"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1">Caption (optional)</label>
+                  <label className="block text-xs font-medium mb-1 text-muted-foreground">Caption (optional)</label>
                   <input
                     type="text"
                     value={caption}
                     onChange={(e) => setCaption(e.target.value)}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3 focus:border-emerald-400 outline-none"
+                    className="w-full rounded-2xl border border-border bg-background px-4 py-3 focus:border-primary outline-none text-foreground"
                     placeholder="Hand-knotted with love"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1">Description</label>
+                  <label className="block text-xs font-medium mb-1 text-muted-foreground">Description</label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={4}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3 focus:border-emerald-400 outline-none resize-none"
+                    className="w-full rounded-2xl border border-border bg-background px-4 py-3 focus:border-primary outline-none resize-none text-foreground"
                     placeholder="Detailed description of this gallery item..."
                   />
                 </div>
@@ -170,10 +170,10 @@ export default function GalleryUploadControls() {
             </div>
 
             {/* Footer with buttons - always visible */}
-            <div className="border-t p-8 flex gap-3">
+            <div className="border-t border-border p-8 flex gap-3">
               <button
                 onClick={closeModal}
-                className="flex-1 py-4 border border-black/10 rounded-3xl font-medium text-black hover:bg-black/5 transition-colors"
+                className="flex-1 py-4 border border-border rounded-3xl font-medium text-foreground hover:bg-muted transition-colors"
               >
                 Cancel
               </button>
@@ -181,7 +181,7 @@ export default function GalleryUploadControls() {
               <button
                 onClick={handleUpload}
                 disabled={uploading || selectedFiles.length === 0}
-                className="flex-1 py-4 bg-black text-white rounded-3xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                className="flex-1 py-4 bg-primary text-primary-foreground rounded-3xl font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 {uploading
                   ? 'Uploading...'
