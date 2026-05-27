@@ -6,6 +6,7 @@ import {
   listOrders,
 } from "@/modules/orders/orders.service";
 import { getSession } from "@/lib/session";
+import { sendAdminNotification } from "@/lib/send-admin-notification";
 
 interface Order {
   id: number;
@@ -16,7 +17,6 @@ interface Order {
   total?: number | null;
   status?: string | null;
   createdAt?: Date | string;
-  // Add more fields as needed
 }
 
 export async function GET(request: NextRequest) {
@@ -29,10 +29,9 @@ export async function GET(request: NextRequest) {
       if (!Number.isInteger(orderId) || orderId <= 0) {
         return NextResponse.json(
           { ok: false, message: "Invalid order id" },
-          { status: 400 },
+          { status: 400 }
         );
       }
-
       const order = await getOrderById(orderId);
       return NextResponse.json({ ok: true, order });
     }
@@ -47,10 +46,9 @@ export async function GET(request: NextRequest) {
     }
 
     const orders = (await listOrders()) as Order[];
-
     const myOrders = orders.filter(
       (order) =>
-        order.userId === session.userId && order.userType === session.userType,
+        order.userId === session.userId && order.userType === session.userType
     );
 
     return NextResponse.json({ ok: true, orders: myOrders });
@@ -60,7 +58,7 @@ export async function GET(request: NextRequest) {
         ok: false,
         message: error?.message || "Failed to load orders",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
@@ -78,14 +76,32 @@ export async function POST(request: NextRequest) {
       userType: session?.userType,
     });
 
+    // ============================================
+    // SEND NOTIFICATION TO SUPER ADMIN
+    // ============================================
+    const itemCount = body.items?.length || 0;
+
+    await sendAdminNotification({
+      type: "new_order",
+      title: `${body.customerName || "Customer"} placed an order`,
+      details: `
+        <p><strong>Customer:</strong> ${body.customerName || "N/A"}</p>
+        <p><strong>Email:</strong> ${body.customerEmail || "N/A"}</p>
+        <p><strong>Total:</strong> $${((order.total || 0) / 100).toFixed(2)}</p>
+        <p><strong>Items:</strong> ${itemCount} item(s)</p>
+        <p><strong>Order ID:</strong> #${order.id}</p>
+      `,
+    });
+
     return NextResponse.json({ ok: true, order });
   } catch (error: any) {
+    console.error("Order creation error:", error);
     return NextResponse.json(
       {
         ok: false,
         message: error?.message || "Failed to create order",
       },
-      { status: 500 },
+      { status: 500 }
     );
   }
 }
