@@ -1,3 +1,4 @@
+// src/sections/admin/AdminStaffSection.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -78,7 +79,7 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
       displayName: member.displayName,
       bio: member.bio || '',
       bookingEnabled: member.bookingEnabled,
-      allowStaffLogin: false, // default off on edit; user can enable to set/update credentials
+      allowStaffLogin: false,
       email: '',
       password: '',
     });
@@ -184,19 +185,19 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto bg-background text-foreground">
       {/* HEADER */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-serif text-emerald-950">Staff</h1>
-          <p className="text-emerald-600 text-sm mt-1">
+          <h1 className="text-3xl font-serif">Staff</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             {staff.length} team member{staff.length !== 1 ? 's' : ''} • Manage your crew
           </p>
         </div>
 
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-3xl transition-colors shadow-sm w-full sm:w-auto justify-center sm:justify-start"
+          className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-3xl transition-colors shadow-sm w-full sm:w-auto justify-center sm:justify-start"
         >
           <Plus size={20} />
           <span className="font-medium">Add New Staff Member</span>
@@ -204,43 +205,43 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-3xl border border-emerald-100 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
-            <thead className="bg-emerald-50">
+            <thead className="bg-muted">
               <tr>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Staff Member</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Bio</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Booking Enabled</th>
-                <th className="px-6 py-5 text-left font-medium text-emerald-700 whitespace-nowrap">Joined</th>
-                <th className="px-6 py-5 text-right font-medium text-emerald-700 whitespace-nowrap">Actions</th>
+                <th className="px-6 py-5 text-left font-medium text-muted-foreground whitespace-nowrap">Staff Member</th>
+                <th className="px-6 py-5 text-left font-medium text-muted-foreground whitespace-nowrap">Bio</th>
+                <th className="px-6 py-5 text-left font-medium text-muted-foreground whitespace-nowrap">Booking Enabled</th>
+                <th className="px-6 py-5 text-left font-medium text-muted-foreground whitespace-nowrap">Joined</th>
+                <th className="px-6 py-5 text-right font-medium text-muted-foreground whitespace-nowrap">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-emerald-100">
+            <tbody className="divide-y divide-border">
               {staff.map((member) => (
-                <tr key={member.id} className="hover:bg-emerald-50 transition-colors group">
+                <tr key={member.id} className="hover:bg-muted/50 transition-colors group">
                   <td className="px-6 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
+                      <div className="h-9 w-9 bg-muted rounded-2xl flex items-center justify-center text-foreground">
                         <User size={18} />
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium text-emerald-950 truncate">{member.displayName}</p>
+                        <p className="font-medium text-foreground truncate">{member.displayName}</p>
                       </div>
                     </div>
                   </td>
 
-                  <td className="px-6 py-5 text-emerald-600 max-w-xs">
+                  <td className="px-6 py-5 text-muted-foreground max-w-xs">
                     <p className="line-clamp-2 text-sm">{member.bio || '—'}</p>
                   </td>
 
                   <td className="px-6 py-5">
-                    <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl ${member.bookingEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`inline-flex items-center px-3 py-1 text-xs font-medium rounded-3xl ${member.bookingEnabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                       {member.bookingEnabled ? 'Enabled' : 'Disabled'}
                     </span>
                   </td>
 
-                  <td className="px-6 py-5 text-emerald-600 text-sm">
+                  <td className="px-6 py-5 text-muted-foreground text-sm">
                     <div className="flex items-center gap-1">
                       <Calendar size={14} />
                       {new Date(member.createdAt).toLocaleDateString('en-CA')}
@@ -251,7 +252,7 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
                     <div className="flex items-center gap-1 justify-end">
                       <button
                         onClick={() => openEditModal(member)}
-                        className="p-3 hover:bg-emerald-100 rounded-2xl transition-colors text-emerald-700"
+                        className="p-3 hover:bg-muted rounded-2xl transition-colors text-foreground"
                         title="Edit staff"
                       >
                         <Edit size={18} />
@@ -274,8 +275,8 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
         {/* Empty state */}
         {staff.length === 0 && (
           <div className="px-6 py-12 text-center">
-            <p className="text-emerald-500">No staff members yet.</p>
-            <p className="text-xs text-emerald-400 mt-2">
+            <p className="text-muted-foreground">No staff members yet.</p>
+            <p className="text-xs text-muted-foreground mt-2">
               Click “Add New Staff Member” to get started.
             </p>
           </div>
@@ -285,33 +286,33 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
       {/* CREATE MODAL */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-card border border-border rounded-3xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Add New Staff Member</h2>
-              <button onClick={closeModals} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-xl font-semibold text-foreground">Add New Staff Member</h2>
+              <button onClick={closeModals} className="text-muted-foreground hover:text-foreground">
                 <X size={24} />
               </button>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Display Name</label>
                 <input
                   type="text"
                   value={formData.displayName}
                   onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                   placeholder="e.g. Sarah Chen"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bio (optional)</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Bio (optional)</label>
                 <textarea
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                   rows={3}
                   placeholder="Short description..."
                 />
@@ -323,66 +324,65 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
                   id="bookingEnabled"
                   checked={formData.bookingEnabled}
                   onChange={(e) => setFormData({ ...formData, bookingEnabled: e.target.checked })}
-                  className="w-4 h-4 text-emerald-600"
+                  className="w-4 h-4 text-primary"
                 />
-                <label htmlFor="bookingEnabled" className="text-sm text-gray-700">
+                <label htmlFor="bookingEnabled" className="text-sm text-foreground">
                   Enable booking for this staff member
                 </label>
               </div>
 
-              {/* NEW: Allow Staff Login */}
-              <div className="pt-2 border-t border-gray-100">
+              <div className="pt-2 border-t border-border">
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
                     id="allowStaffLogin"
                     checked={formData.allowStaffLogin}
                     onChange={(e) => setFormData({ ...formData, allowStaffLogin: e.target.checked })}
-                    className="w-4 h-4 text-emerald-600"
+                    className="w-4 h-4 text-primary"
                   />
-                  <label htmlFor="allowStaffLogin" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="allowStaffLogin" className="text-sm font-medium text-foreground">
                     Allow this staff member to log in to the admin panel (limited access)
                   </label>
                 </div>
-                <p className="text-xs text-gray-500 mt-1 ml-7">
+                <p className="text-xs text-muted-foreground mt-1 ml-7">
                   Staff will be able to access overview, services, bookings, messages and staff tabs.
                 </p>
               </div>
 
               {formData.allowStaffLogin && (
-                <div className="space-y-4 pt-2 pl-7 border-l-2 border-emerald-200 ml-2">
+                <div className="space-y-4 pt-2 pl-7 border-l-2 border-primary/30 ml-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Staff Email (for login)</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Staff Email (for login)</label>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                      className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                       placeholder="sarah@yourstudio.com"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Temporary Password</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Temporary Password</label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500 pr-12"
+                        className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground pr-12"
                         placeholder="••••••••"
                         required
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Staff can change this password later from their account page.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Staff can change this password later from their account page.</p>
                   </div>
                 </div>
               )}
@@ -391,14 +391,14 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
                 <button
                   type="button"
                   onClick={closeModals}
-                  className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-2xl hover:bg-gray-50"
+                  className="flex-1 border border-border text-foreground py-3 rounded-2xl hover:bg-muted"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-emerald-600 text-white py-3 rounded-2xl hover:bg-emerald-700 disabled:opacity-50"
+                  className="flex-1 bg-primary text-primary-foreground py-3 rounded-2xl hover:bg-primary/90 disabled:opacity-50"
                 >
                   {loading ? 'Creating...' : 'Create Staff Member'}
                 </button>
@@ -411,32 +411,32 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
       {/* EDIT MODAL */}
       {showEditModal && selectedStaff && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-card border border-border rounded-3xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold">Edit Staff Member</h2>
-              <button onClick={closeModals} className="text-gray-400 hover:text-gray-600">
+              <h2 className="text-xl font-semibold text-foreground">Edit Staff Member</h2>
+              <button onClick={closeModals} className="text-muted-foreground hover:text-foreground">
                 <X size={24} />
               </button>
             </div>
 
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Display Name</label>
                 <input
                   type="text"
                   value={formData.displayName}
                   onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bio (optional)</label>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">Bio (optional)</label>
                 <textarea
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                  className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                   rows={3}
                 />
               </div>
@@ -447,65 +447,64 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
                   id="editBookingEnabled"
                   checked={formData.bookingEnabled}
                   onChange={(e) => setFormData({ ...formData, bookingEnabled: e.target.checked })}
-                  className="w-4 h-4 text-emerald-600"
+                  className="w-4 h-4 text-primary"
                 />
-                <label htmlFor="editBookingEnabled" className="text-sm text-gray-700">
+                <label htmlFor="editBookingEnabled" className="text-sm text-foreground">
                   Enable booking for this staff member
                 </label>
               </div>
 
-              {/* NEW: Allow/ Update Staff Login (Edit) */}
-              <div className="pt-2 border-t border-gray-100">
+              <div className="pt-2 border-t border-border">
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
                     id="editAllowStaffLogin"
                     checked={formData.allowStaffLogin}
                     onChange={(e) => setFormData({ ...formData, allowStaffLogin: e.target.checked })}
-                    className="w-4 h-4 text-emerald-600"
+                    className="w-4 h-4 text-primary"
                   />
-                  <label htmlFor="editAllowStaffLogin" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="editAllowStaffLogin" className="text-sm font-medium text-foreground">
                     Allow / Update admin panel login (limited access)
                   </label>
                 </div>
-                <p className="text-xs text-gray-500 mt-1 ml-7">
+                <p className="text-xs text-muted-foreground mt-1 ml-7">
                   Enabling this will set or update the staff login credentials and grant limited admin access.
                 </p>
               </div>
 
               {formData.allowStaffLogin && (
-                <div className="space-y-4 pt-2 pl-7 border-l-2 border-emerald-200 ml-2">
+                <div className="space-y-4 pt-2 pl-7 border-l-2 border-primary/30 ml-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Staff Email (for login)</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">Staff Email (for login)</label>
                     <input
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500"
+                      className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground"
                       placeholder="sarah@yourstudio.com"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">New Password (leave blank to keep current)</label>
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">New Password (leave blank to keep current)</label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
                         value={formData.password}
                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="w-full border border-gray-300 rounded-2xl px-4 py-3 focus:outline-none focus:border-emerald-500 pr-12"
+                        className="w-full border border-border bg-background rounded-2xl px-4 py-3 focus:outline-none focus:border-primary text-foreground pr-12"
                         placeholder="Leave blank to keep existing password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                       >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Only fill if you want to change the password.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Only fill if you want to change the password.</p>
                   </div>
                 </div>
               )}
@@ -514,14 +513,14 @@ export default function AdminStaffSection({ initialStaff = [] }: { initialStaff?
                 <button
                   type="button"
                   onClick={closeModals}
-                  className="flex-1 border border-gray-300 text-gray-700 py-3 rounded-2xl hover:bg-gray-50"
+                  className="flex-1 border border-border text-foreground py-3 rounded-2xl hover:bg-muted"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-emerald-600 text-white py-3 rounded-2xl hover:bg-emerald-700 disabled:opacity-50"
+                  className="flex-1 bg-primary text-primary-foreground py-3 rounded-2xl hover:bg-primary/90 disabled:opacity-50"
                 >
                   {loading ? 'Saving...' : 'Save Changes'}
                 </button>
