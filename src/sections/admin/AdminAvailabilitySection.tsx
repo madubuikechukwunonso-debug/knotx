@@ -37,33 +37,33 @@ export default async function AdminAvailabilitySection() {
   });
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 max-w-7xl mx-auto bg-background text-foreground">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-serif text-emerald-950">Availability</h1>
-          <p className="text-emerald-600 text-sm mt-1">
+          <h1 className="text-3xl font-serif">Availability</h1>
+          <p className="text-muted-foreground text-sm mt-1">
             Manage your personal hours + team schedules
           </p>
         </div>
       </div>
 
-      {/* ADMIN'S PERSONAL AVAILABILITY - ALWAYS SHOW GRAPHICAL EDITOR */}
-      <div className="bg-white border border-emerald-200 rounded-3xl p-6 shadow-sm">
+      {/* ADMIN'S PERSONAL AVAILABILITY */}
+      <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center text-xl">
+          <div className="w-10 h-10 bg-primary text-primary-foreground rounded-2xl flex items-center justify-center text-xl">
             👑
           </div>
           <div>
             <h2 className="font-semibold text-lg">My Availability (Admin)</h2>
-            <p className="text-xs text-emerald-600">Your schedule appears on the booking page</p>
+            <p className="text-xs text-muted-foreground">Your schedule appears on the booking page</p>
           </div>
         </div>
 
         {!myProfile ? (
           // CREATE PROFILE FORM
-          <div className="bg-emerald-50/50 rounded-2xl p-6 border border-emerald-100">
-            <h3 className="font-medium text-emerald-950 mb-3">Create Your Staff Profile</h3>
-            <p className="text-sm text-emerald-700 mb-4">
+          <div className="bg-muted/50 rounded-2xl p-6 border border-border">
+            <h3 className="font-medium mb-3">Create Your Staff Profile</h3>
+            <p className="text-sm text-muted-foreground mb-4">
               Choose a nickname that customers will see when booking with you.
             </p>
             
@@ -82,7 +82,7 @@ export default async function AdminAvailabilitySection() {
                 },
               });
 
-              // Create default working hours (Mon-Fri 8am-10pm, Sat 2-7pm, Sun closed)
+              // Create default working hours
               await prisma.staffWorkingHour.createMany({
                 data: [
                   { staffUserId: newProfile.id, dayOfWeek: 1, startTime: '08:00', endTime: '22:00', isWorking: true },
@@ -102,17 +102,17 @@ export default async function AdminAvailabilitySection() {
                   type="text" 
                   name="displayName" 
                   placeholder="Your nickname (e.g. Chukwunonso, Owner, Master Stylist)"
-                  className="flex-1 border border-black/20 px-4 py-3 rounded-2xl focus:border-emerald-500 outline-none text-lg"
+                  className="flex-1 border border-border bg-background px-4 py-3 rounded-2xl focus:border-primary outline-none text-lg"
                   required 
                 />
                 <button 
                   type="submit"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-2xl font-medium whitespace-nowrap text-lg"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 rounded-2xl font-medium whitespace-nowrap text-lg transition-colors"
                 >
                   Create Profile &amp; Start Editing
                 </button>
               </div>
-              <p className="text-xs text-emerald-600 mt-2">This nickname will be visible to customers on the booking page</p>
+              <p className="text-xs text-muted-foreground mt-2">This nickname will be visible to customers on the booking page</p>
             </form>
           </div>
         ) : (
@@ -120,15 +120,19 @@ export default async function AdminAvailabilitySection() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xl font-medium text-emerald-950">{myProfile.displayName}</div>
-                <div className="text-sm text-emerald-600">Your personal schedule • Appears on booking page</div>
+                <div className="text-xl font-medium">{myProfile.displayName}</div>
+                <div className="text-sm text-muted-foreground">Your personal schedule • Appears on booking page</div>
               </div>
-              <div className={`px-4 py-1.5 text-sm rounded-2xl font-medium ${myProfile.bookingEnabled ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+              <div className={`px-4 py-1.5 text-sm rounded-2xl font-medium transition-colors ${
+                myProfile.bookingEnabled 
+                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                  : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
                 {myProfile.bookingEnabled ? '✓ Accepting Bookings' : '✕ Not Available'}
               </div>
             </div>
 
-            {/* Show the graphical editor directly for admin's own profile */}
+            {/* Graphical Editor */}
             <AdminAvailabilityTable staff={[myProfile]} />
           </div>
         )}
@@ -139,9 +143,9 @@ export default async function AdminAvailabilitySection() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="text-xl font-medium">Team Staff Availability</h2>
-            <p className="text-xs text-black/50">Other staff members and their schedules</p>
+            <p className="text-xs text-muted-foreground">Other staff members and their schedules</p>
           </div>
-          <div className="text-xs text-emerald-600 bg-emerald-50 px-3 py-1 rounded-2xl">
+          <div className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-2xl">
             {otherStaff.length} team member{otherStaff.length !== 1 ? 's' : ''}
           </div>
         </div>
