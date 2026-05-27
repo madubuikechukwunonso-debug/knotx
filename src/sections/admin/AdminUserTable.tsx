@@ -72,35 +72,35 @@ export default function AdminUserTable({
           setEditingUser(null);
           setModalOpen(true);
         }}
-        className="flex items-center gap-2 rounded-2xl bg-black px-6 py-3 text-sm font-medium text-white hover:bg-black/90"
+        className="flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
       >
         <Plus className="h-4 w-4" />
         New User
       </button>
 
       {/* Table */}
-      <div className="rounded-3xl border border-black/10 bg-white overflow-hidden">
+      <div className="rounded-3xl border border-border bg-card overflow-hidden">
         <table className="w-full">
-          <thead className="bg-black/5">
+          <thead className="bg-muted">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-medium">User</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Role</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Status</th>
-              <th className="px-6 py-4 text-left text-xs font-medium">Last Sign-in</th>
-              <th className="px-6 py-4 text-right text-xs font-medium">Actions</th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground">User</th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground">Role</th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground">Status</th>
+              <th className="px-6 py-4 text-left text-xs font-medium text-muted-foreground">Last Sign-in</th>
+              <th className="px-6 py-4 text-right text-xs font-medium text-muted-foreground">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y">
+          <tbody className="divide-y divide-border">
             {users.map((user) => (
-              <tr key={user.id} className="hover:bg-black/5">
+              <tr key={user.id} className="hover:bg-muted/50 transition-colors">
                 <td className="px-6 py-4">
                   <div>
-                    <p className="font-medium">{user.displayName || user.username}</p>
-                    <p className="text-xs text-black/50">{user.email}</p>
+                    <p className="font-medium text-foreground">{user.displayName || user.username}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
                   </div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="inline-block rounded-2xl bg-black/10 px-3 py-1 text-xs font-medium capitalize">
+                  <span className="inline-block rounded-2xl bg-muted px-3 py-1 text-xs font-medium capitalize text-foreground">
                     {user.role}
                   </span>
                 </td>
@@ -120,13 +120,13 @@ export default function AdminUserTable({
                       </span>
                     </button>
                     {user.isBlocked && (
-                      <span className="inline-block rounded-2xl bg-red-100 px-3 py-1 text-xs font-medium text-red-800">
+                      <span className="inline-block rounded-2xl bg-red-100 px-3 py-1 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-400">
                         Blocked
                       </span>
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-black/60">
+                <td className="px-6 py-4 text-sm text-muted-foreground">
                   {user.lastSignInAt
                     ? new Date(user.lastSignInAt).toLocaleDateString()
                     : 'Never'}
@@ -137,13 +137,13 @@ export default function AdminUserTable({
                       setEditingUser(user);
                       setModalOpen(true);
                     }}
-                    className="mr-3 text-black/70 hover:text-black"
+                    className="mr-3 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(user.id)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-600 transition-colors"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -157,9 +157,9 @@ export default function AdminUserTable({
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full mx-auto shadow-2xl">
+          <div className="bg-card border border-border rounded-3xl max-w-lg w-full mx-auto shadow-2xl">
             <form action={handleSubmit} className="p-8 space-y-6">
-              <h2 className="text-2xl font-serif">
+              <h2 className="text-2xl font-serif text-foreground">
                 {editingUser ? 'Edit User' : 'New User'}
               </h2>
 
@@ -168,22 +168,22 @@ export default function AdminUserTable({
               {!editingUser && (
                 <>
                   <div>
-                    <label className="block text-xs font-medium mb-1">Username</label>
+                    <label className="block text-xs font-medium mb-1 text-muted-foreground">Username</label>
                     <input
                       name="username"
                       required
-                      className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                      className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-foreground"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1">Password (temporary)</label>
+                    <label className="block text-xs font-medium mb-1 text-muted-foreground">Password (temporary)</label>
                     <input
                       name="password"
                       type="password"
                       required
-                      className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                      className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-foreground"
                     />
-                    <p className="text-xs text-black/50 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       In production this will be properly hashed with bcrypt
                     </p>
                   </div>
@@ -191,31 +191,31 @@ export default function AdminUserTable({
               )}
 
               <div>
-                <label className="block text-xs font-medium mb-1">Display Name</label>
+                <label className="block text-xs font-medium mb-1 text-muted-foreground">Display Name</label>
                 <input
                   name="displayName"
                   defaultValue={editingUser?.displayName || ''}
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Email</label>
+                <label className="block text-xs font-medium mb-1 text-muted-foreground">Email</label>
                 <input
                   name="email"
                   type="email"
                   defaultValue={editingUser?.email}
                   required
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-foreground"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">Role</label>
+                <label className="block text-xs font-medium mb-1 text-muted-foreground">Role</label>
                 <select
                   name="role"
                   defaultValue={editingUser?.role || 'user'}
-                  className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                  className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-foreground"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>
@@ -224,7 +224,7 @@ export default function AdminUserTable({
               </div>
 
               <div className="flex gap-6">
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-foreground">
                   <input
                     type="checkbox"
                     name="isActive"
@@ -232,7 +232,7 @@ export default function AdminUserTable({
                   />
                   Active
                 </label>
-                <label className="flex items-center gap-2">
+                <label className="flex items-center gap-2 text-foreground">
                   <input
                     type="checkbox"
                     name="isBlocked"
@@ -244,11 +244,11 @@ export default function AdminUserTable({
 
               {editingUser?.isBlocked && (
                 <div>
-                  <label className="block text-xs font-medium mb-1">Blocked Reason</label>
+                  <label className="block text-xs font-medium mb-1 text-muted-foreground">Blocked Reason</label>
                   <input
                     name="blockedReason"
                     defaultValue={editingUser?.blockedReason || ''}
-                    className="w-full rounded-2xl border border-black/10 px-4 py-3"
+                    className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-foreground"
                   />
                 </div>
               )}
@@ -260,13 +260,13 @@ export default function AdminUserTable({
                     setModalOpen(false);
                     setEditingUser(null);
                   }}
-                  className="flex-1 py-4 rounded-2xl border border-black/10 font-medium"
+                  className="flex-1 py-4 rounded-2xl border border-border font-medium hover:bg-muted text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-4 rounded-2xl bg-black text-white font-medium"
+                  className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-medium hover:bg-primary/90"
                 >
                   {editingUser ? 'Save Changes' : 'Create User'}
                 </button>
