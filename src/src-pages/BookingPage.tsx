@@ -409,7 +409,7 @@ export default function BookingPage() {
                             className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/60 px-4 py-1.5 text-xs font-medium text-emerald-700 transition-all hover:bg-emerald-100 hover:border-emerald-300 active:scale-[0.985]"
                           >
                             <Info className="h-3.5 w-3.5" />
-                            View description
+                            View description ( Please Read Before Booking )
                           </button>
                         )}
 
