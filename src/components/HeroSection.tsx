@@ -113,7 +113,7 @@ export default function HeroSection() {
             BRAIDING
           </h1>
           <p className="mt-6 text-white/80 text-sm sm:text-base uppercase tracking-[0.3em] font-light">
-            Luxury Hair Craft Since 2023
+            Luxury Hair Craft Since 2024
           </p>
         </div>
       </div>
