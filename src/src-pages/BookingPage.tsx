@@ -5,12 +5,13 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/hooks/useAuth';
-import { Clock, Check, ArrowLeft, User, Plus, Minus, X, Calendar } from 'lucide-react';
+import { Clock, Check, ArrowLeft, User, Plus, Minus, X, Calendar, Info } from 'lucide-react';
 
 type Slot = { staffUserId: number; staffName: string; time: string };
 type Service = {
   id: number;
   name: string;
+  description?: string | null;
   durationMinutes: number;
   price: number;
   depositAmount?: number;
@@ -51,6 +52,10 @@ export default function BookingPage() {
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [modalStep, setModalStep] = useState<'addons' | 'braider' | 'datetime' | 'details'>('addons');
+
+  // Description modal state (added - minimal change only)
+  const [showDescModal, setShowDescModal] = useState(false);
+  const [descService, setDescService] = useState<Service | null>(null);
 
   // Fetch data
   useEffect(() => {
@@ -142,6 +147,28 @@ export default function BookingPage() {
     setSelectedService('');
     setSelectedServiceData(null);
     setError('');
+  };
+
+  // Description handlers (added - minimal change only)
+  const openDescription = (service: Service, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDescService(service);
+    setShowDescModal(true);
+  };
+
+  const closeDescModal = () => {
+    setShowDescModal(false);
+    setDescService(null);
+  };
+
+  const bookFromDescription = () => {
+    if (descService) {
+      const serviceId = descService.id;
+      closeDescModal();
+      setTimeout(() => {
+        openServiceModal(serviceId);
+      }, 80);
+    }
   };
 
   const handleCategorySelect = (categoryId: number | null) => {
@@ -374,6 +401,17 @@ export default function BookingPage() {
                             </div>
                           )}
                         </div>
+
+                        {/* Description button added here only (no other card changes) */}
+                        {service.description && (
+                          <button
+                            onClick={(e) => openDescription(service, e)}
+                            className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50/60 px-4 py-1.5 text-xs font-medium text-emerald-700 transition-all hover:bg-emerald-100 hover:border-emerald-300 active:scale-[0.985]"
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                            View description
+                          </button>
+                        )}
 
                         <button className="mt-2 text-sm font-medium text-emerald-600 flex items-center gap-1 group-hover:gap-2 transition-all">
                           Select this service <span className="text-lg">→</span>
@@ -693,6 +731,53 @@ export default function BookingPage() {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DESCRIPTION POPUP BALLOON (only new block added - everything else identical) */}
+      {showDescModal && descService && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-3xl w-full max-w-lg mx-4 max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-gray-100">
+            <div className="flex items-start justify-between gap-4 p-6 border-b">
+              <div className="min-w-0">
+                <div className="text-[10px] font-medium tracking-[2.5px] text-emerald-600/90 mb-1">SERVICE INFORMATION</div>
+                <h2 className="font-serif text-2xl leading-tight pr-2">{descService.name}</h2>
+              </div>
+              <button 
+                onClick={closeDescModal} 
+                className="mt-1 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-black transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6" style={{ maxHeight: '58vh' }}>
+              {descService.description ? (
+                <div className="text-[15px] leading-relaxed text-gray-700 whitespace-pre-wrap tracking-[-0.1px]">
+                  {descService.description}
+                </div>
+              ) : (
+                <div className="flex h-32 items-center justify-center">
+                  <p className="text-center text-sm italic text-gray-500">No description has been added for this service yet.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t bg-white p-6 flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={closeDescModal}
+                className="flex-1 border border-gray-300 hover:bg-gray-50 active:bg-gray-100 py-3.5 rounded-2xl font-medium text-base transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={bookFromDescription}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white py-3.5 rounded-2xl font-medium text-base transition-all flex items-center justify-center gap-2"
+              >
+                Book this service <span className="text-lg">→</span>
+              </button>
             </div>
           </div>
         </div>
